@@ -4,6 +4,7 @@ import { FeedbackPanel } from '@/modules/shared/quiz-engine/FeedbackPanel'
 import { FlashcardView } from '@/modules/shared/quiz-engine/FlashcardView'
 import { SbaOptions } from '@/modules/shared/quiz-engine/SbaOptions'
 import { gradeToResult } from '@/modules/shared/quiz-engine/scoring'
+import { suggestMistakeTags } from '@/features/mistakes/tags'
 import type { AttemptResult, PresentationFormat, QuestionWithOptions } from '@/types/database'
 import type { FlashcardGrade, QuizAnswerPayload } from '@/types/quiz'
 
@@ -11,6 +12,7 @@ type SubmitArgs = {
   result: AttemptResult
   selectedOptionId: string | null
   payload: QuizAnswerPayload
+  timeSpentMs: number | null
 }
 
 type Props = {
@@ -37,6 +39,9 @@ export function QuestionView({
   const [grade, setGrade] = useState<FlashcardGrade | undefined>()
   const [secondsLeft, setSecondsLeft] = useState(rapidFireSeconds)
   const [timedOut, setTimedOut] = useState(false)
+  const [startedAt] = useState(() => Date.now())
+  const [mistakeTags, setMistakeTags] = useState<string[]>([])
+  const [mistakeNote, setMistakeNote] = useState('')
 
   useEffect(() => {
     setSelectedId(null)
@@ -46,6 +51,8 @@ export function QuestionView({
     setGrade(undefined)
     setSecondsLeft(rapidFireSeconds)
     setTimedOut(false)
+    setMistakeTags([])
+    setMistakeNote('')
   }, [question.id, format, rapidFireSeconds])
 
   useEffect(() => {
@@ -60,6 +67,18 @@ export function QuestionView({
     return () => window.clearTimeout(t)
   }, [format, revealed, secondsLeft])
 
+  function seedSuggestions(nextResult: AttemptResult, nextGrade?: FlashcardGrade, nextTimedOut = false) {
+    const suggestions = suggestMistakeTags({
+      result: nextResult,
+      format,
+      timedOut: nextTimedOut,
+      timeSpentMs: Date.now() - startedAt,
+      grade: nextGrade,
+      coverRevealed: coverOpen,
+    })
+    setMistakeTags(suggestions)
+  }
+
   function checkAnswer(optionId: string) {
     const opt = question.question_options.find((o) => o.id === optionId)
     const isCorrect = Boolean(opt?.is_correct)
@@ -67,6 +86,23 @@ export function QuestionView({
     setSelectedId(optionId)
     setResult(nextResult)
     setRevealed(true)
+    if (!isCorrect) seedSuggestions(nextResult)
+    else {
+      setMistakeTags([])
+      setMistakeNote('')
+    }
+  }
+
+  function buildPayload(extra: Partial<QuizAnswerPayload> = {}): QuizAnswerPayload {
+    return {
+      selectedOptionId: selectedId,
+      grade,
+      timedOut,
+      coverRevealed: coverOpen,
+      mistakeTags: mistakeTags.length > 0 ? mistakeTags : undefined,
+      mistakeNote: mistakeNote || null,
+      ...extra,
+    }
   }
 
   function confirmAndAdvance() {
@@ -74,12 +110,8 @@ export function QuestionView({
     onSubmit({
       result,
       selectedOptionId: selectedId,
-      payload: {
-        selectedOptionId: selectedId,
-        grade,
-        timedOut,
-        coverRevealed: coverOpen,
-      },
+      payload: buildPayload(),
+      timeSpentMs: Date.now() - startedAt,
     })
   }
 
@@ -88,6 +120,11 @@ export function QuestionView({
     setGrade(g)
     setResult(r)
     setRevealed(true)
+    if (r === 'incorrect' || r === 'partial') seedSuggestions(r, g)
+    else {
+      setMistakeTags([])
+      setMistakeNote('')
+    }
   }
 
   if (format === 'flashcard' || question.question_type === 'flashcard') {
@@ -97,13 +134,24 @@ export function QuestionView({
         <FlashcardView question={question} disabled={revealed} onGrade={onFlashGrade} />
         {revealed && result ? (
           <>
-            <FeedbackPanel question={question} result={result} grade={grade} />
+            <FeedbackPanel
+              question={question}
+              result={result}
+              grade={grade}
+              format={format}
+              timeSpentMs={Date.now() - startedAt}
+              onTagsChange={(tags, note) => {
+                setMistakeTags(tags)
+                setMistakeNote(note)
+              }}
+            />
             <Button
               onClick={() =>
                 onSubmit({
                   result,
                   selectedOptionId: null,
-                  payload: { grade },
+                  payload: buildPayload({ grade }),
+                  timeSpentMs: Date.now() - startedAt,
                 })
               }
             >
@@ -158,7 +206,18 @@ export function QuestionView({
 
       {revealed && result ? (
         <>
-          <FeedbackPanel question={question} result={result} />
+          <FeedbackPanel
+            question={question}
+            result={result}
+            format={format}
+            timedOut={timedOut}
+            timeSpentMs={Date.now() - startedAt}
+            coverRevealed={coverOpen}
+            onTagsChange={(tags, note) => {
+              setMistakeTags(tags)
+              setMistakeNote(note)
+            }}
+          />
           <div className="flex flex-wrap gap-2">
             {timedOut && !selectedId ? (
               <Button
@@ -167,7 +226,8 @@ export function QuestionView({
                   onSubmit({
                     result: 'skipped',
                     selectedOptionId: null,
-                    payload: { timedOut: true },
+                    payload: buildPayload({ timedOut: true }),
+                    timeSpentMs: Date.now() - startedAt,
                   })
                 }
               >

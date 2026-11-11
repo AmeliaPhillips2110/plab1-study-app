@@ -15,8 +15,8 @@ export function HomePage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-2xl text-muted">
-            Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}. Practice with tutor
-            feedback or sit a timed mock. KPI charts arrive later.
+            Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}. Practice, sit timed
+            mocks, and review your attempt history with mistake tags.
           </p>
           <div className="flex flex-wrap gap-2">
             <Link to="/study">
@@ -24,6 +24,9 @@ export function HomePage() {
             </Link>
             <Link to="/mock">
               <Button variant="secondary">Timed mock</Button>
+            </Link>
+            <Link to="/attempts">
+              <Button variant="ghost">Attempt log</Button>
             </Link>
           </div>
         </div>
@@ -57,6 +60,21 @@ export function HomePage() {
           ) : (
             <p className="text-sm text-muted">No exam loaded.</p>
           )}
+        </section>
+
+        <section className="rounded-md border border-border bg-surface p-4">
+          <h2 className="mb-2 text-lg font-semibold">Attempts & mistakes (Stage d)</h2>
+          <ul className="grid gap-2 text-sm text-muted sm:grid-cols-2">
+            <li>Filterable / sortable attempt log</li>
+            <li>Per-question timeline</li>
+            <li>Mistake tags on wrong answers (tutor + mock review)</li>
+            <li>CSV export for attempts and sessions</li>
+          </ul>
+          <p className="mt-3">
+            <Link className="text-sm text-accent hover:underline" to="/attempts">
+              Open attempt log →
+            </Link>
+          </p>
         </section>
 
         <section className="rounded-md border border-border bg-surface p-4">

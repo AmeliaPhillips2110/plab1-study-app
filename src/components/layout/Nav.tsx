@@ -22,6 +22,9 @@ export function Nav() {
       <NavLink to="/mock" className={linkClass}>
         Mocks
       </NavLink>
+      <NavLink to="/attempts" className={linkClass}>
+        Attempts
+      </NavLink>
       {isAdmin ? (
         <>
           <NavLink to="/admin" end className={linkClass}>

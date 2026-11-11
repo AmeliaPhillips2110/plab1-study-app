@@ -42,18 +42,23 @@ export async function saveAttempt(params: {
   result: AttemptResult
   responsePayload: QuizAnswerPayload
   timeSpentMs: number | null
-}): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('attempts').insert({
-    session_id: params.sessionId,
-    exam_id: params.examId,
-    user_id: params.userId,
-    question_id: params.questionId,
-    selected_option_id: params.selectedOptionId,
-    response_payload: params.responsePayload,
-    result: params.result,
-    time_spent_ms: params.timeSpentMs,
-  })
-  return { error: error?.message ?? null }
+}): Promise<{ attemptId: string | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('attempts')
+    .insert({
+      session_id: params.sessionId,
+      exam_id: params.examId,
+      user_id: params.userId,
+      question_id: params.questionId,
+      selected_option_id: params.selectedOptionId,
+      response_payload: params.responsePayload,
+      result: params.result,
+      time_spent_ms: params.timeSpentMs,
+    })
+    .select('id')
+    .single()
+  if (error || !data) return { attemptId: null, error: error?.message ?? 'Could not save attempt.' }
+  return { attemptId: (data as { id: string }).id, error: null }
 }
 
 export async function updateSpacedRepetition(params: {

@@ -43,6 +43,7 @@ export function MockRunner({
     correct: number
     answered: number
     passed: boolean
+    attemptIdByQuestionId: Record<string, string>
   } | null>(null)
   const progressRef = useRef(progress)
   progressRef.current = progress
@@ -140,6 +141,7 @@ export function MockRunner({
       correct: finished.correct,
       answered: finished.answered,
       passed: finished.passed,
+      attemptIdByQuestionId: finished.attemptIdByQuestionId,
     })
     setPhase('review')
   }
@@ -190,6 +192,7 @@ export function MockRunner({
         passed={resultMeta.passed}
         passMark={passMarkPercent}
         elapsedSec={elapsedSec}
+        attemptIdByQuestionId={resultMeta.attemptIdByQuestionId}
       />
     )
   }

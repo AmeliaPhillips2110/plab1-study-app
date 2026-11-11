@@ -25,6 +25,8 @@ export type QuizAnswerPayload = {
   revealedOptions?: boolean
   timedOut?: boolean
   coverRevealed?: boolean
+  mistakeTags?: string[]
+  mistakeNote?: string | null
 }
 
 export type LocalAttempt = {

@@ -1,11 +1,13 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { MistakeTagPicker, loadMistakeTagsForAttempts, saveMistakeTags } from '@/features/mistakes'
+import { suggestMistakeTags, type MistakeTagCode } from '@/features/mistakes/tags'
 import { PaceWidget } from '@/modules/shared/quiz-engine/mock/PaceWidget'
 import { computePace, formatDuration } from '@/modules/shared/quiz-engine/pace'
 import type { QuestionWithOptions } from '@/types/database'
 import type { MockProgressState, TimedMode } from '@/types/quiz'
-import { Link } from 'react-router-dom'
-import { useMemo, useState } from 'react'
 
 type Props = {
   mode: TimedMode
@@ -17,6 +19,7 @@ type Props = {
   passed: boolean
   passMark: number
   elapsedSec: number
+  attemptIdByQuestionId: Record<string, string>
 }
 
 export function MockReview({
@@ -29,14 +32,27 @@ export function MockReview({
   passed,
   passMark,
   elapsedSec,
+  attemptIdByQuestionId,
 }: Props) {
   const [filter, setFilter] = useState<'all' | 'incorrect' | 'flagged' | 'skipped'>('all')
+  const [tagMap, setTagMap] = useState<Record<string, string[]>>({})
   const pace = computePace({
     elapsedSec,
     timeLimitSec: progress.timeLimitSec,
     answeredCount: answered,
     totalQuestions: questions.length,
   })
+
+  useEffect(() => {
+    const ids = Object.values(attemptIdByQuestionId)
+    void loadMistakeTagsForAttempts(ids).then((map) => {
+      const next: Record<string, string[]> = {}
+      for (const [attemptId, rows] of Object.entries(map)) {
+        next[attemptId] = rows.map((r) => r.tag)
+      }
+      setTagMap(next)
+    })
+  }, [attemptIdByQuestionId])
 
   const items = useMemo(() => {
     return questions
@@ -49,7 +65,8 @@ export function MockReview({
             ? 'correct'
             : 'incorrect'
         const isFlagged = progress.flagged.includes(q.id)
-        return { q, index, selected, correctOpt, result, isFlagged }
+        const attemptId = attemptIdByQuestionId[q.id] ?? null
+        return { q, index, selected, correctOpt, result, isFlagged, attemptId }
       })
       .filter((item) => {
         if (filter === 'all') return true
@@ -57,7 +74,7 @@ export function MockReview({
         if (filter === 'flagged') return item.isFlagged
         return item.result === 'skipped'
       })
-  }, [questions, progress, filter])
+  }, [questions, progress, filter, attemptIdByQuestionId])
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,6 +92,13 @@ export function MockReview({
           </Badge>
           <Badge>Time used {formatDuration(elapsedSec)}</Badge>
         </div>
+        <p className="mt-2 text-sm text-muted">
+          Tag incorrect items below so Stage e weakness charts can use them. Full history lives in the{' '}
+          <Link className="text-accent hover:underline" to="/attempts">
+            attempt log
+          </Link>
+          .
+        </p>
       </section>
 
       <section>
@@ -115,8 +139,12 @@ export function MockReview({
           <p className="text-sm text-muted">Nothing in this filter.</p>
         ) : (
           <ul className="flex flex-col gap-4">
-            {items.map(({ q, index, selected, correctOpt, result, isFlagged }) => {
+            {items.map(({ q, index, selected, correctOpt, result, isFlagged, attemptId }) => {
               const selectedOpt = q.question_options.find((o) => o.id === selected)
+              const suggested =
+                result === 'incorrect'
+                  ? suggestMistakeTags({ result: 'incorrect' })
+                  : ([] as MistakeTagCode[])
               return (
                 <li key={q.id} className="rounded-md border border-border bg-surface p-4">
                   <div className="mb-2 flex flex-wrap gap-2">
@@ -165,10 +193,23 @@ export function MockReview({
                     </p>
                   ) : null}
                   {q.explanation ? (
-                    <div className="rounded border border-border bg-bg p-3 text-sm">
+                    <div className="mb-3 rounded border border-border bg-bg p-3 text-sm">
                       <p className="mb-1 font-medium">Explanation</p>
                       <p className="whitespace-pre-wrap text-muted">{q.explanation}</p>
                     </div>
+                  ) : null}
+                  {result === 'incorrect' && attemptId ? (
+                    <MistakeTagPicker
+                      suggested={suggested}
+                      initialSelected={tagMap[attemptId] ?? suggested}
+                      onSave={async (tags, note) => {
+                        await saveMistakeTags({
+                          attemptId,
+                          tags: tags.map((tag) => ({ tag, note: note || null, source: 'manual' })),
+                        })
+                        setTagMap((prev) => ({ ...prev, [attemptId]: tags }))
+                      }}
+                    />
                   ) : null}
                 </li>
               )
@@ -183,6 +224,12 @@ export function MockReview({
           className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
           Another timed test
+        </Link>
+        <Link
+          to="/attempts"
+          className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+        >
+          Attempt log
         </Link>
         <Link
           to="/"

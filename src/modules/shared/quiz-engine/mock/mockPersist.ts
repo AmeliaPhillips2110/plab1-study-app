@@ -177,6 +177,7 @@ export async function finalizeMockSession(params: {
   correct: number
   answered: number
   passed: boolean
+  attemptIdByQuestionId: Record<string, string>
 }> {
   const rows = params.questions.map((q) => {
     const selected = params.progress.answers[q.id] ?? null
@@ -202,10 +203,24 @@ export async function finalizeMockSession(params: {
 
   // Replace any prior draft attempts for this session.
   await supabase.from('attempts').delete().eq('session_id', params.sessionId)
+  const attemptIdByQuestionId: Record<string, string> = {}
   if (rows.length > 0) {
-    const { error: insErr } = await supabase.from('attempts').insert(rows)
+    const { data: inserted, error: insErr } = await supabase
+      .from('attempts')
+      .insert(rows)
+      .select('id, question_id')
     if (insErr) {
-      return { error: insErr.message, percent: 0, correct: 0, answered: 0, passed: false }
+      return {
+        error: insErr.message,
+        percent: 0,
+        correct: 0,
+        answered: 0,
+        passed: false,
+        attemptIdByQuestionId: {},
+      }
+    }
+    for (const row of (inserted as { id: string; question_id: string }[] | null) ?? []) {
+      attemptIdByQuestionId[row.question_id] = row.id
     }
   }
 
@@ -248,6 +263,7 @@ export async function finalizeMockSession(params: {
     correct,
     answered,
     passed,
+    attemptIdByQuestionId,
   }
 }
 

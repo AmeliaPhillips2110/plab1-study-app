@@ -1,7 +1,7 @@
-# PLABoratory — Setup (Stages a–c)
+# PLABoratory — Setup (Stages a–d)
 
 English-only PLAB 1 study app (Vite + React + TypeScript + Tailwind + Supabase).  
-This guide gets you from zero to a working local admin/student shell **with tutor-mode quizzes and timed mocks**.
+This guide gets you from zero to a working local shell **with quizzes, timed mocks, attempt log, and mistake tags**.
 
 ## 1. Create a Supabase project
 
@@ -100,15 +100,15 @@ where email = 'ameliaphillips1324@gmail.com';
 2. Trigger creates `profiles` (role `student`) + `user_preferences`.
 3. Promote to admin only via SQL as above when needed.
 
-## 6. What you should see (Stages a–c)
+## 6. What you should see (Stages a–d)
 
 | Role | Works now |
 | --- | --- |
 | Anyone | Dark default theme + light toggle |
-| Student | **Quiz** (`/study`) tutor practice; **Mocks** (`/mock`) full mock + as-many-as-you-can with pace, navigator, flag, countdown, auto-save/resume, end review |
+| Student | **Quiz** (`/study`); **Mocks** (`/mock`); **Attempts** (`/attempts`) log + timelines + CSV; mistake tags on wrong answers |
 | Admin | Question bank CRUD; exam settings (pass mark + default mock length/time); users |
 
-Not yet: mistake-tag UI / full attempt log pages (d), KPI charts (e), glossary UI (f), live Pages deploy (g).
+Not yet: KPI dashboard/charts (e), glossary UI (f), live Pages deploy (g).
 
 Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring the bank — not copied from commercial question banks. Review before relying on them medically.
 
@@ -130,6 +130,14 @@ Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring th
 5. Start another run, answer one item, refresh the page → **Resume unfinished** should restore answers/flags/index.
 6. **As many as you can:** End test early; score is vs answered items.
 7. If the bank has fewer than the target (seed is ~40 SBA), the UI uses all available and says so.
+
+### Stage d smoke test
+
+1. Run a short **Quiz** session and get an item **wrong** — confirm mistake-tag chips appear (auto-suggested), adjust tags, click Next.
+2. Open **Attempts** — see the attempt, filter by result / session type / mistake tag, sort, search.
+3. Click **Timeline** on a row — chronological history for that question.
+4. Export **attempts CSV** and **sessions CSV**; open in a spreadsheet.
+5. Finish a short **Mock**, open incorrect items in review, **Save tags**, confirm they show in the attempt log.
 
 ## 7. Create / push the GitHub repo (for later Pages)
 

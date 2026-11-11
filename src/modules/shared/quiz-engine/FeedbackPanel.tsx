@@ -1,15 +1,58 @@
-import type { AttemptResult, QuestionWithOptions } from '@/types/database'
+import { useMemo, useState } from 'react'
+import { MistakeTagPicker } from '@/features/mistakes'
+import { suggestMistakeTags, type MistakeTagCode } from '@/features/mistakes/tags'
+import type { AttemptResult, PresentationFormat, QuestionWithOptions } from '@/types/database'
 import type { FlashcardGrade } from '@/types/quiz'
 
 type Props = {
   question: QuestionWithOptions
   result: AttemptResult
   grade?: FlashcardGrade
+  format?: PresentationFormat
+  timedOut?: boolean
+  timeSpentMs?: number | null
+  coverRevealed?: boolean
+  /** Controlled selection for tutor Next flow. */
+  onTagsChange?: (tags: string[], note: string) => void
+  /** Post-hoc save (mock review / log). */
+  attemptId?: string | null
+  initialTags?: string[]
+  initialNote?: string
+  onSaveTags?: (tags: string[], note: string) => Promise<void> | void
 }
 
-export function FeedbackPanel({ question, result, grade }: Props) {
+export function FeedbackPanel({
+  question,
+  result,
+  grade,
+  format,
+  timedOut,
+  timeSpentMs,
+  coverRevealed,
+  onTagsChange,
+  attemptId,
+  initialTags,
+  initialNote,
+  onSaveTags,
+}: Props) {
   const correct = question.question_options?.find((o) => o.is_correct)
   const isGood = result === 'correct'
+  const showTags = result === 'incorrect' || result === 'partial'
+  const suggested = useMemo(
+    () =>
+      suggestMistakeTags({
+        result,
+        format,
+        timedOut,
+        timeSpentMs,
+        grade,
+        coverRevealed,
+      }),
+    [result, format, timedOut, timeSpentMs, grade, coverRevealed],
+  )
+  const [localTags, setLocalTags] = useState<string[]>(initialTags ?? suggested)
+  const [localNote, setLocalNote] = useState(initialNote ?? '')
+
   const title =
     result === 'skipped'
       ? 'Skipped'
@@ -32,7 +75,11 @@ export function FeedbackPanel({ question, result, grade }: Props) {
     >
       <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
         <span aria-hidden>{isGood ? '✓' : result === 'skipped' ? '→' : '✗'}</span>
-        <span className={isGood ? 'text-correct' : result === 'skipped' ? 'text-muted' : 'text-incorrect'}>
+        <span
+          className={
+            isGood ? 'text-correct' : result === 'skipped' ? 'text-muted' : 'text-incorrect'
+          }
+        >
           {title}
         </span>
         {grade ? <span className="font-normal text-muted">· self-grade: {grade}</span> : null}
@@ -50,6 +97,29 @@ export function FeedbackPanel({ question, result, grade }: Props) {
       ) : (
         <p className="text-sm text-muted">No explanation stored for this item yet.</p>
       )}
+
+      {showTags ? (
+        <MistakeTagPicker
+          suggested={suggested as MistakeTagCode[]}
+          initialSelected={localTags}
+          initialNote={localNote}
+          onChange={(tags, note) => {
+            setLocalTags(tags)
+            setLocalNote(note)
+            onTagsChange?.(tags, note)
+          }}
+          onSave={
+            onSaveTags
+              ? async (tags, note) => {
+                  await onSaveTags(tags, note)
+                }
+              : undefined
+          }
+        />
+      ) : null}
+      {attemptId ? (
+        <p className="mt-2 text-[11px] text-muted">Attempt id saved for timeline / log.</p>
+      ) : null}
     </div>
   )
 }

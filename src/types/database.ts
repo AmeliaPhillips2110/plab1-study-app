@@ -143,6 +143,14 @@ export type QuestionTag = {
   tag_id: string
 }
 
+export type MistakeTag = {
+  id: string
+  attempt_id: string
+  tag: string
+  note: string | null
+  created_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -205,6 +213,12 @@ export type Database = {
         Row: Attempt
         Insert: Partial<Attempt> & Pick<Attempt, 'exam_id' | 'user_id' | 'question_id' | 'result'>
         Update: Partial<Attempt>
+        Relationships: []
+      }
+      mistake_tags: {
+        Row: MistakeTag
+        Insert: Partial<MistakeTag> & Pick<MistakeTag, 'attempt_id' | 'tag'>
+        Update: Partial<MistakeTag>
         Relationships: []
       }
       spaced_repetition_state: {

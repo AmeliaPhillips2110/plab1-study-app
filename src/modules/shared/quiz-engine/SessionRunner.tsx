@@ -10,6 +10,7 @@ import {
 } from '@/modules/shared/quiz-engine/persist'
 import { selectQuestionsForSession } from '@/modules/shared/quiz-engine/selectQuestions'
 import { summariseAttempts } from '@/modules/shared/quiz-engine/scoring'
+import { saveMistakeTags } from '@/features/mistakes'
 import type { QuestionWithOptions } from '@/types/database'
 import type { LocalAttempt, SessionSetupConfig } from '@/types/quiz'
 import { FORMAT_LABELS, SESSION_TYPE_LABELS } from '@/types/quiz'
@@ -68,12 +69,13 @@ export function SessionRunner({ userId, config, onExit }: Props) {
     result: LocalAttempt['result']
     selectedOptionId: string | null
     payload: LocalAttempt['responsePayload']
+    timeSpentMs?: number | null
   }) {
     if (!sessionId) return
     const q = questions[index]
     if (!q) return
     setSaving(true)
-    const timeSpentMs = Date.now() - startedAt.current
+    const timeSpentMs = args.timeSpentMs ?? Date.now() - startedAt.current
     const attempt: LocalAttempt = {
       questionId: q.id,
       selectedOptionId: args.selectedOptionId,
@@ -92,10 +94,30 @@ export function SessionRunner({ userId, config, onExit }: Props) {
       responsePayload: args.payload,
       timeSpentMs,
     })
-    if (save.error) {
-      setError(save.error)
+    if (save.error || !save.attemptId) {
+      setError(save.error ?? 'Could not save attempt.')
       setSaving(false)
       return
+    }
+
+    if (
+      (args.result === 'incorrect' || args.result === 'partial') &&
+      args.payload.mistakeTags &&
+      args.payload.mistakeTags.length > 0
+    ) {
+      const tagErr = await saveMistakeTags({
+        attemptId: save.attemptId,
+        tags: args.payload.mistakeTags.map((tag) => ({
+          tag,
+          note: args.payload.mistakeNote ?? null,
+          source: 'manual',
+        })),
+      })
+      if (tagErr.error) {
+        setError(tagErr.error)
+        setSaving(false)
+        return
+      }
     }
 
     await updateSpacedRepetition({
@@ -165,6 +187,12 @@ export function SessionRunner({ userId, config, onExit }: Props) {
             New session
           </Link>
           <Link
+            to="/attempts"
+            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+          >
+            Attempt log
+          </Link>
+          <Link
             to="/"
             className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
           >
@@ -197,7 +225,14 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         rapidFireSeconds={config.rapidFireSeconds ?? 15}
         index={index}
         total={questions.length}
-        onSubmit={(args) => void handleSubmit(args)}
+        onSubmit={(args) =>
+          void handleSubmit({
+            result: args.result,
+            selectedOptionId: args.selectedOptionId,
+            payload: args.payload,
+            timeSpentMs: args.timeSpentMs,
+          })
+        }
       />
     </div>
   )
