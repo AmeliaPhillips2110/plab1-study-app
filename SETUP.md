@@ -12,12 +12,18 @@ This guide gets you from zero to a working local shell and a **GitHub Pages** de
    - **anon public** key → `VITE_SUPABASE_ANON_KEY`
 4. Do **not** put the **service_role** key in the frontend or commit it anywhere.
 
-**Required Auth settings** (Authentication → Providers → Email):
+**Required Auth settings** — signup must **not** send email:
 
-1. Enable the **Email** provider (Supabase still uses email under the hood).
-2. Turn **OFF** **Confirm email** — Amelia’s app uses username + password only and must allow unconfirmed signups so Create account can sign in immediately.  
-   Path: **Authentication → Providers → Email → Confirm email → Off**.
-3. Leave email confirmations disabled while the app maps User → `{username}@plaboratory.app`.
+1. **Authentication → Providers → Email**
+   - Enable the **Email** provider (Supabase still stores a synthetic address under the hood).
+   - **Confirm email → Off** (required). With this **Off**, signup returns a session and does **not** send mail. With it **On**, every Create account burns the free mail quota (2/hour) and you will see `email rate limit exceeded` — including for `{user}@plaboratory.app`.
+2. Optional but recommended (same Email provider panel / Auth settings):
+   - **Secure email change** / double-confirm email change → Off (unused; we never change email in-app).
+   - Do **not** enable magic link / OTP for this app.
+3. **Authentication → Rate Limits**
+   - Built-in provider: **2 emails/hour** project-wide while Confirm email is On.
+   - After turning Confirm email **Off**, new signups should stop hitting the mail quota. If you already exhausted it, **wait ~1 hour** or configure **custom SMTP** / **Send Email Hook** (then you can raise the email limit).
+4. This app maps User → `{username}@plaboratory.app`. That address is **not** a real inbox — Confirm email must stay **Off**.
 
 ## 2. Run SQL (schema → RLS → seed)
 
@@ -91,8 +97,9 @@ The login screen asks for **User** + **Password** only (no email field). The app
 
 Example: User `Amelia` → Auth email `amelia@plaboratory.app`, profile display name `amelia`.
 
-1. In the app, **Create account** with Amelia’s chosen user name + password (Confirm email must be **Off** — §1).
-2. Promote Amelia to admin in the SQL editor (no password in SQL) — prefer display name / synthetic email:
+1. Confirm §1: **Confirm email = Off**. Then in the app, **Create account** with Amelia’s user name + password. You should land signed in with **no** email sent.
+2. If you still see `email rate limit exceeded`: Confirm email is still On, or the free quota is exhausted — turn it Off, wait ~1 hour (or add custom SMTP), retry.
+3. Promote Amelia to admin in the SQL editor (no password in SQL) — prefer display name / synthetic email:
 
 ```sql
 update public.profiles
@@ -101,9 +108,9 @@ where display_name = 'amelia';
 -- equivalent: where email = 'amelia@plaboratory.app';
 ```
 
-3. Sign out and sign back in (or refresh) so the app reloads the profile role.
-4. Create Hlib (or any student) the same way with **Create account** — they stay `student` by default.
-5. New students are **opted in** to peer comparison (`comparison_opt_out = false`) via `user_preferences`.
+4. Sign out and sign back in (or refresh) so the app reloads the profile role.
+5. Create Hlib (or any student) the same way with **Create account** — they stay `student` by default.
+6. New students are **opted in** to peer comparison (`comparison_opt_out = false`) via `user_preferences`.
 
 ### Invite / add path (also documented in Admin → Users)
 
