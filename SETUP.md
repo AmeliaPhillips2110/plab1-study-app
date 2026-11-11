@@ -229,17 +229,16 @@ Expected site URL after Pages is on:
 5. Wait for green build + deploy. Open the URL shown on the workflow summary (or `https://YOUR_USERNAME.github.io/plab1-study-app/`).
 6. In Supabase → **Authentication → URL configuration**, add that Pages URL to **Site URL** / **Redirect URLs** if email confirm / redirects are enabled.
 
-### D. What Amelia must click (summary)
+### D. After the repo exists — secrets & Pages
 
 | Step | Where |
 | --- | --- |
-| Create public repo `plab1-study-app` | github.com/new |
-| Push `main` | Terminal (`git push` / `gh repo create … --push`) |
-| Add two Actions secrets | Settings → Secrets → Actions |
+| Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` | Settings → Secrets and variables → Actions |
 | Set Pages source to **GitHub Actions** | Settings → Pages |
-| Approve / run **Deploy GitHub Pages** | Actions tab (first deploy may ask to approve the `github-pages` environment) |
+| Run / approve **Deploy GitHub Pages** | Actions tab (first deploy may ask to approve the `github-pages` environment) |
+| Allow the Pages URL in Supabase Auth redirects | Supabase → Authentication → URL configuration |
 
-`gh` on the Cursor agent VM is **not** logged in — the agent cannot create the repo or enable Pages for you.
+Local Stage g (ARCHITECTURE + workflow + this §7) does not require a remote. Publishing is optional and uses the steps above when you are ready.
 
 ## 8. Troubleshooting
 
