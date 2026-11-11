@@ -1,5 +1,5 @@
-/** Synthetic email domain for username→Supabase Auth mapping. Not a real mailbox. */
-export const AUTH_EMAIL_DOMAIN = 'users.local'
+/** Synthetic email domain for username→Supabase Auth mapping. Valid TLD so Supabase accepts it; not a real mailbox. */
+export const AUTH_EMAIL_DOMAIN = 'plaboratory.app'
 
 /**
  * Normalize a username for Auth.

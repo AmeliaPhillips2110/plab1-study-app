@@ -17,7 +17,7 @@ This guide gets you from zero to a working local shell and a **GitHub Pages** de
 1. Enable the **Email** provider (Supabase still uses email under the hood).
 2. Turn **OFF** **Confirm email** — Amelia’s app uses username + password only and must allow unconfirmed signups so Create account can sign in immediately.  
    Path: **Authentication → Providers → Email → Confirm email → Off**.
-3. Leave email confirmations disabled while the app maps User → `{username}@users.local`.
+3. Leave email confirmations disabled while the app maps User → `{username}@plaboratory.app`.
 
 ## 2. Run SQL (schema → RLS → seed)
 
@@ -86,10 +86,10 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 
 The login screen asks for **User** + **Password** only (no email field). The app maps:
 
-`username` → synthetic Auth email `{sanitized_username}@users.local`  
+`username` → synthetic Auth email `{sanitized_username}@plaboratory.app`  
 `display_name` → same sanitized username
 
-Example: User `Amelia` → Auth email `amelia@users.local`, profile display name `amelia`.
+Example: User `Amelia` → Auth email `amelia@plaboratory.app`, profile display name `amelia`.
 
 1. In the app, **Create account** with Amelia’s chosen user name + password (Confirm email must be **Off** — §1).
 2. Promote Amelia to admin in the SQL editor (no password in SQL) — prefer display name / synthetic email:
@@ -98,7 +98,7 @@ Example: User `Amelia` → Auth email `amelia@users.local`, profile display name
 update public.profiles
 set role = 'admin'
 where display_name = 'amelia';
--- equivalent: where email = 'amelia@users.local';
+-- equivalent: where email = 'amelia@plaboratory.app';
 ```
 
 3. Sign out and sign back in (or refresh) so the app reloads the profile role.

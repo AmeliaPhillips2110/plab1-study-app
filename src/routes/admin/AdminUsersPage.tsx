@@ -43,7 +43,7 @@ export function AdminUsersPage() {
               <pre className="mt-2 overflow-x-auto rounded bg-bg p-3 text-xs text-fg">{`update public.profiles
 set role = 'admin'
 where display_name = 'amelia';
--- or: where email = 'amelia@users.local';`}</pre>
+-- or: where email = 'amelia@plaboratory.app';`}</pre>
             </li>
             <li>
               Do not put passwords or service-role keys in the app. Only the anon key belongs in{' '}

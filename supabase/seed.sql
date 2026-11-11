@@ -537,11 +537,11 @@ on conflict do nothing;
 -- Amelia / admin bootstrap (run AFTER she creates her Auth user)
 -- Replace the email with her real signup email. Do NOT put passwords here.
 -- ---------------------------------------------------------------------------
--- Username auth maps User → {username}@users.local (Confirm email OFF in Supabase).
+-- Username auth maps User → {username}@plaboratory.app (Confirm email OFF in Supabase).
 -- update public.profiles
 -- set role = 'admin'
 -- where display_name = 'amelia';
--- -- or: where email = 'amelia@users.local';
+-- -- or: where email = 'amelia@plaboratory.app';
 
 -- Optional student example (after Hlib signs up as user "hlib"):
 -- update public.profiles set role = 'student' where display_name = 'hlib';
