@@ -14,7 +14,7 @@ export function Input({ className, label, error, id, ...props }: Props) {
       <input
         id={inputId}
         className={cn(
-          'rounded-md border border-border bg-surface px-3 py-2 text-fg placeholder:text-muted',
+          'rounded-md border border-border bg-surface px-3 py-2.5 text-base text-fg placeholder:text-muted sm:py-2 sm:text-sm',
           error && 'border-incorrect',
           className,
         )}

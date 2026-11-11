@@ -537,9 +537,11 @@ on conflict do nothing;
 -- Amelia / admin bootstrap (run AFTER she creates her Auth user)
 -- Replace the email with her real signup email. Do NOT put passwords here.
 -- ---------------------------------------------------------------------------
+-- Username auth maps User → {username}@users.local (Confirm email OFF in Supabase).
 -- update public.profiles
--- set role = 'admin', display_name = coalesce(display_name, 'Amelia')
--- where email = 'ameliaphillips1324@gmail.com';
+-- set role = 'admin'
+-- where display_name = 'amelia';
+-- -- or: where email = 'amelia@users.local';
 
--- Optional student example (after Hlib signs up):
--- update public.profiles set role = 'student' where email = 'hlib@example.com';
+-- Optional student example (after Hlib signs up as user "hlib"):
+-- update public.profiles set role = 'student' where display_name = 'hlib';

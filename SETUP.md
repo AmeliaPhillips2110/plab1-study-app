@@ -12,11 +12,12 @@ This guide gets you from zero to a working local shell and a **GitHub Pages** de
    - **anon public** key → `VITE_SUPABASE_ANON_KEY`
 4. Do **not** put the **service_role** key in the frontend or commit it anywhere.
 
-Optional Auth settings (Authentication → Providers → Email):
+**Required Auth settings** (Authentication → Providers → Email):
 
-- Enable Email provider.
-- For early testing you may disable “Confirm email” so signup works immediately.
-- Re-enable confirmation later if you want.
+1. Enable the **Email** provider (Supabase still uses email under the hood).
+2. Turn **OFF** **Confirm email** — Amelia’s app uses username + password only and must allow unconfirmed signups so Create account can sign in immediately.  
+   Path: **Authentication → Providers → Email → Confirm email → Off**.
+3. Leave email confirmations disabled while the app maps User → `{username}@users.local`.
 
 ## 2. Run SQL (schema → RLS → seed)
 
@@ -83,14 +84,21 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 
 ## 5. Create accounts and make Amelia admin
 
-1. In the app, use **Create account** with Amelia’s email/password (or create the user under Supabase **Authentication → Users**).
-2. Promote Amelia to admin in the SQL editor (no password in SQL):
+The login screen asks for **User** + **Password** only (no email field). The app maps:
+
+`username` → synthetic Auth email `{sanitized_username}@users.local`  
+`display_name` → same sanitized username
+
+Example: User `Amelia` → Auth email `amelia@users.local`, profile display name `amelia`.
+
+1. In the app, **Create account** with Amelia’s chosen user name + password (Confirm email must be **Off** — §1).
+2. Promote Amelia to admin in the SQL editor (no password in SQL) — prefer display name / synthetic email:
 
 ```sql
 update public.profiles
-set role = 'admin',
-    display_name = coalesce(display_name, 'Amelia')
-where email = 'ameliaphillips1324@gmail.com';
+set role = 'admin'
+where display_name = 'amelia';
+-- equivalent: where email = 'amelia@users.local';
 ```
 
 3. Sign out and sign back in (or refresh) so the app reloads the profile role.
@@ -99,8 +107,8 @@ where email = 'ameliaphillips1324@gmail.com';
 
 ### Invite / add path (also documented in Admin → Users)
 
-1. User signs up in the app (or you add them in Supabase Auth).
-2. Trigger creates `profiles` (role `student`) + `user_preferences`.
+1. User signs up in the app with User + Password.
+2. Trigger creates `profiles` (role `student`, display_name = username) + `user_preferences`.
 3. Promote to admin only via SQL as above when needed.
 
 ## 6. What you should see (Stages a–g)

@@ -55,7 +55,7 @@ export function Nav() {
       ) : null}
       {profile ? (
         <span className="ml-2 hidden text-xs text-muted sm:inline">
-          {profile.display_name || profile.email} · {profile.role}
+          {profile.display_name || profile.email.split('@')[0]} · {profile.role}
         </span>
       ) : null}
     </nav>

@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { usernameToEmail } from '@/features/auth/username'
 import { supabase, supabaseConfigured } from '@/lib/supabase'
 import type { Profile, UserPreferences } from '@/types/database'
 
@@ -20,12 +21,9 @@ type AuthState = {
   preferences: UserPreferences | null
   isAdmin: boolean
   supabaseConfigured: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (
-    email: string,
-    password: string,
-    displayName?: string,
-  ) => Promise<{ error: string | null }>
+  /** Username (not email) — mapped to a synthetic Supabase Auth email. */
+  signIn: (username: string, password: string) => Promise<{ error: string | null }>
+  signUp: (username: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -108,24 +106,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (username: string, password: string) => {
+    let email: string
+    try {
+      email = usernameToEmail(username)
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Invalid user' }
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
   }, [])
 
-  const signUp = useCallback(
-    async (email: string, password: string, displayName?: string) => {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { display_name: displayName || email.split('@')[0] },
-        },
-      })
-      return { error: error?.message ?? null }
-    },
-    [],
-  )
+  const signUp = useCallback(async (username: string, password: string) => {
+    let email: string
+    let displayName: string
+    try {
+      email = usernameToEmail(username)
+      displayName = email.slice(0, email.indexOf('@'))
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Invalid user' }
+    }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName },
+      },
+    })
+    return { error: error?.message ?? null }
+  }, [])
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()

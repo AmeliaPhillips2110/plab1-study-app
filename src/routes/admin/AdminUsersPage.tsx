@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
 import { Badge } from '@/components/ui/Badge'
-import { supabase } from '@/lib/supabase'
+import { emailToUsername } from '@/features/auth/username'
 import { formatDateTime } from '@/lib/dates'
+import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/types/database'
 
 export function AdminUsersPage() {
@@ -31,17 +32,18 @@ export function AdminUsersPage() {
           <ol className="list-decimal space-y-2 pl-5 text-muted">
             <li>
               Ask them to open the app and use <strong className="text-fg">Create account</strong> with
-              email/password (or create the user in Supabase Auth → Users → Add user).
+              a <strong className="text-fg">User</strong> name and password.
             </li>
             <li>
               A <code className="text-fg">profiles</code> row is created automatically as{' '}
-              <strong className="text-fg">student</strong> via the auth trigger.
+              <strong className="text-fg">student</strong> via the auth trigger (display name = user).
             </li>
             <li>
-              To make someone an admin (Amelia), run in the Supabase SQL editor:
+              To make someone an admin, run in the Supabase SQL editor (match by user / display name):
               <pre className="mt-2 overflow-x-auto rounded bg-bg p-3 text-xs text-fg">{`update public.profiles
 set role = 'admin'
-where email = 'their-email@example.com';`}</pre>
+where display_name = 'amelia';
+-- or: where email = 'amelia@users.local';`}</pre>
             </li>
             <li>
               Do not put passwords or service-role keys in the app. Only the anon key belongs in{' '}
@@ -54,21 +56,24 @@ where email = 'their-email@example.com';`}</pre>
         {error ? <p className="text-sm text-incorrect">{error}</p> : null}
 
         <ul className="flex flex-col gap-2">
-          {profiles.map((p) => (
-            <li
-              key={p.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-surface px-4 py-3 text-sm"
-            >
-              <div>
-                <p className="font-medium">{p.display_name || p.email}</p>
-                <p className="text-xs text-muted">{p.email}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge tone={p.role === 'admin' ? 'accent' : 'neutral'}>{p.role}</Badge>
-                <span className="text-xs text-muted">{formatDateTime(p.created_at)}</span>
-              </div>
-            </li>
-          ))}
+          {profiles.map((p) => {
+            const userLabel = p.display_name || emailToUsername(p.email) || p.email
+            return (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-surface px-4 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium">{userLabel}</p>
+                  <p className="truncate text-xs text-muted">User · {userLabel}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge tone={p.role === 'admin' ? 'accent' : 'neutral'}>{p.role}</Badge>
+                  <span className="text-xs text-muted">{formatDateTime(p.created_at)}</span>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </AppShell>
