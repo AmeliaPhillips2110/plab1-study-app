@@ -1,7 +1,7 @@
-# PLABoratory — Stage a setup
+# PLABoratory — Setup (Stages a–b)
 
 English-only PLAB 1 study app (Vite + React + TypeScript + Tailwind + Supabase).  
-This guide gets you from zero to a working local admin/student shell.
+This guide gets you from zero to a working local admin/student shell **with tutor-mode quizzes**.
 
 ## 1. Create a Supabase project
 
@@ -25,6 +25,7 @@ In the Supabase dashboard open **SQL → New query** and run these files **in or
 1. `supabase/migrations/20261111000001_schema.sql`
 2. `supabase/migrations/20261111000002_rls.sql`
 3. `supabase/seed.sql`
+4. Optional (Stage b): `supabase/seed_flashcards.sql` — 8 sample flashcards for flashcard / SR decks (SBA bank still works as flashcard fallback if you skip this)
 
 ### Quick RLS check
 
@@ -99,17 +100,26 @@ where email = 'ameliaphillips1324@gmail.com';
 2. Trigger creates `profiles` (role `student`) + `user_preferences`.
 3. Promote to admin only via SQL as above when needed.
 
-## 6. What you should see (Stage a)
+## 6. What you should see (Stage a + b)
 
 | Role | Works now |
 | --- | --- |
 | Anyone | Dark default theme + light toggle |
-| Student | Login → study home placeholder (exam, topics, pass mark) |
+| Student | Login → study home → **Quiz** (`/study`): topic, random, weakness, spaced repetition, flashcard; formats SBA / flashcard / cover-the-options / rapid fire; tutor feedback; attempts + SR saved |
 | Admin | Question bank add/edit/delete/preview; settings pass mark; user list + invite notes |
 
-Not in Stage a: quiz engine, mocks, KPIs, glossary UI, live Pages deploy.
+Not yet: full mocks / as-many-as-you-can (Stage c), KPI charts (e), glossary UI (f), live Pages deploy (g).
 
 Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring the bank — not copied from commercial question banks. Review before relying on them medically.
+
+### Stage b smoke test
+
+1. Sign in → **Quiz** in the nav (or Start quiz on the home page).
+2. Topic + SBA: answer one item, confirm immediate Correct/Incorrect + explanation, finish the session.
+3. Cover-the-options: reveal options after thinking from the stem alone.
+4. Rapid fire: confirm the countdown; letting it hit zero marks skipped.
+5. Flashcard deck: flip → Again/Hard/Good/Easy → Next (run optional `seed_flashcards.sql` or SBA-as-card fallback).
+6. Weakness / spaced repetition: usable even with little history (falls back to random / due bank).
 
 ## 7. Create / push the GitHub repo (for later Pages)
 
@@ -142,4 +152,6 @@ GitHub Pages deploy workflow is only a **stub** in `.github/workflows/deploy-pag
 - **“Supabase is not configured”** — missing/incorrect `.env.local`; restart `npm run dev` after edits.
 - **Exam not found** — seed SQL not run.
 - **Cannot see admin nav** — profile role still `student`; re-run admin SQL and refresh session.
-- **RLS errors on write** — confirm you are signed in as admin and RLS migration ran.
+- **RLS errors on write** — confirm you are signed in as admin (for bank edits) or as the owning user (for attempts/sessions) and RLS migration ran.
+- **Quiz “No questions matched”** — seed SQL not applied, or topic filter empty; try Random mix first.
+- **Flashcard deck empty of native cards** — optional `seed_flashcards.sql` not run; app falls back to SBA stems as cards.

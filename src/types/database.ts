@@ -94,6 +94,55 @@ export type QuestionWithOptions = Question & {
   topics?: Topic | null
 }
 
+export type StudySession = {
+  id: string
+  exam_id: string
+  user_id: string
+  session_type: SessionType
+  presentation_format: PresentationFormat
+  topic_id: string | null
+  weakness_variant: WeaknessVariant | null
+  unseen_only: boolean
+  settings: Record<string, unknown>
+  started_at: string
+  ended_at: string | null
+  time_limit_sec: number | null
+  question_count: number | null
+  score_percent: number | null
+  created_at: string
+}
+
+export type Attempt = {
+  id: string
+  session_id: string | null
+  exam_id: string
+  user_id: string
+  question_id: string
+  selected_option_id: string | null
+  response_payload: Record<string, unknown>
+  result: AttemptResult
+  time_spent_ms: number | null
+  answered_at: string
+}
+
+export type SpacedRepetitionState = {
+  user_id: string
+  question_id: string
+  exam_id: string
+  ease_factor: number
+  interval_days: number
+  repetitions: number
+  due_at: string
+  last_result: AttemptResult | null
+  last_reviewed_at: string | null
+  updated_at: string
+}
+
+export type QuestionTag = {
+  question_id: string
+  tag_id: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -127,6 +176,12 @@ export type Database = {
         Update: Partial<QuestionOption>
         Relationships: []
       }
+      question_tags: {
+        Row: QuestionTag
+        Insert: QuestionTag
+        Update: Partial<QuestionTag>
+        Relationships: []
+      }
       exam_settings: {
         Row: ExamSettings
         Insert: Partial<ExamSettings> & Pick<ExamSettings, 'exam_id'>
@@ -137,6 +192,26 @@ export type Database = {
         Row: UserPreferences
         Insert: Partial<UserPreferences> & Pick<UserPreferences, 'user_id'>
         Update: Partial<UserPreferences>
+        Relationships: []
+      }
+      study_sessions: {
+        Row: StudySession
+        Insert: Partial<StudySession> &
+          Pick<StudySession, 'exam_id' | 'user_id' | 'session_type' | 'presentation_format'>
+        Update: Partial<StudySession>
+        Relationships: []
+      }
+      attempts: {
+        Row: Attempt
+        Insert: Partial<Attempt> & Pick<Attempt, 'exam_id' | 'user_id' | 'question_id' | 'result'>
+        Update: Partial<Attempt>
+        Relationships: []
+      }
+      spaced_repetition_state: {
+        Row: SpacedRepetitionState
+        Insert: Partial<SpacedRepetitionState> &
+          Pick<SpacedRepetitionState, 'user_id' | 'question_id' | 'exam_id'>
+        Update: Partial<SpacedRepetitionState>
         Relationships: []
       }
     }

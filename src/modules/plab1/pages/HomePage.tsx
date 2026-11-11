@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { PLAB1_NAME } from '@/modules/plab1/config'
@@ -12,11 +13,15 @@ export function HomePage() {
   return (
     <AppShell title={`${PLAB1_NAME} study home`}>
       <div className="flex flex-col gap-6">
-        <p className="max-w-2xl text-muted">
-          Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}. Quiz modes, mocks, and
-          KPIs arrive in later stages. For now you can sign in, switch theme, and admins can manage
-          the question bank.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-2xl text-muted">
+            Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}. Run tutor-mode quiz
+            sessions now. Full mocks and KPI charts come in later stages.
+          </p>
+          <Link to="/study">
+            <Button>Start quiz</Button>
+          </Link>
+        </div>
 
         {error ? (
           <p className="rounded-md border border-incorrect/40 bg-incorrect/10 px-3 py-2 text-sm text-incorrect">
@@ -38,14 +43,27 @@ export function HomePage() {
               {exam.description ? <p className="text-muted">{exam.description}</p> : null}
               <p className="text-muted">
                 Pass mark:{' '}
-                <span className="font-medium text-fg">
-                  {settings?.pass_mark_percent ?? 65}%
-                </span>
+                <span className="font-medium text-fg">{settings?.pass_mark_percent ?? 65}%</span>
               </p>
             </div>
           ) : (
             <p className="text-sm text-muted">No exam loaded.</p>
           )}
+        </section>
+
+        <section className="rounded-md border border-border bg-surface p-4">
+          <h2 className="mb-2 text-lg font-semibold">Quiz modes (Stage b)</h2>
+          <ul className="grid gap-2 text-sm text-muted sm:grid-cols-2">
+            <li>Topic / random / weakness / spaced repetition / flashcard deck</li>
+            <li>Formats: SBA, flashcard, cover-the-options, rapid fire</li>
+            <li>Immediate tutor feedback after each item</li>
+            <li>Attempts + spaced-repetition schedule saved to Supabase</li>
+          </ul>
+          <p className="mt-3">
+            <Link className="text-sm text-accent hover:underline" to="/study">
+              Open study setup →
+            </Link>
+          </p>
         </section>
 
         <section className="rounded-md border border-border bg-surface p-4">
@@ -63,15 +81,6 @@ export function HomePage() {
               ))}
             </ul>
           )}
-        </section>
-
-        <section className="rounded-md border border-dashed border-border bg-surface/60 p-4">
-          <h2 className="mb-2 text-lg font-semibold">Coming next</h2>
-          <p className="text-sm text-muted">
-            Stage b will unlock the quiz engine (topic, random, weakness, spaced repetition,
-            flashcards). This home page is intentionally a placeholder so you can verify auth and
-            data wiring first.
-          </p>
         </section>
 
         {isAdmin ? (
