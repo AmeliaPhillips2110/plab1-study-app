@@ -1,0 +1,57 @@
+:root {
+  /* Neutrals */
+  --color-black: #0a0a0a;
+  --color-grey-950: #171717;
+  --color-grey-900: #262626;
+  --color-grey-700: #404040;
+  --color-grey-500: #737373;
+  --color-grey-400: #a3a3a3;
+  --color-grey-300: #d4d4d4;
+  --color-grey-200: #e5e5e5;
+  --color-grey-100: #f5f5f5;
+  --color-white: #ffffff;
+
+  /* Accent */
+  --color-accent: #337d8a;
+  --color-accent-hover: #2a6873;
+  --color-accent-tint: #e6f0f2;
+
+  /* Semantic */
+  --color-correct: #2f6f6a;
+  --color-incorrect: #b54a4a;
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+
+  /* Light theme surfaces */
+  --bg: var(--color-grey-100);
+  --bg-elevated: var(--color-white);
+  --fg: var(--color-black);
+  --fg-muted: var(--color-grey-500);
+  --border: var(--color-grey-200);
+  --accent: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+  --accent-subtle: var(--color-accent-tint);
+}
+
+html.dark {
+  --bg: var(--color-black);
+  --bg-elevated: var(--color-grey-950);
+  --fg: var(--color-grey-100);
+  --fg-muted: var(--color-grey-400);
+  --border: var(--color-grey-900);
+  --accent: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+  --accent-subtle: rgba(51, 125, 138, 0.18);
+  --color-correct: #3d8f88;
+  --color-incorrect: #c45c5c;
+}

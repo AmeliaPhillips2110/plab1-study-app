@@ -1,0 +1,23 @@
+# Stub for Stage g — GitHub Pages deploy.
+# Do not enable until Amelia confirms the public repo name and Pages settings.
+#
+# Intended later flow:
+# 1. Build with VITE_BASE=/<repo-name>/
+# 2. Upload dist/ as a Pages artifact
+# 3. Deploy with actions/deploy-pages
+#
+# This workflow is intentionally inactive (no `on:` triggers beyond workflow_dispatch disabled note).
+
+name: Deploy GitHub Pages (stub)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reminder
+        run: |
+          echo "Stage g will wire real Pages deploy."
+          echo "For now see SETUP.md and ARCHITECTURE.md (later)."
