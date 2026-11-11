@@ -28,6 +28,9 @@ export function HomePage() {
             <Link to="/mock">
               <Button variant="ghost">Timed mock</Button>
             </Link>
+            <Link to="/glossary">
+              <Button variant="ghost">Glossary</Button>
+            </Link>
           </div>
         </div>
 
@@ -60,6 +63,21 @@ export function HomePage() {
           ) : (
             <p className="text-sm text-muted">No exam loaded.</p>
           )}
+        </section>
+
+        <section className="rounded-md border border-border bg-surface p-4">
+          <h2 className="mb-2 text-lg font-semibold">Glossary & UK reading (Stage f)</h2>
+          <ul className="grid gap-2 text-sm text-muted sm:grid-cols-2">
+            <li>Editable glossary with tap/hover definitions in stems</li>
+            <li>UK-practice & patient-centred quiz filters</li>
+            <li>Long-stem practice + reading tip (WPM preference)</li>
+            <li>Pace vs stem length; language / UK-practice mistake tags</li>
+          </ul>
+          <p className="mt-3">
+            <Link className="text-sm text-accent hover:underline" to="/glossary">
+              Open glossary →
+            </Link>
+          </p>
         </section>
 
         <section className="rounded-md border border-border bg-surface p-4">
@@ -141,9 +159,13 @@ export function HomePage() {
 
         {isAdmin ? (
           <p className="text-sm">
-            Admin shortcut:{' '}
+            Admin shortcuts:{' '}
             <Link className="text-accent hover:underline" to="/admin/questions">
-              Manage questions
+              Questions
+            </Link>
+            {' · '}
+            <Link className="text-accent hover:underline" to="/admin/glossary">
+              Glossary
             </Link>
           </p>
         ) : null}

@@ -1,3 +1,10 @@
+import { countWords } from '@/features/glossary/glossaryApi'
+import {
+  fetchQuestionIdsForTagSlugs,
+  LONG_STEM_MIN_WORDS,
+  PATIENT_CENTRED_TAG,
+  UK_PRACTICE_TAG,
+} from '@/features/tags/tagsApi'
 import { supabase } from '@/lib/supabase'
 import { shuffleInPlace } from '@/modules/shared/quiz-engine/scoring'
 import type { AttemptResult, QuestionWithOptions, WeaknessVariant } from '@/types/database'
@@ -64,6 +71,12 @@ export async function selectQuestionsForSession(
       if (config.unseenOnly) {
         pool = await filterUnseen(pool, userId)
       }
+      const filteredFlash = await applyStageFFilters(pool, config)
+      if (filteredFlash.error) return { questions: [], error: filteredFlash.error }
+      pool = filteredFlash.questions
+      if (pool.length === 0) {
+        return { questions: [], error: 'No questions matched these filters.' }
+      }
       return { questions: shuffleInPlace(pool).slice(0, limit), error: null }
     }
   }
@@ -74,6 +87,10 @@ export async function selectQuestionsForSession(
     query = query.eq('question_type', 'sba')
   }
 
+  if (config.ukPracticeOnly) {
+    query = query.eq('is_uk_practice', true)
+  }
+
   const { data, error } = await query.limit(300)
   if (error) return { questions: [], error: error.message }
 
@@ -82,6 +99,10 @@ export async function selectQuestionsForSession(
   if (config.unseenOnly) {
     pool = await filterUnseen(pool, userId)
   }
+
+  const filtered = await applyStageFFilters(pool, config)
+  if (filtered.error) return { questions: [], error: filtered.error }
+  pool = filtered.questions
 
   if (pool.length === 0) {
     return { questions: [], error: 'No questions matched these filters.' }
@@ -326,4 +347,34 @@ async function filterUnseen(pool: QuestionWithOptions[], userId: string) {
 function normaliseOptions(q: QuestionWithOptions): QuestionWithOptions {
   const opts = [...(q.question_options ?? [])].sort((a, b) => a.sort_order - b.sort_order)
   return { ...q, question_options: opts }
+}
+
+async function applyStageFFilters(
+  pool: QuestionWithOptions[],
+  config: SessionSetupConfig,
+): Promise<{ questions: QuestionWithOptions[]; error: string | null }> {
+  let next = pool
+
+  if (config.ukPracticeOnly) {
+    // Prefer column; also include questions tagged uk-practice if the flag was unset.
+    const tagged = await fetchQuestionIdsForTagSlugs(config.examId, [UK_PRACTICE_TAG])
+    if (tagged.error) return { questions: [], error: tagged.error }
+    next = next.filter((q) => q.is_uk_practice || tagged.questionIds.has(q.id))
+  }
+
+  if (config.patientCentredOnly) {
+    const tagged = await fetchQuestionIdsForTagSlugs(config.examId, [PATIENT_CENTRED_TAG])
+    if (tagged.error) return { questions: [], error: tagged.error }
+    if (tagged.questionIds.size === 0) {
+      return { questions: [], error: 'No patient-centred tagged questions yet. Re-run Stage f seed.' }
+    }
+    next = next.filter((q) => tagged.questionIds.has(q.id))
+  }
+
+  if (config.longStemOnly) {
+    const minWords = config.minStemWords ?? LONG_STEM_MIN_WORDS
+    next = next.filter((q) => countWords(q.stem) >= minWords)
+  }
+
+  return { questions: next, error: null }
 }

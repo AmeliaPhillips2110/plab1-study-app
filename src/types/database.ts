@@ -151,6 +151,27 @@ export type MistakeTag = {
   created_at: string
 }
 
+export type GlossaryTerm = {
+  id: string
+  exam_id: string
+  term: string
+  definition: string
+  aliases: string[]
+  topic_id: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type Tag = {
+  id: string
+  exam_id: string
+  slug: string
+  label: string
+  category: string | null
+  created_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -188,6 +209,18 @@ export type Database = {
         Row: QuestionTag
         Insert: QuestionTag
         Update: Partial<QuestionTag>
+        Relationships: []
+      }
+      tags: {
+        Row: Tag
+        Insert: Partial<Tag> & Pick<Tag, 'exam_id' | 'slug' | 'label'>
+        Update: Partial<Tag>
+        Relationships: []
+      }
+      glossary_terms: {
+        Row: GlossaryTerm
+        Insert: Partial<GlossaryTerm> & Pick<GlossaryTerm, 'exam_id' | 'term' | 'definition'>
+        Update: Partial<GlossaryTerm>
         Relationships: []
       }
       exam_settings: {

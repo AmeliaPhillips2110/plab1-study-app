@@ -13,6 +13,8 @@ import { AttemptsPage } from '@/routes/attempts/AttemptsPage'
 import { QuestionTimelinePage } from '@/routes/attempts/QuestionTimelinePage'
 import { DashboardPage } from '@/routes/dashboard/DashboardPage'
 import { AdminComparisonPage } from '@/routes/admin/AdminComparisonPage'
+import { AdminGlossaryPage } from '@/routes/admin/AdminGlossaryPage'
+import { GlossaryPage } from '@/routes/glossary/GlossaryPage'
 
 export function AppRoutes() {
   return (
@@ -30,6 +32,7 @@ export function AppRoutes() {
         <Route path="/attempts" element={<AttemptsPage />} />
         <Route path="/attempts/question/:questionId" element={<QuestionTimelinePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/glossary" element={<GlossaryPage />} />
       </Route>
 
       <Route element={<RequireAdmin />}>
@@ -38,6 +41,7 @@ export function AppRoutes() {
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/comparison" element={<AdminComparisonPage />} />
+        <Route path="/admin/glossary" element={<AdminGlossaryPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

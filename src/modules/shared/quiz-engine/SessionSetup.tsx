@@ -36,6 +36,9 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
     initial?.weaknessVariant ?? 'recent_mistakes',
   )
   const [unseenOnly, setUnseenOnly] = useState(false)
+  const [ukPracticeOnly, setUkPracticeOnly] = useState(false)
+  const [patientCentredOnly, setPatientCentredOnly] = useState(false)
+  const [longStemOnly, setLongStemOnly] = useState(false)
   const [limit, setLimit] = useState(String(initial?.questionLimit ?? 10))
   const [rapidSeconds, setRapidSeconds] = useState('15')
   const autostarted = useMemo(() => ({ done: false }), [])
@@ -59,6 +62,9 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
       unseenOnly,
       questionLimit,
       rapidFireSeconds,
+      ukPracticeOnly,
+      patientCentredOnly,
+      longStemOnly,
     }
   }
 
@@ -157,18 +163,46 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
         )}
       </div>
 
-      <label className="inline-flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={unseenOnly}
-          onChange={(e) => setUnseenOnly(e.target.checked)}
-        />
-        Unseen only (skip questions you have already attempted)
-      </label>
+      <fieldset className="space-y-2 rounded-md border border-border px-3 py-3">
+        <legend className="px-1 text-sm font-medium">Filters</legend>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={unseenOnly}
+            onChange={(e) => setUnseenOnly(e.target.checked)}
+          />
+          Unseen only
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={ukPracticeOnly}
+            onChange={(e) => setUkPracticeOnly(e.target.checked)}
+          />
+          UK practice only
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={patientCentredOnly}
+            onChange={(e) => setPatientCentredOnly(e.target.checked)}
+          />
+          Patient-centred only
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={longStemOnly}
+            onChange={(e) => setLongStemOnly(e.target.checked)}
+          />
+          Long-stem practice (≥80 words)
+        </label>
+      </fieldset>
 
       <p className="text-xs text-muted">
         Tutor mode: you get immediate feedback and an explanation after each item. For exam
         conditions (no mid-test feedback), use <span className="text-fg">Mocks</span> instead.
+        Long stems show a reading tip based on your glossary WPM preference.
       </p>
 
       <Button type="submit" disabled={sessionType === 'topic' && !topicId}>

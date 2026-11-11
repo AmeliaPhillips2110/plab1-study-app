@@ -1,6 +1,7 @@
+import { countWords } from '@/features/glossary/glossaryApi'
+import { MISTAKE_TAG_LABELS } from '@/features/mistakes'
 import type { AttemptLogRow } from '@/modules/shared/analytics/attemptQueries'
 import type { StudySession, Topic } from '@/types/database'
-import { MISTAKE_TAG_LABELS } from '@/features/mistakes'
 
 export type HeadlineKpis = {
   accuracyPercent: number
@@ -30,6 +31,18 @@ export type QpmPoint = { date: string; label: string; qpm: number; attempts: num
 export type DayActivity = { date: string; count: number }
 export type TopicDayCell = { topic: string; day: string; count: number }
 export type WeaknessItem = TopicAccuracy & { focusReason: string }
+export type PaceVsStemPoint = {
+  words: number
+  seconds: number
+  result: string
+  questionId: string
+}
+export type PaceVsStemBucket = {
+  bucket: string
+  avgSeconds: number
+  attempts: number
+  accuracy: number
+}
 
 function dayKey(iso: string): string {
   return iso.slice(0, 10)
@@ -206,4 +219,60 @@ export function computeWeaknesses(topicAccuracy: TopicAccuracy[], limit = 5): We
             ? 'Below pass-mark style threshold'
             : 'Relatively weaker topic',
     }))
+}
+
+export function computePaceVsStem(attempts: AttemptLogRow[]): {
+  points: PaceVsStemPoint[]
+  buckets: PaceVsStemBucket[]
+  languageMistakes: number
+  ukPracticeMistakes: number
+} {
+  const points: PaceVsStemPoint[] = []
+  const bucketAcc = new Map<string, { ms: number; n: number; correct: number; graded: number }>()
+
+  let languageMistakes = 0
+  let ukPracticeMistakes = 0
+
+  for (const a of attempts) {
+    for (const t of a.mistake_tags) {
+      if (t.tag === 'language_issue') languageMistakes += 1
+      if (t.tag === 'uk_practice_gap' || t.tag === 'guideline_mixup') ukPracticeMistakes += 1
+    }
+
+    if (a.time_spent_ms == null || a.time_spent_ms <= 0 || !a.questions?.stem) continue
+    const words = countWords(a.questions.stem)
+    const seconds = Math.round(a.time_spent_ms / 1000)
+    points.push({
+      words,
+      seconds,
+      result: a.result,
+      questionId: a.question_id,
+    })
+
+    const bucket =
+      words < 40 ? '<40 words' : words < 80 ? '40–79 words' : words < 120 ? '80–119 words' : '120+ words'
+    const row = bucketAcc.get(bucket) ?? { ms: 0, n: 0, correct: 0, graded: 0 }
+    row.ms += a.time_spent_ms
+    row.n += 1
+    if (a.result === 'correct' || a.result === 'incorrect') {
+      row.graded += 1
+      if (a.result === 'correct') row.correct += 1
+    }
+    bucketAcc.set(bucket, row)
+  }
+
+  const order = ['<40 words', '40–79 words', '80–119 words', '120+ words']
+  const buckets = order
+    .filter((b) => bucketAcc.has(b))
+    .map((bucket) => {
+      const v = bucketAcc.get(bucket)!
+      return {
+        bucket,
+        avgSeconds: v.n ? Math.round(v.ms / v.n / 1000) : 0,
+        attempts: v.n,
+        accuracy: v.graded ? Math.round((v.correct / v.graded) * 1000) / 10 : 0,
+      }
+    })
+
+  return { points, buckets, languageMistakes, ukPracticeMistakes }
 }

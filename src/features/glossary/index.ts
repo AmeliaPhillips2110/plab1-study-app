@@ -1,2 +1,11 @@
-/** Glossary UI arrives in a later stage. */
-export {}
+export {
+  fetchGlossaryTerms,
+  fetchAllGlossaryTermsAdmin,
+  upsertGlossaryTerm,
+  deleteGlossaryTerm,
+  findGlossaryMatches,
+  countWords,
+  estimatedReadSeconds,
+} from '@/features/glossary/glossaryApi'
+export { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
+export { ReadingTip } from '@/features/glossary/ReadingTip'

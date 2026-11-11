@@ -12,6 +12,8 @@ type Props = {
   timedOut?: boolean
   timeSpentMs?: number | null
   coverRevealed?: boolean
+  isUkPractice?: boolean
+  stemWordCount?: number
   /** Controlled selection for tutor Next flow. */
   onTagsChange?: (tags: string[], note: string) => void
   /** Post-hoc save (mock review / log). */
@@ -29,6 +31,8 @@ export function FeedbackPanel({
   timedOut,
   timeSpentMs,
   coverRevealed,
+  isUkPractice,
+  stemWordCount,
   onTagsChange,
   attemptId,
   initialTags,
@@ -47,8 +51,20 @@ export function FeedbackPanel({
         timeSpentMs,
         grade,
         coverRevealed,
+        isUkPractice: isUkPractice ?? question.is_uk_practice,
+        stemWordCount,
       }),
-    [result, format, timedOut, timeSpentMs, grade, coverRevealed],
+    [
+      result,
+      format,
+      timedOut,
+      timeSpentMs,
+      grade,
+      coverRevealed,
+      isUkPractice,
+      question.is_uk_practice,
+      stemWordCount,
+    ],
   )
   const [localTags, setLocalTags] = useState<string[]>(initialTags ?? suggested)
   const [localNote, setLocalNote] = useState(initialNote ?? '')

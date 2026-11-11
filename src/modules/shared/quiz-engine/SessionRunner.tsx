@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
+import { saveMistakeTags } from '@/features/mistakes'
+import { useAuth } from '@/hooks/useAuth'
 import { QuestionView } from '@/modules/shared/quiz-engine/QuestionView'
 import {
   createStudySession,
@@ -10,8 +13,7 @@ import {
 } from '@/modules/shared/quiz-engine/persist'
 import { selectQuestionsForSession } from '@/modules/shared/quiz-engine/selectQuestions'
 import { summariseAttempts } from '@/modules/shared/quiz-engine/scoring'
-import { saveMistakeTags } from '@/features/mistakes'
-import type { QuestionWithOptions } from '@/types/database'
+import type { GlossaryTerm, QuestionWithOptions } from '@/types/database'
 import type { LocalAttempt, SessionSetupConfig } from '@/types/quiz'
 import { FORMAT_LABELS, SESSION_TYPE_LABELS } from '@/types/quiz'
 
@@ -24,9 +26,11 @@ type Props = {
 type Phase = 'loading' | 'running' | 'summary' | 'error'
 
 export function SessionRunner({ userId, config, onExit }: Props) {
+  const { preferences } = useAuth()
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([])
+  const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [attempts, setAttempts] = useState<LocalAttempt[]>([])
@@ -40,7 +44,10 @@ export function SessionRunner({ userId, config, onExit }: Props) {
     bootstrapped.current = true
 
     void (async () => {
-      const selected = await selectQuestionsForSession(config, userId)
+      const [selected, glossary] = await Promise.all([
+        selectQuestionsForSession(config, userId),
+        fetchGlossaryTerms(config.examId),
+      ])
       if (selected.error || selected.questions.length === 0) {
         setError(selected.error ?? 'No questions available for this session.')
         setPhase('error')
@@ -58,6 +65,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         return
       }
 
+      setGlossaryTerms(glossary.terms)
       setQuestions(selected.questions)
       setSessionId(created.sessionId)
       startedAt.current = Date.now()
@@ -225,6 +233,9 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         rapidFireSeconds={config.rapidFireSeconds ?? 15}
         index={index}
         total={questions.length}
+        glossaryTerms={glossaryTerms}
+        readingSpeedWpm={preferences?.reading_speed_wpm}
+        showReadingTip
         onSubmit={(args) =>
           void handleSubmit({
             result: args.result,

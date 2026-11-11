@@ -17,6 +17,11 @@ export type SessionSetupConfig = {
   unseenOnly?: boolean
   questionLimit?: number
   rapidFireSeconds?: number
+  /** Stage f filters */
+  ukPracticeOnly?: boolean
+  patientCentredOnly?: boolean
+  longStemOnly?: boolean
+  minStemWords?: number
 }
 
 export type QuizAnswerPayload = {

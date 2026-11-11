@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { ActivityHeatmap } from '@/modules/shared/analytics/charts/ActivityHeatmap'
 import { MistakeBreakdownChart } from '@/modules/shared/analytics/charts/MistakeBreakdownChart'
+import { PaceVsStemChart } from '@/modules/shared/analytics/charts/PaceVsStemChart'
 import { QpmChart } from '@/modules/shared/analytics/charts/QpmChart'
 import { ScoreTrendChart } from '@/modules/shared/analytics/charts/ScoreTrendChart'
 import { TopicAccuracyChart } from '@/modules/shared/analytics/charts/TopicAccuracyChart'
@@ -12,6 +13,7 @@ import {
   computeCalendarHeatmap,
   computeHeadlineKpis,
   computeMistakeBreakdown,
+  computePaceVsStem,
   computeQpmSeries,
   computeScoreTrend,
   computeTopicAccuracy,
@@ -56,6 +58,7 @@ export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props
       topicAccuracy,
       mistakes: computeMistakeBreakdown(bundle.attempts),
       qpm: computeQpmSeries(bundle.attempts),
+      paceStem: computePaceVsStem(bundle.attempts),
       calendar: computeCalendarHeatmap(bundle.attempts),
       topicHeat: computeTopicWeekdayHeatmap(bundle.attempts),
       weaknesses: computeWeaknesses(topicAccuracy),
@@ -132,6 +135,13 @@ export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props
           </div>
         </Panel>
       </div>
+
+      <Panel
+        title="Pace vs stem length"
+        subtitle={`Language tags: ${derived.paceStem.languageMistakes} · UK-practice tags: ${derived.paceStem.ukPracticeMistakes}`}
+      >
+        <PaceVsStemChart points={derived.paceStem.points} buckets={derived.paceStem.buckets} />
+      </Panel>
 
       <Panel title="Activity calendar" subtitle="Last ~12 weeks">
         <ActivityHeatmap data={derived.calendar} />

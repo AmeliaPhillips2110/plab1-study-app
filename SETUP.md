@@ -1,7 +1,7 @@
-# PLABoratory — Setup (Stages a–e)
+# PLABoratory — Setup (Stages a–f)
 
 English-only PLAB 1 study app (Vite + React + TypeScript + Tailwind + Supabase).  
-This guide gets you from zero to a working local shell **with quizzes, mocks, attempt tracking, and KPI / weakness dashboards**.
+This guide gets you from zero to a working local shell **with quizzes, mocks, attempt tracking, KPI / weakness dashboards, glossary, and UK-practice / long-stem reading tools**.
 
 ## 1. Create a Supabase project
 
@@ -24,8 +24,9 @@ In the Supabase dashboard open **SQL → New query** and run these files **in or
 
 1. `supabase/migrations/20261111000001_schema.sql`
 2. `supabase/migrations/20261111000002_rls.sql`
-3. `supabase/seed.sql`
+3. `supabase/seed.sql` (includes Stage f glossary terms, patient-centred tag, long-stem Q41)
 4. Optional (Stage b): `supabase/seed_flashcards.sql` — 8 sample flashcards for flashcard / SR decks (SBA bank still works as flashcard fallback if you skip this)
+5. Optional if you already seeded before Stage f: `supabase/seed_stage_f.sql` — incremental glossary / tags / Q41 only
 
 ### Quick RLS check
 
@@ -49,7 +50,7 @@ select count(*) as question_count from public.questions;
 select pass_mark_percent from public.exam_settings;
 ```
 
-Expect: exam `plab1`, ~14 topics, **40** sample SBA questions, pass mark **65**.
+Expect: exam `plab1`, ~14 topics, **41** sample SBA questions (incl. long-stem Q41), pass mark **65**.
 
 ## 3. Environment variables (local)
 
@@ -100,15 +101,15 @@ where email = 'ameliaphillips1324@gmail.com';
 2. Trigger creates `profiles` (role `student`) + `user_preferences`.
 3. Promote to admin only via SQL as above when needed.
 
-## 6. What you should see (Stages a–e)
+## 6. What you should see (Stages a–f)
 
 | Role | Works now |
 | --- | --- |
 | Anyone | Dark default theme + light toggle |
-| Student | **Quiz**, **Mocks**, **Attempts**, **KPIs** (`/dashboard`) with charts, heatmaps, Focus next drills |
-| Admin | Question bank; settings; users; **Group comparison** (`/admin/comparison`, respects opt-out) |
+| Student | **Quiz**, **Mocks**, **Attempts**, **KPIs**, **Glossary** (tap/hover defs in stems; WPM; UK / patient-centred / long-stem filters) |
+| Admin | Question bank; **Glossary editor**; settings; users; **Group comparison** (opt-out respected) |
 
-Not yet: glossary / UK-practice UI (f), live Pages deploy (g).
+Not yet: live Pages deploy (Stage g).
 
 Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring the bank — not copied from commercial question banks. Review before relying on them medically.
 
@@ -145,6 +146,15 @@ Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring th
 2. Open **KPIs** — check headline tiles, score trend (pass-mark line), specialty bars, mistake pie, QPM, coverage, calendars/heatmaps.
 3. Under Weakness analysis, use **Drill this topic** or **Recent mistakes quiz** (auto-starts tutor session).
 4. As admin, open **Comparison** — confirm opted-out students are excluded from the peer list / group average.
+
+### Stage f smoke test
+
+1. Open **Glossary** — search terms; set **reading speed (WPM)** and Save.
+2. As admin, open **Admin → Glossary editor** — add/edit a term; confirm it appears on `/glossary`.
+3. Start **Quiz** with **UK practice only** — stems show UK practice badge; glossary terms are underlined (tap/hover).
+4. Enable **Patient-centred only** and/or **Long-stem practice** — confirm Q41 (or tagged ethics items) can appear; reading tip shows word count / estimated seconds.
+5. Answer a UK-practice item incorrectly — confirm suggested tags include **UK practice gap** (and **Language / wording** on long stems).
+6. Open **KPIs** — **Pace vs stem length** panel + language / UK-practice mistake counts in the subtitle.
 
 ## 7. Create / push the GitHub repo (for later Pages)
 

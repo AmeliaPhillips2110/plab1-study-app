@@ -28,6 +28,9 @@ export function Nav() {
       <NavLink to="/dashboard" className={linkClass}>
         KPIs
       </NavLink>
+      <NavLink to="/glossary" className={linkClass}>
+        Glossary
+      </NavLink>
       {isAdmin ? (
         <>
           <NavLink to="/admin" end className={linkClass}>
@@ -35,6 +38,9 @@ export function Nav() {
           </NavLink>
           <NavLink to="/admin/questions" className={linkClass}>
             Questions
+          </NavLink>
+          <NavLink to="/admin/glossary" className={linkClass}>
+            Glossary edit
           </NavLink>
           <NavLink to="/admin/settings" className={linkClass}>
             Settings

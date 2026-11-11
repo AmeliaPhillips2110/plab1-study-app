@@ -1,11 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
+import { countWords } from '@/features/glossary/glossaryApi'
+import { ReadingTip } from '@/features/glossary/ReadingTip'
+import { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
+import { suggestMistakeTags } from '@/features/mistakes/tags'
 import { FeedbackPanel } from '@/modules/shared/quiz-engine/FeedbackPanel'
 import { FlashcardView } from '@/modules/shared/quiz-engine/FlashcardView'
 import { SbaOptions } from '@/modules/shared/quiz-engine/SbaOptions'
 import { gradeToResult } from '@/modules/shared/quiz-engine/scoring'
-import { suggestMistakeTags } from '@/features/mistakes/tags'
-import type { AttemptResult, PresentationFormat, QuestionWithOptions } from '@/types/database'
+import type {
+  AttemptResult,
+  GlossaryTerm,
+  PresentationFormat,
+  QuestionWithOptions,
+} from '@/types/database'
 import type { FlashcardGrade, QuizAnswerPayload } from '@/types/quiz'
 
 type SubmitArgs = {
@@ -21,6 +29,9 @@ type Props = {
   rapidFireSeconds?: number
   index: number
   total: number
+  glossaryTerms?: GlossaryTerm[]
+  readingSpeedWpm?: number | null
+  showReadingTip?: boolean
   onSubmit: (args: SubmitArgs) => void
 }
 
@@ -30,6 +41,9 @@ export function QuestionView({
   rapidFireSeconds = 15,
   index,
   total,
+  glossaryTerms = [],
+  readingSpeedWpm,
+  showReadingTip = true,
   onSubmit,
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -75,6 +89,8 @@ export function QuestionView({
       timeSpentMs: Date.now() - startedAt,
       grade: nextGrade,
       coverRevealed: coverOpen,
+      isUkPractice: question.is_uk_practice,
+      stemWordCount: countWords(question.stem),
     })
     setMistakeTags(suggestions)
   }
@@ -179,7 +195,15 @@ export function QuestionView({
         ) : null}
       </ProgressHeader>
 
-      <p className="whitespace-pre-wrap text-base">{question.stem}</p>
+      {showReadingTip ? (
+        <ReadingTip stem={question.stem} readingSpeedWpm={readingSpeedWpm} />
+      ) : null}
+
+      <StemWithGlossary text={question.stem} terms={glossaryTerms} />
+
+      {question.is_uk_practice ? (
+        <p className="text-xs font-medium text-accent">UK practice item</p>
+      ) : null}
 
       {format === 'cover_the_options' && !coverOpen ? (
         <div className="rounded-md border border-dashed border-border bg-surface p-6 text-center">
@@ -213,6 +237,8 @@ export function QuestionView({
             timedOut={timedOut}
             timeSpentMs={Date.now() - startedAt}
             coverRevealed={coverOpen}
+            isUkPractice={question.is_uk_practice}
+            stemWordCount={countWords(question.stem)}
             onTagsChange={(tags, note) => {
               setMistakeTags(tags)
               setMistakeNote(note)

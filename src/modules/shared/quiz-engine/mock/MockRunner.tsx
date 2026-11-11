@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
+import { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
 import { SbaOptions } from '@/modules/shared/quiz-engine/SbaOptions'
 import { MockReview } from '@/modules/shared/quiz-engine/mock/MockReview'
 import { PaceWidget } from '@/modules/shared/quiz-engine/mock/PaceWidget'
@@ -9,7 +11,7 @@ import {
   finalizeMockSession,
 } from '@/modules/shared/quiz-engine/mock/mockPersist'
 import { formatDuration, maybeRecordPaceSample } from '@/modules/shared/quiz-engine/pace'
-import type { QuestionWithOptions } from '@/types/database'
+import type { GlossaryTerm, QuestionWithOptions } from '@/types/database'
 import type { MockProgressState, TimedMode } from '@/types/quiz'
 
 type Props = {
@@ -38,6 +40,7 @@ export function MockRunner({
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
   const [saveHint, setSaveHint] = useState<string | null>(null)
+  const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>([])
   const [resultMeta, setResultMeta] = useState<{
     percent: number
     correct: number
@@ -47,6 +50,13 @@ export function MockRunner({
   } | null>(null)
   const progressRef = useRef(progress)
   progressRef.current = progress
+
+  useEffect(() => {
+    void (async () => {
+      const { terms } = await fetchGlossaryTerms(examId)
+      setGlossaryTerms(terms)
+    })()
+  }, [examId])
 
   const startedMs = useMemo(() => new Date(progress.startedAt).getTime(), [progress.startedAt])
   const deadlineMs = useMemo(() => new Date(progress.deadlineAt).getTime(), [progress.deadlineAt])
@@ -237,7 +247,12 @@ export function MockRunner({
         />
 
         <div className="rounded-md border border-border bg-surface p-4">
-          <p className="mb-4 whitespace-pre-wrap text-base">{current.stem}</p>
+          <div className="mb-4">
+            <StemWithGlossary text={current.stem} terms={glossaryTerms} />
+            {current.is_uk_practice ? (
+              <p className="mt-2 text-xs font-medium text-accent">UK practice item</p>
+            ) : null}
+          </div>
           <SbaOptions
             options={current.question_options}
             selectedId={progress.answers[current.id] ?? null}
