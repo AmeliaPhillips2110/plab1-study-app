@@ -1,7 +1,7 @@
-# PLABoratory — Setup (Stages a–f)
+# PLABoratory — Setup (Stages a–g)
 
 English-only PLAB 1 study app (Vite + React + TypeScript + Tailwind + Supabase).  
-This guide gets you from zero to a working local shell **with quizzes, mocks, attempt tracking, KPI / weakness dashboards, glossary, and UK-practice / long-stem reading tools**.
+This guide gets you from zero to a working local shell and a **GitHub Pages** deploy.
 
 ## 1. Create a Supabase project
 
@@ -69,6 +69,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 
 Anon key only. Never commit `.env.local`.
 
+Leave `VITE_BASE` unset for local `npm run dev` (serves at `/`).
+
 ## 4. Install and run locally
 
 ```bash
@@ -101,17 +103,16 @@ where email = 'ameliaphillips1324@gmail.com';
 2. Trigger creates `profiles` (role `student`) + `user_preferences`.
 3. Promote to admin only via SQL as above when needed.
 
-## 6. What you should see (Stages a–f)
+## 6. What you should see (Stages a–g)
 
 | Role | Works now |
 | --- | --- |
 | Anyone | Dark default theme + light toggle |
-| Student | **Quiz**, **Mocks**, **Attempts**, **KPIs**, **Glossary** (tap/hover defs in stems; WPM; UK / patient-centred / long-stem filters) |
-| Admin | Question bank; **Glossary editor**; settings; users; **Group comparison** (opt-out respected) |
+| Student | **Quiz**, **Mocks**, **Attempts**, **KPIs**, **Glossary** |
+| Admin | Question bank; glossary editor; settings; users; group comparison |
+| Deploy | `ARCHITECTURE.md` + GitHub Actions Pages workflow (needs repo + secrets) |
 
-Not yet: live Pages deploy (Stage g).
-
-Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring the bank — not copied from commercial question banks. Review before relying on them medically.
+Product smoke tests for Stages b–f are below. Stage g is the push / Pages checklist in **§7**.
 
 ### Stage b smoke test
 
@@ -156,31 +157,89 @@ Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring th
 5. Answer a UK-practice item incorrectly — confirm suggested tags include **UK practice gap** (and **Language / wording** on long stems).
 6. Open **KPIs** — **Pace vs stem length** panel + language / UK-practice mistake counts in the subtitle.
 
-## 7. Create / push the GitHub repo (for later Pages)
+## 7. Create the GitHub repo and deploy Pages (Stage g)
 
-If `gh` is authenticated as Amelia:
+Architecture notes for adding PLAB 2 later: **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
+
+### Base path (`VITE_BASE`)
+
+| Hosting | `VITE_BASE` |
+| --- | --- |
+| Local `npm run dev` | unset (defaults to `/`) |
+| GitHub **project** Pages (`username.github.io/plab1-study-app/`) | `/plab1-study-app/` |
+| User/org root site (`username.github.io/`) | `/` |
+
+Local check that the production bundle embeds the project path:
+
+```bash
+npm run build:pages
+```
+
+The Actions workflow builds with `VITE_BASE=/plab1-study-app/` by default (override with repo variable `VITE_BASE`). It also copies `dist/index.html` → `dist/404.html` so client-side routes work on refresh.
+
+### A. If `gh` is authenticated on your machine
 
 ```bash
 cd plaboratory
-git init
-git add .
-git commit -m "Stage a: auth, admin question bank, schema, tokens"
+# ensure you are on a clean tree with Stage g commits
+git checkout -B main
+git remote remove origin 2>/dev/null || true
 gh repo create plab1-study-app --public --source=. --remote=origin --push
 ```
 
-If GitHub is **not** authenticated on this machine, create an empty public repo named `plab1-study-app` on github.com, then:
+Then continue from **C. Actions secrets + enable Pages** below.
+
+### B. If GitHub is **not** authenticated (agent / this VM)
+
+Do this once on a machine where you are signed into GitHub (browser or `gh auth login`):
+
+1. Create an empty **public** repository named **`plab1-study-app`**  
+   https://github.com/new → name `plab1-study-app` → Public → **do not** add README/license (repo already has files).
+2. From the app root, push `main` (replace `YOUR_USERNAME`):
 
 ```bash
 cd plaboratory
-git init
-git add .
-git commit -m "Stage a: auth, admin question bank, schema, tokens"
-git branch -M main
+git checkout -B main
+git remote remove origin 2>/dev/null || true
 git remote add origin https://github.com/YOUR_USERNAME/plab1-study-app.git
 git push -u origin main
 ```
 
-GitHub Pages deploy workflow is only a **stub** in `.github/workflows/deploy-pages.yml` (Stage g). When deploying later, set `VITE_BASE=/plab1-study-app/` for project pages.
+SSH alternative:
+
+```bash
+git remote add origin git@github.com:YOUR_USERNAME/plab1-study-app.git
+git push -u origin main
+```
+
+Expected site URL after Pages is on:
+
+`https://YOUR_USERNAME.github.io/plab1-study-app/`
+
+### C. Actions secrets + enable Pages (click path)
+
+1. Repo → **Settings → Secrets and variables → Actions → New repository secret**
+   - `VITE_SUPABASE_URL` = your Supabase Project URL  
+   - `VITE_SUPABASE_ANON_KEY` = your Supabase **anon** key  
+2. Optional: **Variables** → `VITE_BASE` = `/plab1-study-app/` (workflow already defaults to this).
+3. Repo → **Settings → Pages**
+   - **Source:** GitHub Actions  
+4. Repo → **Actions** → open **Deploy GitHub Pages**  
+   - If it did not run on push, click **Run workflow** → Branch `main` → **Run workflow**.
+5. Wait for green build + deploy. Open the URL shown on the workflow summary (or `https://YOUR_USERNAME.github.io/plab1-study-app/`).
+6. In Supabase → **Authentication → URL configuration**, add that Pages URL to **Site URL** / **Redirect URLs** if email confirm / redirects are enabled.
+
+### D. What Amelia must click (summary)
+
+| Step | Where |
+| --- | --- |
+| Create public repo `plab1-study-app` | github.com/new |
+| Push `main` | Terminal (`git push` / `gh repo create … --push`) |
+| Add two Actions secrets | Settings → Secrets → Actions |
+| Set Pages source to **GitHub Actions** | Settings → Pages |
+| Approve / run **Deploy GitHub Pages** | Actions tab (first deploy may ask to approve the `github-pages` environment) |
+
+`gh` on the Cursor agent VM is **not** logged in — the agent cannot create the repo or enable Pages for you.
 
 ## 8. Troubleshooting
 
@@ -190,3 +249,6 @@ GitHub Pages deploy workflow is only a **stub** in `.github/workflows/deploy-pag
 - **RLS errors on write** — confirm you are signed in as admin (for bank edits) or as the owning user (for attempts/sessions) and RLS migration ran.
 - **Quiz “No questions matched”** — seed SQL not applied, or topic filter empty; try Random mix first.
 - **Flashcard deck empty of native cards** — optional `seed_flashcards.sql` not run; app falls back to SBA stems as cards.
+- **Pages blank / 404 on routes** — confirm `VITE_BASE` matches the repo name (including trailing slash), Pages source is Actions, and the workflow uploaded `404.html`.
+- **Actions build fails on missing secrets** — set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in repo secrets.
+- **Auth redirect fails on Pages** — add the Pages URL in Supabase Auth URL config.
