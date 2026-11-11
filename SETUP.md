@@ -229,16 +229,20 @@ Expected site URL after Pages is on:
 5. Wait for green build + deploy. Open the URL shown on the workflow summary (or `https://YOUR_USERNAME.github.io/plab1-study-app/`).
 6. In Supabase → **Authentication → URL configuration**, add that Pages URL to **Site URL** / **Redirect URLs** if email confirm / redirects are enabled.
 
-### D. After the repo exists — secrets & Pages
+### D. Live repo (AmeliaPhillips2110) — finish first Pages deploy
+
+**Repo:** https://github.com/AmeliaPhillips2110/plab1-study-app  
+**Pages URL:** https://ameliaphillips2110.github.io/plab1-study-app/
+
+The OAuth token used to push lacked the `workflow` scope, so the Actions file is published as [`docs/deploy-pages.yml`](./docs/deploy-pages.yml) until it is installed under `.github/workflows/`.
 
 | Step | Where |
 | --- | --- |
+| Create `.github/workflows/deploy-pages.yml` (paste from `docs/deploy-pages.yml`) | Repo → Add file → Create new file |
 | Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` | Settings → Secrets and variables → Actions |
-| Set Pages source to **GitHub Actions** | Settings → Pages |
-| Run / approve **Deploy GitHub Pages** | Actions tab (first deploy may ask to approve the `github-pages` environment) |
+| Confirm Pages source is **GitHub Actions** | Settings → Pages |
+| Run / approve **Deploy GitHub Pages** | Actions tab (first deploy may ask to approve `github-pages`) |
 | Allow the Pages URL in Supabase Auth redirects | Supabase → Authentication → URL configuration |
-
-Local Stage g (ARCHITECTURE + workflow + this §7) does not require a remote. Publishing is optional and uses the steps above when you are ready.
 
 ## 8. Troubleshooting
 
