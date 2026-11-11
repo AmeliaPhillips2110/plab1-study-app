@@ -143,8 +143,8 @@ export function SessionSetup({ examId, topics, onStart }: Props) {
       </label>
 
       <p className="text-xs text-muted">
-        Tutor mode: you get immediate feedback and an explanation after each item. Full mocks and
-        as-many-as-you-can arrive in Stage c.
+        Tutor mode: you get immediate feedback and an explanation after each item. For exam
+        conditions (no mid-test feedback), use <span className="text-fg">Mocks</span> instead.
       </p>
 
       <Button type="submit" disabled={sessionType === 'topic' && !topicId}>

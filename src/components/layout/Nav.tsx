@@ -19,6 +19,9 @@ export function Nav() {
       <NavLink to="/study" className={linkClass}>
         Quiz
       </NavLink>
+      <NavLink to="/mock" className={linkClass}>
+        Mocks
+      </NavLink>
       {isAdmin ? (
         <>
           <NavLink to="/admin" end className={linkClass}>

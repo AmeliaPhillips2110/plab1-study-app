@@ -8,6 +8,7 @@ import { AdminSettingsPage } from '@/routes/admin/AdminSettingsPage'
 import { AdminUsersPage } from '@/routes/admin/AdminUsersPage'
 import { SetupHintPage } from '@/routes/SetupHintPage'
 import { StudySetupPage } from '@/routes/study/StudySetupPage'
+import { MockPage } from '@/routes/mock/MockPage'
 
 export function AppRoutes() {
   return (
@@ -21,6 +22,7 @@ export function AppRoutes() {
       <Route element={<RequireAuth />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/study" element={<StudySetupPage />} />
+        <Route path="/mock" element={<MockPage />} />
       </Route>
 
       <Route element={<RequireAdmin />}>

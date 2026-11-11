@@ -15,12 +15,17 @@ export function HomePage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-2xl text-muted">
-            Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}. Run tutor-mode quiz
-            sessions now. Full mocks and KPI charts come in later stages.
+            Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}. Practice with tutor
+            feedback or sit a timed mock. KPI charts arrive later.
           </p>
-          <Link to="/study">
-            <Button>Start quiz</Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/study">
+              <Button>Start quiz</Button>
+            </Link>
+            <Link to="/mock">
+              <Button variant="secondary">Timed mock</Button>
+            </Link>
+          </div>
         </div>
 
         {error ? (
@@ -44,11 +49,29 @@ export function HomePage() {
               <p className="text-muted">
                 Pass mark:{' '}
                 <span className="font-medium text-fg">{settings?.pass_mark_percent ?? 65}%</span>
+                {' · '}
+                Mock default {settings?.default_mock_question_count ?? 180} Q /{' '}
+                {settings?.default_mock_minutes ?? 180} min
               </p>
             </div>
           ) : (
             <p className="text-sm text-muted">No exam loaded.</p>
           )}
+        </section>
+
+        <section className="rounded-md border border-border bg-surface p-4">
+          <h2 className="mb-2 text-lg font-semibold">Timed tests (Stage c)</h2>
+          <ul className="grid gap-2 text-sm text-muted sm:grid-cols-2">
+            <li>Full mock — no feedback until the end</li>
+            <li>As many as you can — stop anytime</li>
+            <li>Navigator, flag, countdown, auto-save / resume</li>
+            <li>Pace widget + end-of-test pace report and answer review</li>
+          </ul>
+          <p className="mt-3">
+            <Link className="text-sm text-accent hover:underline" to="/mock">
+              Open mocks →
+            </Link>
+          </p>
         </section>
 
         <section className="rounded-md border border-border bg-surface p-4">

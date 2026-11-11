@@ -1,7 +1,7 @@
-# PLABoratory — Setup (Stages a–b)
+# PLABoratory — Setup (Stages a–c)
 
 English-only PLAB 1 study app (Vite + React + TypeScript + Tailwind + Supabase).  
-This guide gets you from zero to a working local admin/student shell **with tutor-mode quizzes**.
+This guide gets you from zero to a working local admin/student shell **with tutor-mode quizzes and timed mocks**.
 
 ## 1. Create a Supabase project
 
@@ -100,15 +100,15 @@ where email = 'ameliaphillips1324@gmail.com';
 2. Trigger creates `profiles` (role `student`) + `user_preferences`.
 3. Promote to admin only via SQL as above when needed.
 
-## 6. What you should see (Stage a + b)
+## 6. What you should see (Stages a–c)
 
 | Role | Works now |
 | --- | --- |
 | Anyone | Dark default theme + light toggle |
-| Student | Login → study home → **Quiz** (`/study`): topic, random, weakness, spaced repetition, flashcard; formats SBA / flashcard / cover-the-options / rapid fire; tutor feedback; attempts + SR saved |
-| Admin | Question bank add/edit/delete/preview; settings pass mark; user list + invite notes |
+| Student | **Quiz** (`/study`) tutor practice; **Mocks** (`/mock`) full mock + as-many-as-you-can with pace, navigator, flag, countdown, auto-save/resume, end review |
+| Admin | Question bank CRUD; exam settings (pass mark + default mock length/time); users |
 
-Not yet: full mocks / as-many-as-you-can (Stage c), KPI charts (e), glossary UI (f), live Pages deploy (g).
+Not yet: mistake-tag UI / full attempt log pages (d), KPI charts (e), glossary UI (f), live Pages deploy (g).
 
 Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring the bank — not copied from commercial question banks. Review before relying on them medically.
 
@@ -120,6 +120,16 @@ Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring th
 4. Rapid fire: confirm the countdown; letting it hit zero marks skipped.
 5. Flashcard deck: flip → Again/Hard/Good/Easy → Next (run optional `seed_flashcards.sql` or SBA-as-card fallback).
 6. Weakness / spaced repetition: usable even with little history (falls back to random / due bank).
+
+### Stage c smoke test
+
+1. Sign in → **Mocks** (or Timed mock on the home page).
+2. For a quick check set **5 questions / 10 minutes** (defaults remain 180 Q / 180 min from exam settings).
+3. **Full mock:** answer/flag/navigate, confirm **no** Correct/Incorrect until Submit; see pace widget + countdown.
+4. Submit → score vs pass mark, pace report, review with explanations (filter incorrect/flagged/skipped).
+5. Start another run, answer one item, refresh the page → **Resume unfinished** should restore answers/flags/index.
+6. **As many as you can:** End test early; score is vs answered items.
+7. If the bank has fewer than the target (seed is ~40 SBA), the UI uses all available and says so.
 
 ## 7. Create / push the GitHub repo (for later Pages)
 

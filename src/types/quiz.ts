@@ -83,3 +83,41 @@ export const STAGE_B_FORMATS: PresentationFormat[] = [
   'cover_the_options',
   'rapid_fire',
 ]
+
+export type TimedMode = 'full_mock' | 'as_many_as_you_can'
+
+export type MockStartConfig = {
+  examId: string
+  mode: TimedMode
+  targetQuestionCount: number
+  timeLimitSec: number
+  /** When bank is smaller than target, use all available SBAs. */
+  useAvailableBank: boolean
+}
+
+export type PaceSample = {
+  elapsedSec: number
+  answeredCount: number
+}
+
+export type MockProgressState = {
+  version: 1
+  mode: TimedMode
+  questionIds: string[]
+  answers: Record<string, string>
+  flagged: string[]
+  currentIndex: number
+  targetCount: number
+  timeLimitSec: number
+  deadlineAt: string
+  startedAt: string
+  paceSamples: PaceSample[]
+  autosavedAt: string
+}
+
+export type MockReviewItem = {
+  question: QuestionWithOptions
+  selectedOptionId: string | null
+  result: AttemptResult
+  flagged: boolean
+}
