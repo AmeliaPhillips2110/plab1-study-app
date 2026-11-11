@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -12,35 +12,45 @@ import {
   WEAKNESS_LABELS,
 } from '@/types/quiz'
 
+export type SessionSetupInitial = {
+  sessionType?: SessionType
+  presentationFormat?: PresentationFormat
+  topicId?: string | null
+  weaknessVariant?: WeaknessVariant | null
+  questionLimit?: number
+  autostart?: boolean
+}
+
 type Props = {
   examId: string
   topics: Topic[]
   onStart: (config: SessionSetupConfig) => void
+  initial?: SessionSetupInitial
 }
 
-export function SessionSetup({ examId, topics, onStart }: Props) {
-  const [sessionType, setSessionType] = useState<SessionType>('topic')
-  const [format, setFormat] = useState<PresentationFormat>('sba')
-  const [topicId, setTopicId] = useState(topics[0]?.id ?? '')
-  const [weaknessVariant, setWeaknessVariant] = useState<WeaknessVariant>('recent_mistakes')
+export function SessionSetup({ examId, topics, onStart, initial }: Props) {
+  const [sessionType, setSessionType] = useState<SessionType>(initial?.sessionType ?? 'topic')
+  const [format, setFormat] = useState<PresentationFormat>(initial?.presentationFormat ?? 'sba')
+  const [topicId, setTopicId] = useState(initial?.topicId || topics[0]?.id || '')
+  const [weaknessVariant, setWeaknessVariant] = useState<WeaknessVariant>(
+    initial?.weaknessVariant ?? 'recent_mistakes',
+  )
   const [unseenOnly, setUnseenOnly] = useState(false)
-  const [limit, setLimit] = useState('10')
+  const [limit, setLimit] = useState(String(initial?.questionLimit ?? 10))
   const [rapidSeconds, setRapidSeconds] = useState('15')
+  const autostarted = useMemo(() => ({ done: false }), [])
 
   const topicOptions = useMemo(
     () => topics.map((t) => ({ value: t.id, label: t.name })),
     [topics],
   )
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault()
+  function buildConfig(): SessionSetupConfig {
     const questionLimit = Math.min(50, Math.max(1, Number(limit) || 10))
     const rapidFireSeconds = Math.min(120, Math.max(5, Number(rapidSeconds) || 15))
-
     let presentationFormat = format
     if (sessionType === 'flashcard') presentationFormat = 'flashcard'
-
-    onStart({
+    return {
       examId,
       sessionType,
       presentationFormat,
@@ -49,8 +59,22 @@ export function SessionSetup({ examId, topics, onStart }: Props) {
       unseenOnly,
       questionLimit,
       rapidFireSeconds,
-    })
+    }
   }
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    onStart(buildConfig())
+  }
+
+  useEffect(() => {
+    if (!initial?.autostart || autostarted.done) return
+    if (sessionType === 'topic' && !topicId) return
+    if (topics.length === 0 && sessionType === 'topic') return
+    autostarted.done = true
+    onStart(buildConfig())
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot autostart from Focus next links
+  }, [initial?.autostart, topicId, topics.length, sessionType])
 
   return (
     <form onSubmit={onSubmit} className="flex max-w-xl flex-col gap-4 rounded-md border border-border bg-surface p-4">

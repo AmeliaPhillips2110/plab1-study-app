@@ -6,10 +6,10 @@ export function AdminHomePage() {
     <AppShell title="Admin">
       <div className="flex flex-col gap-4">
         <p className="max-w-2xl text-sm text-muted">
-          Stage a admin shell: manage the question bank, edit the pass mark, and follow the user
-          invite path. Quiz analytics and glossary tools come later.
+          Manage the question bank, pass mark, users, and opted-in peer comparison. Glossary tools
+          come in Stage f.
         </p>
-        <ul className="grid gap-3 sm:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <li>
             <Link
               to="/admin/questions"
@@ -32,6 +32,14 @@ export function AdminHomePage() {
               className="block rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium hover:border-accent"
             >
               Users / invite
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/admin/comparison"
+              className="block rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium hover:border-accent"
+            >
+              Group comparison
             </Link>
           </li>
         </ul>

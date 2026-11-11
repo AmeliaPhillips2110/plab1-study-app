@@ -16,17 +16,17 @@ export function HomePage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-2xl text-muted">
             Welcome{profile?.display_name ? `, ${profile.display_name}` : ''}. Practice, sit timed
-            mocks, and review your attempt history with mistake tags.
+            mocks, track attempts, and watch KPIs / weaknesses on the dashboard.
           </p>
           <div className="flex flex-wrap gap-2">
             <Link to="/study">
               <Button>Start quiz</Button>
             </Link>
-            <Link to="/mock">
-              <Button variant="secondary">Timed mock</Button>
+            <Link to="/dashboard">
+              <Button variant="secondary">KPIs</Button>
             </Link>
-            <Link to="/attempts">
-              <Button variant="ghost">Attempt log</Button>
+            <Link to="/mock">
+              <Button variant="ghost">Timed mock</Button>
             </Link>
           </div>
         </div>
@@ -60,6 +60,21 @@ export function HomePage() {
           ) : (
             <p className="text-sm text-muted">No exam loaded.</p>
           )}
+        </section>
+
+        <section className="rounded-md border border-border bg-surface p-4">
+          <h2 className="mb-2 text-lg font-semibold">KPIs & weakness (Stage e)</h2>
+          <ul className="grid gap-2 text-sm text-muted sm:grid-cols-2">
+            <li>Headline tiles, score trend with pass-mark line</li>
+            <li>Accuracy by specialty, mistake mix, QPM, coverage</li>
+            <li>Activity + topic×weekday heatmaps</li>
+            <li>Focus next with one-click drills; admin group comparison</li>
+          </ul>
+          <p className="mt-3">
+            <Link className="text-sm text-accent hover:underline" to="/dashboard">
+              Open KPI dashboard →
+            </Link>
+          </p>
         </section>
 
         <section className="rounded-md border border-border bg-surface p-4">

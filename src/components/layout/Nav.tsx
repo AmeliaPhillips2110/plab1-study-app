@@ -25,6 +25,9 @@ export function Nav() {
       <NavLink to="/attempts" className={linkClass}>
         Attempts
       </NavLink>
+      <NavLink to="/dashboard" className={linkClass}>
+        KPIs
+      </NavLink>
       {isAdmin ? (
         <>
           <NavLink to="/admin" end className={linkClass}>
@@ -38,6 +41,9 @@ export function Nav() {
           </NavLink>
           <NavLink to="/admin/users" className={linkClass}>
             Users
+          </NavLink>
+          <NavLink to="/admin/comparison" className={linkClass}>
+            Comparison
           </NavLink>
         </>
       ) : null}

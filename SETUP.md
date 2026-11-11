@@ -1,7 +1,7 @@
-# PLABoratory — Setup (Stages a–d)
+# PLABoratory — Setup (Stages a–e)
 
 English-only PLAB 1 study app (Vite + React + TypeScript + Tailwind + Supabase).  
-This guide gets you from zero to a working local shell **with quizzes, timed mocks, attempt log, and mistake tags**.
+This guide gets you from zero to a working local shell **with quizzes, mocks, attempt tracking, and KPI / weakness dashboards**.
 
 ## 1. Create a Supabase project
 
@@ -100,15 +100,15 @@ where email = 'ameliaphillips1324@gmail.com';
 2. Trigger creates `profiles` (role `student`) + `user_preferences`.
 3. Promote to admin only via SQL as above when needed.
 
-## 6. What you should see (Stages a–d)
+## 6. What you should see (Stages a–e)
 
 | Role | Works now |
 | --- | --- |
 | Anyone | Dark default theme + light toggle |
-| Student | **Quiz** (`/study`); **Mocks** (`/mock`); **Attempts** (`/attempts`) log + timelines + CSV; mistake tags on wrong answers |
-| Admin | Question bank CRUD; exam settings (pass mark + default mock length/time); users |
+| Student | **Quiz**, **Mocks**, **Attempts**, **KPIs** (`/dashboard`) with charts, heatmaps, Focus next drills |
+| Admin | Question bank; settings; users; **Group comparison** (`/admin/comparison`, respects opt-out) |
 
-Not yet: KPI dashboard/charts (e), glossary UI (f), live Pages deploy (g).
+Not yet: glossary / UK-practice UI (f), live Pages deploy (g).
 
 Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring the bank — not copied from commercial question banks. Review before relying on them medically.
 
@@ -138,6 +138,13 @@ Sample questions are **original SAMPLE/UNVERIFIED** teaching items for wiring th
 3. Click **Timeline** on a row — chronological history for that question.
 4. Export **attempts CSV** and **sessions CSV**; open in a spreadsheet.
 5. Finish a short **Mock**, open incorrect items in review, **Save tags**, confirm they show in the attempt log.
+
+### Stage e smoke test
+
+1. Generate a few graded attempts (and ideally one finished mock) so charts have data.
+2. Open **KPIs** — check headline tiles, score trend (pass-mark line), specialty bars, mistake pie, QPM, coverage, calendars/heatmaps.
+3. Under Weakness analysis, use **Drill this topic** or **Recent mistakes quiz** (auto-starts tutor session).
+4. As admin, open **Comparison** — confirm opted-out students are excluded from the peer list / group average.
 
 ## 7. Create / push the GitHub repo (for later Pages)
 

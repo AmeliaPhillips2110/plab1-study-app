@@ -1,4 +1,59 @@
-/** Weakness chart (Recharts) — Stage e. */
-export function WeaknessChart() {
-  return null
+import { Link } from 'react-router-dom'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import type { WeaknessItem } from '@/modules/shared/analytics/kpiMetrics'
+
+type Props = {
+  items: WeaknessItem[]
+}
+
+export function WeaknessChart({ items }: Props) {
+  if (items.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        Need at least a couple of graded attempts per topic to rank weaknesses. Keep practising, then
+        return here for Focus next.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <ol className="flex flex-col gap-3">
+        {items.map((item, i) => (
+          <li
+            key={item.topicId}
+            className="flex flex-col gap-2 rounded border border-border bg-bg px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <Badge tone="accent">#{i + 1}</Badge>
+                <span className="font-medium">{item.topic}</span>
+                <Badge tone={item.accuracy < 65 ? 'incorrect' : 'neutral'}>{item.accuracy}%</Badge>
+                <span className="text-xs text-muted">
+                  {item.correct}/{item.total} graded
+                </span>
+              </div>
+              <p className="text-xs text-muted">{item.focusReason}</p>
+            </div>
+            <Link to={`/study?sessionType=topic&topicId=${item.topicId}&autostart=1`}>
+              <Button variant="secondary">Drill this topic</Button>
+            </Link>
+          </li>
+        ))}
+      </ol>
+
+      <div className="flex flex-wrap gap-2">
+        <Link to="/study?sessionType=weakness&variant=recent_mistakes&autostart=1">
+          <Button>Recent mistakes quiz</Button>
+        </Link>
+        <Link to="/study?sessionType=weakness&variant=most_missed&autostart=1">
+          <Button variant="secondary">Most missed quiz</Button>
+        </Link>
+        <Link to="/study?sessionType=weakness&variant=by_tag&autostart=1">
+          <Button variant="ghost">Weak tags quiz</Button>
+        </Link>
+      </div>
+    </div>
+  )
 }

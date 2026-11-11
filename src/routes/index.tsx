@@ -11,6 +11,8 @@ import { StudySetupPage } from '@/routes/study/StudySetupPage'
 import { MockPage } from '@/routes/mock/MockPage'
 import { AttemptsPage } from '@/routes/attempts/AttemptsPage'
 import { QuestionTimelinePage } from '@/routes/attempts/QuestionTimelinePage'
+import { DashboardPage } from '@/routes/dashboard/DashboardPage'
+import { AdminComparisonPage } from '@/routes/admin/AdminComparisonPage'
 
 export function AppRoutes() {
   return (
@@ -27,6 +29,7 @@ export function AppRoutes() {
         <Route path="/mock" element={<MockPage />} />
         <Route path="/attempts" element={<AttemptsPage />} />
         <Route path="/attempts/question/:questionId" element={<QuestionTimelinePage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
       </Route>
 
       <Route element={<RequireAdmin />}>
@@ -34,6 +37,7 @@ export function AppRoutes() {
         <Route path="/admin/questions" element={<AdminQuestionsPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/comparison" element={<AdminComparisonPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
