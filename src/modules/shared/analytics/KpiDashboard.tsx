@@ -195,7 +195,7 @@ export function KpiDashboard({
         </Panel>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <Panel title="Questions Per Minute" subtitle="Daily Average From Timed Attempts">
           <QpmChart data={derived.qpm} />
         </Panel>

@@ -61,9 +61,10 @@ If you already partially applied older SQL and get “already exists” errors, 
 1. `supabase/migrations/20261111000001_schema.sql`
 2. `supabase/migrations/20261111000002_rls.sql`
 3. `supabase/migrations/20261112000003_glossary_section.sql` (only if schema was applied before the `section` column existed)
-4. `supabase/seed.sql`
-5. `supabase/seed_flashcards.sql`
-6. Optional if you already seeded before Stage f: `supabase/seed_stage_f.sql`
+4. `supabase/seed.sql` (includes example pack Q42–Q51 + glossary)
+5. `supabase/seed_example_pack.sql` (safe re-run of the example pack alone)
+6. `supabase/seed_flashcards.sql`
+7. Optional if you already seeded before Stage f: `supabase/seed_stage_f.sql`
 
 ### Quick RLS check
 
