@@ -75,7 +75,11 @@ export function QuestionList({ examId, topics }: Props) {
       {loading ? <p className="text-sm text-muted">Loading questions…</p> : null}
 
       {!loading && items.length === 0 ? (
-        <p className="text-sm text-muted">No questions yet. Add one or run the seed SQL.</p>
+        <p className="text-sm text-muted">
+          No questions yet. Add one here, or in Supabase SQL paste{' '}
+          <code className="text-fg">supabase/seed_example_pack.sql</code> (safe re-run for Q42–Q51). Fresh
+          project: paste <code className="text-fg">APPLY_ALL.sql</code> once.
+        </p>
       ) : null}
 
       <ul className="flex flex-col gap-2">

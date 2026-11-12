@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import {
@@ -12,20 +11,13 @@ import {
 } from '@/lib/examCountdown'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
 import { computeTopicAccuracy } from '@/modules/shared/analytics/kpiMetrics'
-
-const OPTIONS = [
-  { to: '/study/practice-questions', label: 'Study' },
-  { to: '/tests/full-test', label: 'Tests' },
-  { to: '/kpis', label: 'KPIs' },
-  { to: '/attempts', label: 'Attempts' },
-  { to: '/glossary', label: 'Glossary' },
-  { to: '/account', label: 'Account' },
-]
+import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
 
 export function HomePage() {
-  const { user, isAdmin } = useAuth()
+  const { user } = useAuth()
   const { loading, exam, settings, topics, error, schemaMissing } = useExam()
   const [now, setNow] = useState(() => new Date())
+  const [bankCount, setBankCount] = useState<number | null>(null)
   const [topicAccuracy, setTopicAccuracy] = useState<
     Record<string, { accuracy: number; total: number }>
   >({})
@@ -37,6 +29,16 @@ export function HomePage() {
     const id = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    if (!exam) {
+      setBankCount(null)
+      return
+    }
+    void (async () => {
+      setBankCount(await countActiveSba(exam.id))
+    })()
+  }, [exam])
 
   useEffect(() => {
     if (!user || !exam) {
@@ -54,32 +56,19 @@ export function HomePage() {
     })()
   }, [user, exam, topics])
 
+  const examMissing = !loading && (!exam || schemaMissing)
+  const bankEmpty = Boolean(exam) && bankCount === 0
+
   return (
     <AppShell title="Start a Study Session">
       <div className="flex flex-col items-center gap-8">
-        <div className="flex w-full max-w-3xl flex-wrap items-center justify-center gap-2">
-          {OPTIONS.map((opt) => (
-            <Link key={opt.to} to={opt.to}>
-              <Button variant="primary">{opt.label}</Button>
-            </Link>
-          ))}
-          {isAdmin ? (
-            <>
-              <Link to="/admin/questions">
-                <Button variant="primary">Questions</Button>
-              </Link>
-              <Link to="/admin/glossary">
-                <Button variant="primary">Glossary Edit</Button>
-              </Link>
-            </>
-          ) : null}
-        </div>
-
         {!schemaMissing && error ? (
           <p className="w-full max-w-3xl rounded-md border border-incorrect/40 bg-incorrect/10 px-3 py-2 text-center text-sm text-incorrect">
             {error}
           </p>
         ) : null}
+
+        <EmptyBankHint examMissing={examMissing} bankEmpty={bankEmpty} />
 
         <section className="w-full max-w-3xl rounded-md border border-border bg-surface p-5 text-center">
           <h2 className="mb-1 font-display text-lg font-semibold">Exam Countdown</h2>
@@ -131,8 +120,16 @@ export function HomePage() {
                 Mock default {settings?.default_mock_question_count ?? 180} Q /{' '}
                 {settings?.default_mock_minutes ?? 180} min
               </p>
+              {bankCount != null ? (
+                <p className="text-muted">
+                  Active SBA bank:{' '}
+                  <span className="font-medium text-fg">{bankCount}</span>
+                </p>
+              ) : null}
             </div>
-          ) : null}
+          ) : (
+            <p className="text-sm text-muted">Exam not loaded yet.</p>
+          )}
         </section>
 
         <section className="w-full max-w-3xl rounded-md border border-border bg-surface p-4 text-center">

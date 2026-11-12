@@ -110,6 +110,16 @@ export function UserMenu({ className }: Props) {
             Account
             {isAdmin ? <span className="mt-0.5 block text-xs text-muted">Administrator</span> : null}
           </Link>
+          {isAdmin ? (
+            <Link
+              role="menuitem"
+              to="/admin"
+              className="block px-3 py-2 text-sm hover:bg-accent-subtle"
+              onClick={() => setOpen(false)}
+            >
+              Admin
+            </Link>
+          ) : null}
           <button
             role="menuitem"
             type="button"

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { studyModeBySlug } from '@/modules/plab1/modeRoutes'
@@ -55,6 +56,9 @@ export function StudyModePage() {
     <AppShell title={mode.title}>
       {loading ? <p className="text-sm text-muted">Loading exam…</p> : null}
       {!schemaMissing && error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
+      <div className="mb-4">
+        <EmptyBankHint examMissing={!loading && (!exam || schemaMissing)} />
+      </div>
       {exam ? (
         <SessionSetup
           examId={exam.id}

@@ -35,6 +35,13 @@ export async function countActiveSba(examId: string): Promise<number> {
   return count ?? 0
 }
 
+function mapSbaRows(data: QuestionWithOptions[] | null | undefined): QuestionWithOptions[] {
+  return (data ?? []).map((q) => ({
+    ...q,
+    question_options: [...(q.question_options ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+  }))
+}
+
 export async function loadSbaBank(examId: string, limit: number): Promise<{
   questions: QuestionWithOptions[]
   error: string | null
@@ -48,10 +55,30 @@ export async function loadSbaBank(examId: string, limit: number): Promise<{
     .limit(Math.max(limit, 1))
 
   if (error) return { questions: [], error: error.message }
-  const rows = ((data as unknown as QuestionWithOptions[] | null) ?? []).map((q) => ({
-    ...q,
-    question_options: [...(q.question_options ?? [])].sort((a, b) => a.sort_order - b.sort_order),
-  }))
+  const rows = mapSbaRows(data as unknown as QuestionWithOptions[] | null)
+  return { questions: shuffleInPlace(rows).slice(0, limit), error: null }
+}
+
+/** Load active SBAs for one topic (server-side filter — required for Themed Test). */
+export async function loadSbaByTopic(
+  examId: string,
+  topicId: string,
+  limit: number,
+): Promise<{
+  questions: QuestionWithOptions[]
+  error: string | null
+}> {
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*, question_options(*)')
+    .eq('exam_id', examId)
+    .eq('topic_id', topicId)
+    .eq('is_active', true)
+    .eq('question_type', 'sba')
+    .limit(Math.max(limit, 1))
+
+  if (error) return { questions: [], error: error.message }
+  const rows = mapSbaRows(data as unknown as QuestionWithOptions[] | null)
   return { questions: shuffleInPlace(rows).slice(0, limit), error: null }
 }
 
