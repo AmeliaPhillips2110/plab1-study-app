@@ -29,24 +29,40 @@ This guide gets you from zero to a working local shell and a **GitHub Pages** de
 
 Deploying the website does **not** create tables or questions. Do this in the **Supabase SQL editor**.
 
-### A. Amelia — questions missing / refresh Q42–Q51 (usual)
+### Load example questions (`seed_example_pack.sql`) — do this first if Study/Tests are empty
 
-If the site already signs in and shows topics but **Study / Tests have no questions**, paste **only** the example pack:
+Use this when you can **sign in** and see the home page / topics, but **questions are missing** (or you need to refresh Q42–Q51).
 
-1. Open [`supabase/seed_example_pack.sql`](./supabase/seed_example_pack.sql) on GitHub → **Raw** → Select all → Copy.
-2. Supabase → **SQL** → **New query** → Paste → **Run**.
-3. Confirm the result row shows `example_pack_questions = 10` and `example_pack_options = 50`, or run:
+| Step | What to do |
+| --- | --- |
+| 1 | Open the live SQL file: [`supabase/seed_example_pack.sql`](https://github.com/AmeliaPhillips2110/plab1-study-app/blob/main/supabase/seed_example_pack.sql) |
+| 2 | Click **Raw** (top right of the file view). |
+| 3 | Select **all** text (`Ctrl/Cmd+A`) → **Copy**. |
+| 4 | Open your [Supabase project](https://supabase.com/dashboard) → left sidebar **SQL** → **New query**. |
+| 5 | **Paste** the file into the editor → click **Run** (or `Ctrl/Cmd+Enter`). |
+| 6 | Wait until it finishes. The last result should show `example_pack_questions = 10` and `example_pack_options = 50`. |
+| 7 | Hard-refresh the app: https://ameliaphillips2110.github.io/plab1-study-app/ (or open Study → Practice Questions / Tests → Themed Test). |
+
+Optional double-check in Supabase SQL:
 
 ```sql
 select count(*) as example_pack_questions
 from public.questions
 where id between 'a4000000-0000-4000-8000-000000000042'
   and 'a4000000-0000-4000-8000-000000000051';
+-- expect 10
 ```
 
-4. Hard-refresh https://ameliaphillips2110.github.io/plab1-study-app/
+**Notes**
 
-`seed_example_pack.sql` is **safe to re-run**. It upserts exam/settings/required topics/tags, then Q42–Q51 + matching glossary. If it errors with **Schema missing**, use §2B below first.
+- Safe to re-run anytime (idempotent upserts).
+- Loads Q42–Q51 + matching glossary, and ensures required exam/topics/tags exist.
+- If Run fails with **Schema missing** / `public.exams` not found → skip to **§2B** (`APPLY_ALL.sql`) first, then re-run this pack.
+
+### A. Same pack (short checklist)
+
+1. Raw-copy [`seed_example_pack.sql`](./supabase/seed_example_pack.sql) → Supabase SQL → Run.  
+2. Expect 10 questions → hard-refresh the live site.
 
 ### B. Fresh project / missing `public.exams` (one paste)
 
