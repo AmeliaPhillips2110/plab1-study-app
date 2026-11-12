@@ -107,7 +107,7 @@ export function AccountPage() {
               name={display}
               imageUrl={avatarUrl || null}
               size="lg"
-              className="ring-2 ring-accent/30"
+              className="ring-2 ring-black"
             />
           </div>
           <h2 className="font-display text-lg font-semibold">{display}</h2>

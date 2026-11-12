@@ -14,10 +14,6 @@ export function WeaknessChart({ items }: Props) {
         <div className="mx-auto mb-3 h-2 w-full max-w-md rounded-full bg-border">
           <div className="h-full w-1/3 rounded-full bg-accent/30" />
         </div>
-        <p className="text-sm text-muted">
-          Need at least a couple of graded attempts per topic to rank weaknesses. Keep practising,
-          then return here for Focus next.
-        </p>
       </div>
     )
   }
@@ -36,27 +32,27 @@ export function WeaknessChart({ items }: Props) {
                 <span className="font-medium">{item.topic}</span>
                 <Badge tone={item.accuracy < 65 ? 'incorrect' : 'neutral'}>{item.accuracy}%</Badge>
                 <span className="text-xs text-muted">
-                  {item.correct}/{item.total} graded
+                  {item.correct}/{item.total} Graded
                 </span>
               </div>
               <p className="text-xs text-muted">{item.focusReason}</p>
             </div>
-            <Link to={`/study?sessionType=topic&topicId=${item.topicId}&autostart=1`}>
-              <Button variant="secondary">Drill this topic</Button>
+            <Link to={`/study/practice-questions?topicId=${item.topicId}&autostart=1`}>
+              <Button variant="secondary">Drill This Topic</Button>
             </Link>
           </li>
         ))}
       </ol>
 
       <div className="flex flex-wrap gap-2">
-        <Link to="/study?sessionType=weakness&variant=recent_mistakes&autostart=1">
-          <Button>Recent mistakes quiz</Button>
+        <Link to="/study/error-tests">
+          <Button>Error Tests</Button>
         </Link>
-        <Link to="/study?sessionType=weakness&variant=most_missed&autostart=1">
-          <Button variant="secondary">Most missed quiz</Button>
+        <Link to="/study/most-missed">
+          <Button variant="secondary">Most Missed</Button>
         </Link>
-        <Link to="/study?sessionType=weakness&variant=by_tag&autostart=1">
-          <Button variant="ghost">Weak tags quiz</Button>
+        <Link to="/study/weak-topics">
+          <Button variant="ghost">Weak Topics</Button>
         </Link>
       </div>
     </div>

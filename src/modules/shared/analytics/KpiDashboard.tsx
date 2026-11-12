@@ -2,24 +2,34 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
 import { isMissingSchemaError } from '@/lib/schemaErrors'
+import { AccuracyOverTimeChart } from '@/modules/shared/analytics/charts/AccuracyOverTimeChart'
 import { ActivityHeatmap } from '@/modules/shared/analytics/charts/ActivityHeatmap'
+import { ActivityOverTimeChart } from '@/modules/shared/analytics/charts/ActivityOverTimeChart'
+import { CoverageStatusBar } from '@/modules/shared/analytics/charts/CoverageStatusBar'
+import { DayOfWeekChart } from '@/modules/shared/analytics/charts/DayOfWeekChart'
 import { MistakeBreakdownChart } from '@/modules/shared/analytics/charts/MistakeBreakdownChart'
 import { PaceVsStemChart } from '@/modules/shared/analytics/charts/PaceVsStemChart'
 import { QpmChart } from '@/modules/shared/analytics/charts/QpmChart'
 import { ScoreTrendChart } from '@/modules/shared/analytics/charts/ScoreTrendChart'
+import { TimeOfDayChart } from '@/modules/shared/analytics/charts/TimeOfDayChart'
 import { TopicAccuracyChart } from '@/modules/shared/analytics/charts/TopicAccuracyChart'
 import { TopicHeatmap } from '@/modules/shared/analytics/charts/TopicHeatmap'
 import { fetchKpiBundle } from '@/modules/shared/analytics/kpiData'
 import {
+  computeActivityOverTime,
   computeCalendarHeatmap,
+  computeCoverageStatuses,
+  computeDayOfWeekActivity,
   computeHeadlineKpis,
   computeMistakeBreakdown,
   computePaceVsStem,
   computeQpmSeries,
   computeScoreTrend,
+  computeTimeOfDayActivity,
   computeTopicAccuracy,
   computeTopicWeekdayHeatmap,
   computeWeaknesses,
+  type CoverageStatusCounts,
   type HeadlineKpis,
 } from '@/modules/shared/analytics/kpiMetrics'
 import { WeaknessChart } from '@/modules/shared/analytics/WeaknessChart'
@@ -46,6 +56,14 @@ const EMPTY_HEADLINES: HeadlineKpis = {
   qpm: 0,
   activeDays30: 0,
   latestMockPercent: null,
+}
+
+const EMPTY_COVERAGE: CoverageStatusCounts = {
+  new: 0,
+  incorrect: 0,
+  correct: 0,
+  repeated_correct: 0,
+  forgotten: 0,
 }
 
 export function KpiDashboard({
@@ -87,6 +105,10 @@ export function KpiDashboard({
         calendar: [],
         topicHeat: [],
         weaknesses: [],
+        coverageStatuses: EMPTY_COVERAGE,
+        activityOverTime: { points: [], topicKeys: [] as string[] },
+        timeOfDay: computeTimeOfDayActivity([]),
+        dayOfWeek: computeDayOfWeekActivity([]),
       }
     }
     const headlines = computeHeadlineKpis({
@@ -105,6 +127,10 @@ export function KpiDashboard({
       calendar: computeCalendarHeatmap(bundle.attempts),
       topicHeat: computeTopicWeekdayHeatmap(bundle.attempts),
       weaknesses: computeWeaknesses(topicAccuracy),
+      coverageStatuses: computeCoverageStatuses(bundle.attempts, bundle.bankActive),
+      activityOverTime: computeActivityOverTime(bundle.attempts, bundle.topics),
+      timeOfDay: computeTimeOfDayActivity(bundle.attempts),
+      dayOfWeek: computeDayOfWeekActivity(bundle.attempts),
     }
   }, [bundle])
 
@@ -120,7 +146,7 @@ export function KpiDashboard({
         <Tile
           label="Accuracy"
           value={`${h.accuracyPercent}%`}
-          hint={`${h.correctCount}/${h.gradedCount} graded`}
+          hint={`${h.correctCount}/${h.gradedCount} Graded`}
           tone={
             h.gradedCount === 0
               ? undefined
@@ -132,87 +158,99 @@ export function KpiDashboard({
         <Tile
           label="Attempts"
           value={String(h.attemptCount)}
-          hint={`${h.finishedSessionCount} finished sessions`}
+          hint={`${h.finishedSessionCount} Finished Sessions`}
         />
         <Tile
           label="Coverage"
           value={`${h.coveragePercent}%`}
-          hint={`${h.uniqueAttempted}/${h.bankActive} active questions`}
+          hint={`${h.uniqueAttempted}/${h.bankActive} Active Questions`}
         />
         <Tile
           label="Pace"
           value={`${h.qpm}`}
-          hint={`Q/min avg · ${h.activeDays30} active days (30d)`}
+          hint={`Q/Min Avg · ${h.activeDays30} Active Days (30d)`}
         />
       </section>
 
       {h.latestMockPercent != null ? (
         <p className="text-center text-sm text-muted">
-          Latest timed test score:{' '}
+          Latest Timed Test Score:{' '}
           <Badge tone={h.latestMockPercent >= passMarkPercent ? 'correct' : 'incorrect'}>
             {h.latestMockPercent}%
           </Badge>{' '}
-          (pass mark {passMarkPercent}%)
+          (Pass Mark {passMarkPercent}%)
         </p>
       ) : null}
 
-      <Panel title="Score over time" subtitle={`Pass mark line at ${passMarkPercent}%`}>
+      <Panel title="Score Over Time" subtitle={`Pass Mark Line At ${passMarkPercent}%`}>
         <ScoreTrendChart data={derived.scoreTrend} passMark={passMarkPercent} />
       </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Accuracy by specialty" subtitle="Topics with graded attempts">
+        <Panel title="Accuracy By Specialty" subtitle="Topics With Graded Attempts">
           <TopicAccuracyChart data={derived.topicAccuracy} passMark={passMarkPercent} />
         </Panel>
-        <Panel title="Mistake breakdown" subtitle="From tagged incorrect attempts">
+        <Panel title="Mistake Breakdown" subtitle="From Tagged Incorrect Attempts">
           <MistakeBreakdownChart data={derived.mistakes} />
         </Panel>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Questions per minute" subtitle="Daily average from timed attempts">
+        <Panel title="Questions Per Minute" subtitle="Daily Average From Timed Attempts">
           <QpmChart data={derived.qpm} />
         </Panel>
-        <Panel title="Coverage" subtitle="Unique questions touched vs active bank">
-          <div className="flex flex-col gap-3 py-2">
-            <div className="h-3 overflow-hidden rounded-full bg-border">
-              <div
-                className="h-full bg-accent transition-all"
-                style={{ width: `${Math.min(100, h.coveragePercent)}%` }}
-              />
-            </div>
-            <p className="text-center text-sm text-muted">
-              {h.uniqueAttempted} of {h.bankActive} active items ({h.coveragePercent}%). Grow the bank
-              in Admin as you author more questions.
-            </p>
-          </div>
+        <Panel
+          title="Coverage Status"
+          subtitle="Quiz Answers Only — Last 3 Answers Per Question"
+        >
+          <CoverageStatusBar counts={derived.coverageStatuses} />
         </Panel>
       </div>
 
       <Panel
-        title="Pace vs stem length"
-        subtitle={`Language tags: ${derived.paceStem.languageMistakes} · UK-practice tags: ${derived.paceStem.ukPracticeMistakes}`}
+        title="Pace Vs Stem Length"
+        subtitle={`Language Tags: ${derived.paceStem.languageMistakes} · UK-Practice Tags: ${derived.paceStem.ukPracticeMistakes}`}
       >
         <PaceVsStemChart points={derived.paceStem.points} buckets={derived.paceStem.buckets} />
       </Panel>
 
-      <Panel title="Activity calendar" subtitle="Last ~12 weeks">
+      <Panel title="Activity Over Time" subtitle="Total, Topics, And Where Errors Concentrate">
+        <ActivityOverTimeChart
+          points={derived.activityOverTime.points}
+          topicKeys={derived.activityOverTime.topicKeys}
+        />
+      </Panel>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel title="Time Of Day Activity" subtitle="Attempts And Errors By Hour">
+          <TimeOfDayChart data={derived.timeOfDay} />
+        </Panel>
+        <Panel title="Day Of Week Activity" subtitle="Attempts And Errors By Weekday">
+          <DayOfWeekChart data={derived.dayOfWeek} />
+        </Panel>
+      </div>
+
+      <Panel title="% Correct Over Time" subtitle="Fatigue Tracking Across Days">
+        <AccuracyOverTimeChart points={derived.activityOverTime.points} />
+      </Panel>
+
+      <Panel title="Activity Calendar" subtitle="Last ~12 Weeks">
         <ActivityHeatmap data={derived.calendar} />
       </Panel>
 
-      <Panel title="Topic × weekday heatmap" subtitle="Where you practise during the week">
+      <Panel title="Topic × Weekday Heatmap" subtitle="Where You Practise During The Week">
         <TopicHeatmap data={derived.topicHeat} />
       </Panel>
 
-      <Panel title="Weakness analysis" subtitle="Focus next + one-click drills">
+      <Panel title="Weakness Analysis" subtitle="Focus Next + One-Click Drills">
         <WeaknessChart items={derived.weaknesses} />
       </Panel>
 
       {isAdmin ? (
         <p className="text-center text-sm">
-          Admin group comparison (opt-out respected):{' '}
+          Admin Group Comparison (Opt-Out Respected):{' '}
           <Link className="text-accent hover:underline" to="/admin/comparison">
-            Open comparison →
+            Open Comparison →
           </Link>
         </p>
       ) : null}

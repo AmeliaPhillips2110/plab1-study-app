@@ -25,9 +25,9 @@ export function PaceVsStemChart({ points, buckets }: Props) {
       { bucket: 'Long', avgSeconds: 0 },
     ]
     return (
-      <div className="relative grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
         <div className="h-56 w-full">
-          <p className="mb-2 text-xs text-muted">Avg seconds by stem length</p>
+          <p className="mb-2 text-xs text-muted">Avg Seconds By Stem Length</p>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={emptyBuckets} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
@@ -38,7 +38,7 @@ export function PaceVsStemChart({ points, buckets }: Props) {
           </ResponsiveContainer>
         </div>
         <div className="h-56 w-full">
-          <p className="mb-2 text-xs text-muted">Scatter: words vs seconds (sample)</p>
+          <p className="mb-2 text-xs text-muted">Scatter: Words Vs Seconds</p>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
@@ -48,29 +48,26 @@ export function PaceVsStemChart({ points, buckets }: Props) {
             </ScatterChart>
           </ResponsiveContainer>
         </div>
-        <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-muted">
-          No timed attempts yet — pace vs stem length appears after you answer with time tracked.
-        </p>
       </div>
     )
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
       <div className="h-56 w-full">
-        <p className="mb-2 text-xs text-muted">Avg seconds by stem length</p>
+        <p className="mb-2 text-xs text-muted">Avg Seconds By Stem Length</p>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={buckets} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
             <XAxis dataKey="bucket" tick={{ fill: CHART.muted, fontSize: 10 }} />
             <YAxis tick={{ fill: CHART.muted, fontSize: 11 }} />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="avgSeconds" name="Avg seconds" fill={CHART.accent} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="avgSeconds" name="Avg Seconds" fill={CHART.accent} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
       <div className="h-56 w-full">
-        <p className="mb-2 text-xs text-muted">Scatter: words vs seconds (sample)</p>
+        <p className="mb-2 text-xs text-muted">Scatter: Words Vs Seconds</p>
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />

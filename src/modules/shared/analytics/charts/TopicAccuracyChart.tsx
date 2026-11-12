@@ -16,15 +16,7 @@ type Props = { data: TopicAccuracy[]; passMark: number }
 
 export function TopicAccuracyChart({ data, passMark }: Props) {
   if (data.length === 0) {
-    return (
-      <EmptyChartShell
-        kind="bar"
-        message="No topic attempts yet."
-        yDomain={[0, 100]}
-        yUnit="%"
-        heightClass="h-72"
-      />
-    )
+    return <EmptyChartShell kind="bar" yDomain={[0, 100]} yUnit="%" heightClass="h-72" />
   }
   const chartData = [...data].sort((a, b) => b.accuracy - a.accuracy)
   return (

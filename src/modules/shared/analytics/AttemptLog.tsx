@@ -32,7 +32,7 @@ export function AttemptLog({ userId, examId }: Props) {
     mistakeTag: 'all',
     query: '',
   })
-  const [sort, setSort] = useState<AttemptSort>('answered_at_desc')
+  const [sort, setSort] = useState<AttemptSort>('most_recent')
 
   useEffect(() => {
     void (async () => {
@@ -148,10 +148,9 @@ export function AttemptLog({ userId, examId }: Props) {
           value={sort}
           onChange={(e) => setSort(e.target.value as AttemptSort)}
           options={[
-            { value: 'answered_at_desc', label: 'Newest first' },
-            { value: 'answered_at_asc', label: 'Oldest first' },
-            { value: 'result', label: 'Result' },
-            { value: 'time_spent', label: 'Time spent' },
+            { value: 'most_recent', label: 'Most Recent' },
+            { value: 'best', label: 'Best' },
+            { value: 'worst', label: 'Worst' },
           ]}
         />
         <div className="sm:col-span-2 lg:col-span-4">

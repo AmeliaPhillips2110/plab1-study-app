@@ -15,13 +15,7 @@ type Props = { data: QpmPoint[] }
 
 export function QpmChart({ data }: Props) {
   if (data.length === 0) {
-    return (
-      <EmptyChartShell
-        message="No timed attempts for QPM yet."
-        yDomain={[0, 4]}
-        heightClass="h-56"
-      />
-    )
+    return <EmptyChartShell yDomain={[0, 4]} heightClass="h-56" />
   }
   return (
     <div className="h-56 w-full">

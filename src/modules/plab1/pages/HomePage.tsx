@@ -6,9 +6,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 
 const OPTIONS = [
-  { to: '/study', label: 'Study' },
-  { to: '/mock', label: 'Tests' },
-  { to: '/dashboard', label: 'KPIs' },
+  { to: '/study/practice-questions', label: 'Study' },
+  { to: '/tests/full-test', label: 'Tests' },
+  { to: '/kpis', label: 'KPIs' },
   { to: '/attempts', label: 'Attempts' },
   { to: '/glossary', label: 'Glossary' },
   { to: '/account', label: 'Account' },
@@ -65,9 +65,7 @@ export function HomePage() {
                 {settings?.default_mock_minutes ?? 180} min
               </p>
             </div>
-          ) : (
-            <p className="text-sm text-muted">Exam not available yet.</p>
-          )}
+          ) : null}
         </section>
 
         <section className="w-full max-w-3xl rounded-md border border-border bg-surface p-4 text-center">

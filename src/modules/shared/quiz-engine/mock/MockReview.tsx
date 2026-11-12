@@ -220,7 +220,7 @@ export function MockReview({
 
       <div className="flex flex-wrap gap-2">
         <Link
-          to="/mock"
+          to="/tests/full-test"
           className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
           Another timed test

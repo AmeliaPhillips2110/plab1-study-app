@@ -16,13 +16,7 @@ type Props = { data: ScorePoint[]; passMark: number }
 
 export function ScoreTrendChart({ data, passMark }: Props) {
   if (data.length === 0) {
-    return (
-      <EmptyChartShell
-        message="No finished sessions with scores yet."
-        yDomain={[0, 100]}
-        yUnit="%"
-      />
-    )
+    return <EmptyChartShell yDomain={[0, 100]} yUnit="%" />
   }
   return (
     <div className="h-64 w-full">

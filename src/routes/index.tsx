@@ -7,8 +7,8 @@ import { AdminQuestionsPage } from '@/routes/admin/AdminQuestionsPage'
 import { AdminSettingsPage } from '@/routes/admin/AdminSettingsPage'
 import { AdminUsersPage } from '@/routes/admin/AdminUsersPage'
 import { SetupHintPage } from '@/routes/SetupHintPage'
-import { StudySetupPage } from '@/routes/study/StudySetupPage'
-import { MockPage } from '@/routes/mock/MockPage'
+import { StudyModePage } from '@/routes/study/StudyModePage'
+import { TestModePage } from '@/modules/plab1/pages/TestModePage'
 import { AttemptsPage } from '@/routes/attempts/AttemptsPage'
 import { QuestionTimelinePage } from '@/routes/attempts/QuestionTimelinePage'
 import { DashboardPage } from '@/routes/dashboard/DashboardPage'
@@ -28,11 +28,15 @@ export function AppRoutes() {
 
       <Route element={<RequireAuth />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/study" element={<StudySetupPage />} />
-        <Route path="/mock" element={<MockPage />} />
+        <Route path="/study" element={<Navigate to="/study/practice-questions" replace />} />
+        <Route path="/study/:modeSlug" element={<StudyModePage />} />
+        <Route path="/tests" element={<Navigate to="/tests/full-test" replace />} />
+        <Route path="/tests/:modeSlug" element={<TestModePage />} />
+        <Route path="/mock" element={<Navigate to="/tests/full-test" replace />} />
         <Route path="/attempts" element={<AttemptsPage />} />
         <Route path="/attempts/question/:questionId" element={<QuestionTimelinePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/kpis" element={<DashboardPage />} />
         <Route path="/glossary" element={<GlossaryPage />} />
         <Route path="/account" element={<AccountPage />} />
       </Route>

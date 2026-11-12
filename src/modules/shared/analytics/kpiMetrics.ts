@@ -276,3 +276,168 @@ export function computePaceVsStem(attempts: AttemptLogRow[]): {
 
   return { points, buckets, languageMistakes, ukPracticeMistakes }
 }
+
+export type CoverageStatus =
+  | 'new'
+  | 'incorrect'
+  | 'correct'
+  | 'repeated_correct'
+  | 'forgotten'
+
+export const COVERAGE_STATUS_LABELS: Record<CoverageStatus, string> = {
+  new: 'New',
+  incorrect: 'Incorrect',
+  correct: 'Correct',
+  repeated_correct: 'Repeated Correct',
+  forgotten: 'Forgotten',
+}
+
+export const COVERAGE_STATUS_COLORS: Record<CoverageStatus, string> = {
+  new: '#a3a3a3',
+  incorrect: '#b54a4a',
+  correct: '#2f6f6a',
+  repeated_correct: '#337d8a',
+  forgotten: '#c47a3a',
+}
+
+export type CoverageStatusCounts = Record<CoverageStatus, number>
+
+function isQuizAttempt(a: AttemptLogRow): boolean {
+  const st = a.study_sessions?.session_type
+  const fmt = a.study_sessions?.presentation_format
+  if (st === 'flashcard' || fmt === 'flashcard') return false
+  if (a.questions?.question_type === 'flashcard') return false
+  return true
+}
+
+/** Status from last ≤3 quiz answers per question; New = never answered in quiz. */
+export function computeCoverageStatuses(
+  attempts: AttemptLogRow[],
+  bankActive: number,
+): CoverageStatusCounts {
+  const quiz = attempts.filter(isQuizAttempt)
+  const byQ = new Map<string, AttemptLogRow[]>()
+  for (const a of quiz) {
+    const list = byQ.get(a.question_id) ?? []
+    list.push(a)
+    byQ.set(a.question_id, list)
+  }
+
+  const counts: CoverageStatusCounts = {
+    new: Math.max(0, bankActive - byQ.size),
+    incorrect: 0,
+    correct: 0,
+    repeated_correct: 0,
+    forgotten: 0,
+  }
+
+  for (const [, list] of byQ) {
+    const sorted = [...list].sort(
+      (a, b) => new Date(a.answered_at).getTime() - new Date(b.answered_at).getTime(),
+    )
+    const graded = sorted.filter((a) => a.result === 'correct' || a.result === 'incorrect')
+    if (graded.length === 0) {
+      counts.new += 1
+      continue
+    }
+    const last3 = graded.slice(-3)
+    const last = last3[last3.length - 1]!
+    const everCorrect = graded.some((a) => a.result === 'correct')
+    const threeCorrect =
+      last3.length === 3 && last3.every((a) => a.result === 'correct')
+
+    if (threeCorrect) {
+      counts.repeated_correct += 1
+    } else if (last.result === 'incorrect' && everCorrect && last3.some((a) => a.result === 'correct')) {
+      counts.forgotten += 1
+    } else if (last.result === 'incorrect') {
+      counts.incorrect += 1
+    } else {
+      counts.correct += 1
+    }
+  }
+
+  return counts
+}
+
+export type ActivitySeriesPoint = {
+  date: string
+  label: string
+  total: number
+  errors: number
+  percentCorrect: number | null
+  [topicKey: string]: string | number | null
+}
+
+export function computeActivityOverTime(
+  attempts: AttemptLogRow[],
+  topics: Topic[],
+): { points: ActivitySeriesPoint[]; topicKeys: string[] } {
+  const topicNames = topics.map((t) => t.name).slice(0, 8)
+  const byDay = new Map<string, { total: number; errors: number; correct: number; graded: number; byTopic: Map<string, number> }>()
+
+  for (const a of attempts) {
+    const d = dayKey(a.answered_at)
+    const row =
+      byDay.get(d) ??
+      ({ total: 0, errors: 0, correct: 0, graded: 0, byTopic: new Map() })
+    row.total += 1
+    if (a.result === 'incorrect') row.errors += 1
+    if (a.result === 'correct' || a.result === 'incorrect') {
+      row.graded += 1
+      if (a.result === 'correct') row.correct += 1
+    }
+    const topic = a.topics?.name
+    if (topic) row.byTopic.set(topic, (row.byTopic.get(topic) ?? 0) + 1)
+    byDay.set(d, row)
+  }
+
+  const points = [...byDay.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, v]) => {
+      const point: ActivitySeriesPoint = {
+        date,
+        label: date.slice(5),
+        total: v.total,
+        errors: v.errors,
+        percentCorrect: v.graded ? Math.round((v.correct / v.graded) * 1000) / 10 : null,
+      }
+      for (const name of topicNames) {
+        point[`t:${name}`] = v.byTopic.get(name) ?? 0
+      }
+      return point
+    })
+
+  return { points, topicKeys: topicNames.map((n) => `t:${n}`) }
+}
+
+export type HourActivity = { hour: string; total: number; errors: number }
+export type DowActivity = { day: string; total: number; errors: number }
+
+export function computeTimeOfDayActivity(attempts: AttemptLogRow[]): HourActivity[] {
+  const buckets = Array.from({ length: 24 }, (_, h) => ({
+    hour: `${String(h).padStart(2, '0')}:00`,
+    total: 0,
+    errors: 0,
+  }))
+  for (const a of attempts) {
+    const h = new Date(a.answered_at).getHours()
+    buckets[h]!.total += 1
+    if (a.result === 'incorrect') buckets[h]!.errors += 1
+  }
+  return buckets
+}
+
+export function computeDayOfWeekActivity(attempts: AttemptLogRow[]): DowActivity[] {
+  const order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const map = new Map(order.map((d) => [d, { day: d, total: 0, errors: 0 }]))
+  for (const a of attempts) {
+    const raw = weekday(a.answered_at)
+    const day = raw === 'Sun' ? 'Sun' : raw
+    const row = map.get(day)
+    if (!row) continue
+    row.total += 1
+    if (a.result === 'incorrect') row.errors += 1
+  }
+  return order.map((d) => map.get(d)!)
+}

@@ -4,28 +4,28 @@ import { cn } from '@/lib/cn'
 
 type Props = { data: DayActivity[] }
 
-/** Max cell uses a lighter teal than solid accent (#337d8a). */
+/** Teal-family cells — avoid near-black empties. */
 function intensity(count: number, max: number): string {
-  if (count <= 0) return 'bg-border/40'
+  if (count <= 0) return 'bg-[#d7ebee]'
   const t = max <= 0 ? 0 : count / max
-  if (t > 0.75) return 'bg-[#7eb8c2]'
+  if (t > 0.75) return 'bg-[#337d8a]'
   if (t > 0.5) return 'bg-[#5fa8b4]'
-  if (t > 0.25) return 'bg-accent/45'
-  return 'bg-accent/25'
+  if (t > 0.25) return 'bg-[#7eb8c2]'
+  return 'bg-[#a8d4db]'
 }
 
 export function ActivityHeatmap({ data }: Props) {
   const max = useMemo(() => Math.max(0, ...data.map((d) => d.count)), [data])
-  const empty = data.length === 0 || data.every((d) => d.count === 0)
 
-  // Pad to weeks starting Monday-ish for a github-style grid (columns = weeks)
   const weeks: DayActivity[][] = []
   let week: DayActivity[] = []
   const source =
     data.length > 0
       ? data
       : Array.from({ length: 84 }, (_, i) => ({ date: `empty-${i}`, count: 0 }))
-  const firstDow = new Date((source[0]!.date.includes('empty') ? '2026-01-01' : source[0]!.date) + 'T12:00:00').getDay()
+  const firstDow = new Date(
+    (source[0]!.date.includes('empty') ? '2026-01-01' : source[0]!.date) + 'T12:00:00',
+  ).getDay()
   for (let i = 0; i < firstDow; i += 1) week.push({ date: `pad-${i}`, count: -1 })
   for (const day of source) {
     week.push(day)
@@ -40,36 +40,38 @@ export function ActivityHeatmap({ data }: Props) {
   }
 
   return (
-    <div className="relative overflow-x-auto">
-      <div className="inline-flex gap-1">
-        {weeks.map((w, wi) => (
-          <div key={wi} className="flex flex-col gap-1">
-            {w.map((d) =>
-              d.count < 0 ? (
-                <div key={d.date} className="h-3 w-3 rounded-sm bg-transparent" />
-              ) : (
-                <div
-                  key={d.date}
-                  title={`${d.date}: ${d.count} attempt${d.count === 1 ? '' : 's'}`}
-                  className={cn('h-3 w-3 rounded-sm', intensity(d.count, max))}
-                />
-              ),
-            )}
-          </div>
-        ))}
+    <div className="overflow-x-auto">
+      <div className="flex flex-col items-center gap-3">
+        <div className="inline-flex gap-1">
+          {weeks.map((w, wi) => (
+            <div key={wi} className="flex flex-col gap-1">
+              {w.map((d) =>
+                d.count < 0 ? (
+                  <div key={d.date} className="h-3 w-3 rounded-sm bg-transparent" />
+                ) : (
+                  <div
+                    key={d.date}
+                    title={`${d.date}: ${d.count} attempt${d.count === 1 ? '' : 's'}`}
+                    className={cn('h-3 w-3 rounded-sm', intensity(d.count, max))}
+                  />
+                ),
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex w-full max-w-xs items-center gap-2 text-xs text-muted">
+          <span>Less</span>
+          <div
+            className="h-3 flex-1 rounded-sm"
+            style={{
+              background:
+                'linear-gradient(90deg, #d7ebee 0%, #a8d4db 25%, #7eb8c2 50%, #5fa8b4 75%, #337d8a 100%)',
+            }}
+            aria-hidden
+          />
+          <span>More</span>
+        </div>
       </div>
-      <div className="mt-2 flex items-center gap-2 text-xs text-muted">
-        <span>Less</span>
-        <span className="h-3 w-3 rounded-sm bg-border/40" />
-        <span className="h-3 w-3 rounded-sm bg-accent/25" />
-        <span className="h-3 w-3 rounded-sm bg-accent/45" />
-        <span className="h-3 w-3 rounded-sm bg-[#5fa8b4]" />
-        <span className="h-3 w-3 rounded-sm bg-[#7eb8c2]" />
-        <span>More</span>
-      </div>
-      {empty ? (
-        <p className="mt-3 text-center text-sm text-muted">No activity in the last 12 weeks.</p>
-      ) : null}
     </div>
   )
 }

@@ -1,188 +1,107 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { NavLink, useLocation } from 'react-router-dom'
+import { STUDY_MODES, TEST_MODES } from '@/modules/plab1/modeRoutes'
 import { cn } from '@/lib/cn'
 
-const linkClass = (onBanner: boolean) =>
-  ({ isActive }: { isActive: boolean }) =>
-    cn(
-      'rounded-md px-3 py-2 text-sm font-medium transition',
-      onBanner
-        ? isActive
-          ? 'bg-white/20 text-white'
-          : 'text-white/85 hover:bg-white/10 hover:text-white'
-        : isActive
-          ? 'bg-accent-subtle text-accent'
-          : 'text-muted hover:text-fg',
-    )
-
-type MenuItem = {
-  to: string
-  label: string
-  hint?: string
-}
-
-const STUDY_ITEMS: MenuItem[] = [
-  { to: '/study?sessionType=topic', label: 'Practice questions', hint: 'Topic practice' },
-  { to: '/study?sessionType=flashcard', label: 'Flashcards', hint: 'Deck review' },
-  { to: '/study?mode=open', label: 'Open quiz', hint: 'No time limit · Finish anytime' },
-  { to: '/study?sessionType=random&unseenOnly=1', label: 'New questions', hint: 'Unseen only' },
-  { to: '/study?sessionType=weakness&variant=by_topic', label: 'Weak topics', hint: 'Focus drills' },
-  {
-    to: '/study?sessionType=random&format=rapid_fire',
-    label: 'Timed drill',
-    hint: 'Rapid fire',
-  },
-  {
-    to: '/study?sessionType=spaced_repetition',
-    label: 'Spaced review',
-    hint: 'Due cards / items',
-  },
-  {
-    to: '/study?sessionType=weakness&variant=most_missed',
-    label: 'Most missed',
-    hint: 'Highest miss rate',
-  },
-]
-
-const TEST_ITEMS: MenuItem[] = [
-  { to: '/mock?mode=full_mock', label: 'Full Test', hint: 'Timed mock exam' },
-  { to: '/mock?mode=as_many_as_you_can', label: 'Unlimited', hint: 'As many as you can' },
-  { to: '/mock?mode=themed', label: 'Themed Test', hint: 'Pick a topic focus' },
-  {
-    to: '/study?sessionType=weakness&variant=recent_mistakes',
-    label: 'Error tests',
-    hint: 'Recent mistakes',
-  },
-]
-
 type Props = {
+  /** Banner chrome: pastel teal links on dark band. */
   onBanner?: boolean
 }
 
-export function Nav({ onBanner = false }: Props) {
-  const { isAdmin } = useAuth()
-  const location = useLocation()
-  const studyActive = location.pathname.startsWith('/study')
-  const testsActive = location.pathname.startsWith('/mock')
+const OPEN_DELAY_MS = 220
+const CLOSE_DELAY_MS = 380
 
-  return (
-    <nav className="flex max-w-full flex-wrap items-center justify-center gap-1" aria-label="Main">
-      <HoverMenu
-        onBanner={onBanner}
-        label="Study"
-        active={studyActive}
-        items={STUDY_ITEMS}
-      />
-      <HoverMenu
-        onBanner={onBanner}
-        label="Tests"
-        active={testsActive}
-        items={TEST_ITEMS}
-      />
-      <NavLink to="/attempts" className={linkClass(onBanner)}>
-        Attempts
-      </NavLink>
-      <NavLink to="/dashboard" className={linkClass(onBanner)}>
-        KPIs
-      </NavLink>
-      <NavLink to="/glossary" className={linkClass(onBanner)}>
-        Glossary
-      </NavLink>
-      {isAdmin ? (
-        <>
-          <NavLink to="/admin" end className={linkClass(onBanner)}>
-            Admin
-          </NavLink>
-          <NavLink to="/admin/questions" className={linkClass(onBanner)}>
-            Questions
-          </NavLink>
-          <NavLink to="/admin/glossary" className={linkClass(onBanner)}>
-            Glossary edit
-          </NavLink>
-          <NavLink to="/admin/settings" className={linkClass(onBanner)}>
-            Settings
-          </NavLink>
-          <NavLink to="/admin/users" className={linkClass(onBanner)}>
-            Users
-          </NavLink>
-          <NavLink to="/admin/comparison" className={linkClass(onBanner)}>
-            Comparison
-          </NavLink>
-        </>
-      ) : null}
-    </nav>
+function navClass(onBanner: boolean, isActive: boolean) {
+  if (onBanner) {
+    return cn(
+      'rounded-sm px-2 py-1 text-sm font-medium transition-colors',
+      isActive
+        ? 'bg-white/15 text-brand-pastel-hover'
+        : 'text-brand-pastel hover:bg-white/10 hover:text-brand-pastel-hover',
+    )
+  }
+  return cn(
+    'rounded-sm px-2 py-1 text-sm font-medium transition-colors',
+    isActive ? 'bg-accent-tint text-accent' : 'text-muted hover:bg-surface-2 hover:text-fg',
   )
 }
 
 function HoverMenu({
   label,
-  items,
-  active,
   onBanner,
+  active,
+  children,
 }: {
   label: string
-  items: MenuItem[]
-  active: boolean
   onBanner: boolean
+  active?: boolean
+  children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const menuId = useId()
+  const panelId = useId()
+  const openTimer = useRef<number | null>(null)
+  const closeTimer = useRef<number | null>(null)
 
-  useEffect(() => {
-    function onDoc(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [])
+  function clearTimers() {
+    if (openTimer.current) window.clearTimeout(openTimer.current)
+    if (closeTimer.current) window.clearTimeout(closeTimer.current)
+    openTimer.current = null
+    closeTimer.current = null
+  }
+
+  function scheduleOpen() {
+    clearTimers()
+    openTimer.current = window.setTimeout(() => setOpen(true), OPEN_DELAY_MS)
+  }
+
+  function scheduleClose() {
+    clearTimers()
+    closeTimer.current = window.setTimeout(() => setOpen(false), CLOSE_DELAY_MS)
+  }
+
+  useEffect(() => () => clearTimers(), [])
 
   return (
     <div
-      ref={ref}
       className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={scheduleOpen}
+      onMouseLeave={scheduleClose}
+      onFocus={scheduleOpen}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          scheduleClose()
+        }
+      }}
     >
       <button
         type="button"
-        className={cn(
-          'rounded-md px-3 py-2 text-sm font-medium transition',
-          onBanner
-            ? active || open
-              ? 'bg-white/20 text-white'
-              : 'text-white/85 hover:bg-white/10 hover:text-white'
-            : active || open
-              ? 'bg-accent-subtle text-accent'
-              : 'text-muted hover:text-fg',
-        )}
-        aria-haspopup="menu"
+        className={navClass(onBanner, Boolean(active))}
         aria-expanded={open}
-        aria-controls={menuId}
-        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-controls={panelId}
+        onClick={() => {
+          clearTimers()
+          setOpen((v) => !v)
+        }}
       >
         {label}
       </button>
       {open ? (
         <div
-          id={menuId}
+          id={panelId}
           role="menu"
-          className="absolute left-1/2 top-full z-50 mt-1 w-56 -translate-x-1/2 rounded-md border border-border bg-surface py-1 text-fg shadow-md"
+          className={cn(
+            'absolute left-1/2 z-40 mt-1 min-w-[12rem] -translate-x-1/2 rounded-md border border-border bg-surface py-1 shadow-md',
+            /* bridge so pointer can travel into the menu */
+            'before:absolute before:-top-2 before:left-0 before:h-2 before:w-full before:content-[""]',
+          )}
+          onMouseEnter={() => {
+            clearTimers()
+            setOpen(true)
+          }}
+          onMouseLeave={scheduleClose}
         >
-          {items.map((item) => (
-            <MenuLink key={item.to} to={item.to} onSelect={() => setOpen(false)}>
-              <span className="block font-medium">{item.label}</span>
-              {item.hint ? <span className="block text-xs text-muted">{item.hint}</span> : null}
-            </MenuLink>
-          ))}
+          {children}
         </div>
       ) : null}
     </div>
@@ -191,21 +110,79 @@ function HoverMenu({
 
 function MenuLink({
   to,
-  onSelect,
   children,
+  onBanner,
 }: {
   to: string
-  onSelect: () => void
   children: ReactNode
+  onBanner: boolean
 }) {
   return (
-    <Link
-      role="menuitem"
+    <NavLink
       to={to}
-      className="block px-3 py-2 text-sm hover:bg-accent-subtle"
-      onClick={onSelect}
+      role="menuitem"
+      className={({ isActive }) =>
+        cn(
+          'block px-3 py-2 text-sm',
+          onBanner
+            ? isActive
+              ? 'bg-accent-tint text-accent'
+              : 'text-fg hover:bg-surface-2'
+            : isActive
+              ? 'bg-accent-tint text-accent'
+              : 'text-fg hover:bg-surface-2',
+        )
+      }
     >
       {children}
-    </Link>
+    </NavLink>
+  )
+}
+
+export function Nav({ onBanner = false }: Props) {
+  const location = useLocation()
+  const studyActive = location.pathname.startsWith('/study')
+  const testsActive = location.pathname.startsWith('/tests') || location.pathname.startsWith('/mock')
+
+  return (
+    <nav aria-label="Main" className="flex flex-wrap items-center justify-center gap-1">
+      <HoverMenu label="Study" onBanner={onBanner} active={studyActive}>
+        {STUDY_MODES.map((m) => (
+          <MenuLink key={m.slug} to={`/study/${m.slug}`} onBanner={onBanner}>
+            {m.title}
+          </MenuLink>
+        ))}
+      </HoverMenu>
+      <HoverMenu label="Tests" onBanner={onBanner} active={testsActive}>
+        {TEST_MODES.map((m) => (
+          <MenuLink key={m.slug} to={`/tests/${m.slug}`} onBanner={onBanner}>
+            {m.title}
+          </MenuLink>
+        ))}
+      </HoverMenu>
+      <NavLink to="/attempts" className={({ isActive }) => navClass(onBanner, isActive)}>
+        Attempts
+      </NavLink>
+      <NavLink to="/kpis" className={({ isActive }) => navClass(onBanner, isActive || location.pathname.startsWith('/kpis'))}>
+        KPIs
+      </NavLink>
+      <NavLink
+        to="/glossary"
+        className={({ isActive }) => navClass(onBanner, isActive || location.pathname.startsWith('/glossary'))}
+      >
+        Glossary
+      </NavLink>
+      <NavLink
+        to="/account"
+        className={({ isActive }) => navClass(onBanner, isActive || location.pathname.startsWith('/account'))}
+      >
+        Account
+      </NavLink>
+      {/* keep study/tests active styling on parent via aria when menus closed */}
+      <span className="sr-only">
+        {studyActive ? 'Study section' : null}
+        {testsActive ? 'Tests section' : null}
+      </span>
+    </nav>
   )
 }

@@ -19,6 +19,7 @@ export type SessionSetupInitial = {
   weaknessVariant?: WeaknessVariant | null
   questionLimit?: number
   unseenOnly?: boolean
+  openEnded?: boolean
   autostart?: boolean
 }
 
@@ -61,6 +62,7 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
       topicId: sessionType === 'topic' ? topicId : null,
       weaknessVariant: sessionType === 'weakness' ? weaknessVariant : null,
       unseenOnly,
+      openEnded: Boolean(initial?.openEnded),
       questionLimit,
       rapidFireSeconds,
       ukPracticeOnly,

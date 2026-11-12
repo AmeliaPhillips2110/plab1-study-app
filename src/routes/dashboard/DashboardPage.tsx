@@ -11,11 +11,7 @@ export function DashboardPage() {
 
   return (
     <AppShell title="KPI Dashboard">
-      <p className="mb-4 text-center text-sm text-muted">
-        Headline metrics, score trend with pass-mark line, specialty accuracy, heatmaps, mistake
-        mix, pace, coverage, and Focus next weakness drills.
-      </p>
-      {loading ? <p className="mb-4 text-center text-sm text-muted">Loading exam…</p> : null}
+      {loading ? <p className="mb-4 text-center text-sm text-muted">Loading Exam…</p> : null}
       {!schemaMissing && error ? (
         <p className="mb-4 text-center text-sm text-incorrect">{error}</p>
       ) : null}
