@@ -19,8 +19,8 @@ export function CoverageStatusBar({ counts }: Props) {
   const total = ORDER.reduce((sum, k) => sum + counts[k], 0)
 
   return (
-    <div className="flex flex-col gap-3 py-2">
-      <div className="flex h-4 w-full overflow-hidden rounded-full bg-[#d7ebee]">
+    <div className="flex flex-col gap-2 py-1">
+      <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-[#d7ebee]">
         {total === 0
           ? null
           : ORDER.map((status) => {
