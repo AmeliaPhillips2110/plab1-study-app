@@ -583,6 +583,58 @@ on conflict do nothing;
 -- Exact stems/options/answers/explanations from Amelia screenshot transcription
 -- (passmed-seed-content.md). SAMPLE/UNVERIFIED study seed; UK English.
 -- Safe to re-run: fixed UUIDs with ON CONFLICT / delete+reinsert options.
+--
+-- Amelia (usual): paste THIS FILE alone in Supabase SQL → Run → hard-refresh the site.
+-- Fresh project / missing tables: paste APPLY_ALL.sql once instead, then optionally this pack again.
+-- Confirm: select count(*) from public.questions
+--   where id between 'a4000000-0000-4000-8000-000000000042'
+--     and 'a4000000-0000-4000-8000-000000000051';  -- expect 10
+
+do $$
+begin
+  if to_regclass('public.exams') is null then
+    raise exception 'Schema missing: public.exams not found. Paste supabase/APPLY_ALL.sql first (full file), then re-run seed_example_pack.sql.';
+  end if;
+end $$;
+
+-- Prerequisites (idempotent): exam, settings, topics + tags this pack FKs
+insert into public.exams (id, slug, name, description, is_active)
+values (
+  'a1000000-0000-4000-8000-000000000001',
+  'plab1',
+  'PLAB 1',
+  'PLAB 1 single best answer study bank (PLABoratory).',
+  true
+)
+on conflict (slug) do update
+  set name = excluded.name,
+      description = excluded.description,
+      is_active = excluded.is_active,
+      updated_at = now();
+
+insert into public.exam_settings (exam_id, pass_mark_percent, default_mock_question_count, default_mock_minutes)
+values ('a1000000-0000-4000-8000-000000000001', 65.00, 180, 180)
+on conflict (exam_id) do update set pass_mark_percent = excluded.pass_mark_percent;
+
+insert into public.topics (id, exam_id, slug, name, sort_order, is_active) values
+  ('a2000000-0000-4000-8000-000000000004', 'a1000000-0000-4000-8000-000000000001', 'endocrine', 'Endocrinology', 40, true),
+  ('a2000000-0000-4000-8000-000000000005', 'a1000000-0000-4000-8000-000000000001', 'renal', 'Renal', 50, true),
+  ('a2000000-0000-4000-8000-000000000006', 'a1000000-0000-4000-8000-000000000001', 'neurology', 'Neurology', 60, true),
+  ('a2000000-0000-4000-8000-000000000008', 'a1000000-0000-4000-8000-000000000001', 'obstetrics-gynaecology', 'Obstetrics & Gynaecology', 80, true),
+  ('a2000000-0000-4000-8000-000000000010', 'a1000000-0000-4000-8000-000000000001', 'infectious-disease', 'Infectious Disease', 100, true)
+on conflict (id) do update
+  set slug = excluded.slug,
+      name = excluded.name,
+      sort_order = excluded.sort_order,
+      is_active = true;
+
+insert into public.tags (id, exam_id, slug, label, category) values
+  ('a3000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'uk-practice', 'UK practice', 'uk_practice'),
+  ('a3000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 'sample-unverified', 'Sample / unverified', 'meta')
+on conflict (id) do update
+  set slug = excluded.slug,
+      label = excluded.label,
+      category = excluded.category;
 
 -- Glossary terms matching this pack
 insert into public.glossary_terms (exam_id, term, definition, aliases, section, is_active) values
@@ -826,6 +878,15 @@ insert into public.question_tags (question_id, tag_id) values
   ('a4000000-0000-4000-8000-000000000051', 'a3000000-0000-4000-8000-000000000002'),
   ('a4000000-0000-4000-8000-000000000051', 'a3000000-0000-4000-8000-000000000001')
 on conflict do nothing;
+
+-- Verify pack loaded (expect example_pack_questions = 10, example_pack_options = 50)
+select
+  (select count(*) from public.questions
+    where id between 'a4000000-0000-4000-8000-000000000042'
+      and 'a4000000-0000-4000-8000-000000000051') as example_pack_questions,
+  (select count(*) from public.question_options
+    where question_id between 'a4000000-0000-4000-8000-000000000042'
+      and 'a4000000-0000-4000-8000-000000000051') as example_pack_options;
 
 -- ---------------------------------------------------------------------------
 -- Amelia / admin bootstrap (run AFTER she creates her Auth user)

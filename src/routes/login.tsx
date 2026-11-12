@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { LoginForm } from '@/features/auth'
 
@@ -13,6 +14,12 @@ export function LoginPage() {
       <div className="mx-auto flex w-full max-w-lg flex-col justify-center gap-6 px-4 py-8 sm:gap-8 sm:py-10">
         <p className="text-center text-sm text-muted">PLAB 1 study app — sign in to continue</p>
         <LoginForm />
+        <p className="text-center text-xs text-muted">
+          Questions missing after sign-in? Maintainers:{' '}
+          <Link className="text-accent hover:underline" to="/setup-hint">
+            Setup SQL steps
+          </Link>
+        </p>
       </div>
     </div>
   )

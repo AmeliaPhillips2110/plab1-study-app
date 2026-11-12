@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
@@ -16,6 +17,7 @@ import {
   findOpenTimedSessions,
   loadQuestionsByIds,
   loadSbaBank,
+  loadSbaByTopic,
   progressFromSession,
 } from '@/modules/shared/quiz-engine/mock/mockPersist'
 import { selectQuestionsForSession } from '@/modules/shared/quiz-engine/selectQuestions'
@@ -46,6 +48,14 @@ export function TestModePage() {
   const [localError, setLocalError] = useState<string | null>(null)
   const [run, setRun] = useState<ActiveRun | null>(null)
 
+  const themeOptions = useMemo(
+    () => [
+      ...topics.map((t) => ({ value: t.id, label: t.name })),
+      { value: WEAKNESS_THEME, label: 'Weakness' },
+    ],
+    [topics],
+  )
+
   useEffect(() => {
     if (settings) {
       setQuestionCount(String(settings.default_mock_question_count ?? 180))
@@ -54,7 +64,14 @@ export function TestModePage() {
   }, [settings])
 
   useEffect(() => {
-    if (!themeKey && topics[0]) setThemeKey(topics[0].id)
+    // Prefer first topic when available; otherwise default to Weakness so the select always works.
+    if (!themeKey) {
+      setThemeKey(topics[0]?.id ?? WEAKNESS_THEME)
+      return
+    }
+    if (themeKey !== WEAKNESS_THEME && !topics.some((t) => t.id === themeKey)) {
+      setThemeKey(topics[0]?.id ?? WEAKNESS_THEME)
+    }
   }, [topics, themeKey])
 
   useEffect(() => {
@@ -71,18 +88,21 @@ export function TestModePage() {
   const isUnlimited = mode.uiMode === 'as_many_as_you_can'
   const isThemed = mode.uiMode === 'themed'
   const timedMode: TimedMode = isUnlimited ? 'as_many_as_you_can' : 'full_mock'
+  const bankEmpty = Boolean(exam) && bankCount === 0
+  const examMissing = !loading && (!exam || schemaMissing)
 
   async function startNew() {
     if (!exam || !user) return
     setBusy(true)
     setLocalError(null)
     const available = bankCount ?? 0
-    if (available <= 0 && !isThemed) {
+    if (available <= 0) {
       setLocalError('No questions available yet.')
       setBusy(false)
       return
     }
 
+    const target = Math.min(180, Math.max(1, Number(questionCount) || defaults.questions))
     let questions: QuestionWithOptions[] = []
 
     if (isThemed && themeKey === WEAKNESS_THEME) {
@@ -92,29 +112,29 @@ export function TestModePage() {
           sessionType: 'weakness',
           presentationFormat: 'sba',
           weaknessVariant: 'recent_mistakes',
-          questionLimit: 50,
+          questionLimit: Math.min(50, target),
         },
         user.id,
       )
       if (weak.error || weak.questions.length === 0) {
-        setLocalError(weak.error ?? 'No weakness questions identified yet.')
+        setLocalError(weak.error ?? 'No weakness questions identified yet — try a topic theme or Full Test.')
         setBusy(false)
         return
       }
       questions = weak.questions
     } else if (isThemed && themeKey) {
-      const loaded = await loadSbaBank(exam.id, Math.min(180, available || 180))
-      if (loaded.error || loaded.questions.length === 0) {
-        setLocalError(loaded.error ?? 'Could not load questions.')
+      const loaded = await loadSbaByTopic(exam.id, themeKey, target)
+      if (loaded.error) {
+        setLocalError(loaded.error)
         setBusy(false)
         return
       }
-      questions = loaded.questions.filter((q) => q.topic_id === themeKey)
-      if (questions.length === 0) {
-        setLocalError('No questions in that theme yet — try another.')
+      if (loaded.questions.length === 0) {
+        setLocalError('No questions in that theme yet — try another topic or Weakness.')
         setBusy(false)
         return
       }
+      questions = loaded.questions
     } else if (isUnlimited) {
       const take = Math.max(1, available || 180)
       const loaded = await loadSbaBank(exam.id, take)
@@ -125,7 +145,6 @@ export function TestModePage() {
       }
       questions = loaded.questions
     } else {
-      const target = Math.min(180, Math.max(1, Number(questionCount) || defaults.questions))
       const take = Math.min(target, available || target)
       const loaded = await loadSbaBank(exam.id, take)
       if (loaded.error || loaded.questions.length === 0) {
@@ -207,17 +226,14 @@ export function TestModePage() {
     )
   }
 
-  const themeOptions = [
-    ...topics.map((t) => ({ value: t.id, label: t.name })),
-    { value: WEAKNESS_THEME, label: 'Weakness' },
-  ]
-
   return (
     <AppShell title={mode.title}>
       <div className="flex max-w-2xl flex-col gap-6">
         {loading ? <p className="text-sm text-muted">Loading exam settings…</p> : null}
         {!schemaMissing && error ? <p className="text-sm text-incorrect">{error}</p> : null}
         {localError ? <p className="text-sm text-incorrect">{localError}</p> : null}
+
+        <EmptyBankHint examMissing={examMissing} bankEmpty={bankEmpty} className="rounded-md border border-border bg-surface px-4 py-3 text-sm text-muted" />
 
         {!isUnlimited ? (
           <section className="rounded-md border border-border bg-surface p-4 text-sm">
@@ -265,17 +281,13 @@ export function TestModePage() {
 
         <section className="flex flex-col gap-4 rounded-md border border-border bg-surface p-4">
           {isThemed ? (
-            themeOptions.length > 1 || topics.length > 0 ? (
-              <Select
-                label="Theme"
-                name="theme-topic"
-                value={themeKey}
-                onChange={(e) => setThemeKey(e.target.value)}
-                options={themeOptions}
-              />
-            ) : (
-              <p className="text-sm text-muted">No themes available yet.</p>
-            )
+            <Select
+              label="Theme"
+              name="theme-topic"
+              value={themeKey || WEAKNESS_THEME}
+              onChange={(e) => setThemeKey(e.target.value)}
+              options={themeOptions}
+            />
           ) : null}
 
           {!isUnlimited ? (
@@ -303,7 +315,7 @@ export function TestModePage() {
             </div>
           ) : null}
 
-          <Button disabled={busy || !exam} onClick={() => void startNew()}>
+          <Button disabled={busy || !exam || bankEmpty} onClick={() => void startNew()}>
             {busy ? 'Starting…' : 'Start Test'}
           </Button>
         </section>

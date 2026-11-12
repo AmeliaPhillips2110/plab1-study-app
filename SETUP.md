@@ -25,13 +25,34 @@ This guide gets you from zero to a working local shell and a **GitHub Pages** de
    - After turning Confirm email **Off**, new signups should stop hitting the mail quota. If you already exhausted it, **wait ~1 hour** or configure **custom SMTP** / **Send Email Hook** (then you can raise the email limit).
 4. This app maps User → `{username}@plaboratory.app`. That address is **not** a real inbox — Confirm email must stay **Off**.
 
-## 2. Run SQL (required — fixes missing `public.exams`)
+## 2. Run SQL (required — fixes missing `public.exams` / empty bank)
 
-If the live app shows **`Could not find the table 'public.exams' in the schema cache`**, this step was not done yet. Deploying the website does **not** create tables.
+Deploying the website does **not** create tables or questions. Do this in the **Supabase SQL editor**.
 
-### One paste (recommended)
+### A. Amelia — questions missing / refresh Q42–Q51 (usual)
 
-1. Open the repo file [`supabase/APPLY_ALL.sql`](./supabase/APPLY_ALL.sql) (GitHub → raw view is fine).
+If the site already signs in and shows topics but **Study / Tests have no questions**, paste **only** the example pack:
+
+1. Open [`supabase/seed_example_pack.sql`](./supabase/seed_example_pack.sql) on GitHub → **Raw** → Select all → Copy.
+2. Supabase → **SQL** → **New query** → Paste → **Run**.
+3. Confirm the result row shows `example_pack_questions = 10` and `example_pack_options = 50`, or run:
+
+```sql
+select count(*) as example_pack_questions
+from public.questions
+where id between 'a4000000-0000-4000-8000-000000000042'
+  and 'a4000000-0000-4000-8000-000000000051';
+```
+
+4. Hard-refresh https://ameliaphillips2110.github.io/plab1-study-app/
+
+`seed_example_pack.sql` is **safe to re-run**. It upserts exam/settings/required topics/tags, then Q42–Q51 + matching glossary. If it errors with **Schema missing**, use §2B below first.
+
+### B. Fresh project / missing `public.exams` (one paste)
+
+If the live app cannot load the exam (or you see a missing-table style error in the network tab), this step was not done yet.
+
+1. Open [`supabase/APPLY_ALL.sql`](./supabase/APPLY_ALL.sql) (GitHub → raw view is fine).
 2. Select **all** of it → Copy.
 3. Supabase dashboard → **SQL** → **New query**.
 4. Paste → **Run** (wait until it finishes without errors).
@@ -43,9 +64,13 @@ select count(*) as topic_count from public.topics;
 select count(*) as question_count from public.questions;
 select count(*) as glossary_count from public.glossary_terms;
 select pass_mark_percent from public.exam_settings;
+select count(*) as example_pack_questions
+from public.questions
+where id between 'a4000000-0000-4000-8000-000000000042'
+  and 'a4000000-0000-4000-8000-000000000051';
 ```
 
-Expect: exam `plab1`, ~14 topics, **~49** questions (41 SBA + 8 flashcards), glossary practice terms, pass mark **65**.
+Expect: exam `plab1`, ~14 topics, **~49** questions (41 SBA + 8 flashcards), glossary practice terms, pass mark **65**, **10** example-pack SBAs (Q42–Q51).
 
 That single paste creates:
 
@@ -62,7 +87,7 @@ If you already partially applied older SQL and get “already exists” errors, 
 2. `supabase/migrations/20261111000002_rls.sql`
 3. `supabase/migrations/20261112000003_glossary_section.sql` (only if schema was applied before the `section` column existed)
 4. `supabase/seed.sql` (includes example pack Q42–Q51 + glossary)
-5. `supabase/seed_example_pack.sql` (safe re-run of the example pack alone)
+5. `supabase/seed_example_pack.sql` (safe re-run of the example pack alone — preferred when only Q42–Q51 need refreshing)
 6. `supabase/seed_flashcards.sql`
 7. Optional if you already seeded before Stage f: `supabase/seed_stage_f.sql`
 
