@@ -16,17 +16,18 @@ function intensity(count: number, max: number): string {
 
 export function ActivityHeatmap({ data }: Props) {
   const max = useMemo(() => Math.max(0, ...data.map((d) => d.count)), [data])
-  if (data.every((d) => d.count === 0)) {
-    return <p className="py-8 text-center text-sm text-muted">No activity in the last 12 weeks.</p>
-  }
+  const empty = data.length === 0 || data.every((d) => d.count === 0)
 
   // Pad to weeks starting Monday-ish for a github-style grid (columns = weeks)
   const weeks: DayActivity[][] = []
   let week: DayActivity[] = []
-  // Align first day to weekday
-  const firstDow = new Date(data[0]!.date + 'T12:00:00').getDay()
+  const source =
+    data.length > 0
+      ? data
+      : Array.from({ length: 84 }, (_, i) => ({ date: `empty-${i}`, count: 0 }))
+  const firstDow = new Date((source[0]!.date.includes('empty') ? '2026-01-01' : source[0]!.date) + 'T12:00:00').getDay()
   for (let i = 0; i < firstDow; i += 1) week.push({ date: `pad-${i}`, count: -1 })
-  for (const day of data) {
+  for (const day of source) {
     week.push(day)
     if (week.length === 7) {
       weeks.push(week)
@@ -39,7 +40,7 @@ export function ActivityHeatmap({ data }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <div className="inline-flex gap-1">
         {weeks.map((w, wi) => (
           <div key={wi} className="flex flex-col gap-1">
@@ -66,6 +67,9 @@ export function ActivityHeatmap({ data }: Props) {
         <span className="h-3 w-3 rounded-sm bg-accent" style={{ background: CHART.accent }} />
         <span>More</span>
       </div>
+      {empty ? (
+        <p className="mt-3 text-center text-sm text-muted">No activity in the last 12 weeks.</p>
+      ) : null}
     </div>
   )
 }

@@ -17,6 +17,7 @@ const empty = {
   term: '',
   definition: '',
   aliases: '',
+  section: 'General',
   is_active: true,
 }
 
@@ -51,6 +52,7 @@ export function GlossaryEditor({ examId }: Props) {
       term: form.term.trim(),
       definition: form.definition.trim(),
       aliases,
+      section: form.section.trim() || 'General',
       is_active: form.is_active,
     } as Partial<GlossaryTerm> & Pick<GlossaryTerm, 'exam_id' | 'term' | 'definition'>)
     setBusy(false)
@@ -69,6 +71,7 @@ export function GlossaryEditor({ examId }: Props) {
       term: t.term,
       definition: t.definition,
       aliases: (t.aliases ?? []).join(', '),
+      section: t.section || 'General',
       is_active: t.is_active,
     })
   }
@@ -85,7 +88,7 @@ export function GlossaryEditor({ examId }: Props) {
   return (
     <div className="space-y-6">
       <form onSubmit={onSubmit} className="space-y-3 rounded-lg border border-border bg-surface p-4">
-        <h2 className="font-display text-lg font-semibold">
+        <h2 className="text-center font-display text-lg font-semibold">
           {editingId ? 'Edit term' : 'Add glossary term'}
         </h2>
         {error ? <p className="text-sm text-incorrect">{error}</p> : null}
@@ -103,6 +106,13 @@ export function GlossaryEditor({ examId }: Props) {
           onChange={(e) => setForm((f) => ({ ...f, definition: e.target.value }))}
           required
           rows={3}
+        />
+        <Input
+          label="Section"
+          name="g-section"
+          value={form.section}
+          onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))}
+          placeholder="e.g. Cardiology, UK systems"
         />
         <Input
           label="Aliases (comma-separated)"
@@ -150,6 +160,7 @@ export function GlossaryEditor({ examId }: Props) {
               <div>
                 <p className="font-medium">
                   {t.term}{' '}
+                  <span className="text-xs font-normal text-muted">({t.section || 'General'})</span>{' '}
                   {!t.is_active ? (
                     <span className="text-xs font-normal text-muted">(inactive)</span>
                   ) : null}

@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { EmptyChartShell } from '@/modules/shared/analytics/charts/EmptyChartShell'
 import { CHART, tooltipStyle } from '@/modules/shared/analytics/chartTheme'
 import type { ScorePoint } from '@/modules/shared/analytics/kpiMetrics'
 
@@ -15,7 +16,13 @@ type Props = { data: ScorePoint[]; passMark: number }
 
 export function ScoreTrendChart({ data, passMark }: Props) {
   if (data.length === 0) {
-    return <Empty>No finished sessions with scores yet.</Empty>
+    return (
+      <EmptyChartShell
+        message="No finished sessions with scores yet."
+        yDomain={[0, 100]}
+        yUnit="%"
+      />
+    )
   }
   return (
     <div className="h-64 w-full">
@@ -43,8 +50,4 @@ export function ScoreTrendChart({ data, passMark }: Props) {
       </ResponsiveContainer>
     </div>
   )
-}
-
-function Empty({ children }: { children: string }) {
-  return <p className="py-8 text-center text-sm text-muted">{children}</p>
 }

@@ -28,7 +28,7 @@ export function StemWithGlossary({ text, terms, className }: Props) {
 
   return (
     <div className={cn('relative', className)}>
-      <p className="whitespace-pre-wrap text-base leading-relaxed">
+      <p className="whitespace-pre-wrap text-base font-normal leading-relaxed">
         {parts.map((part, i) =>
           part.type === 'text' ? (
             <span key={i}>{part.value}</span>

@@ -27,13 +27,25 @@ This guide gets you from zero to a working local shell and a **GitHub Pages** de
 
 ## 2. Run SQL (schema → RLS → seed)
 
-In the Supabase dashboard open **SQL → New query** and run these files **in order** (paste each file’s contents and Run):
+**Easiest (recommended):** open [`supabase/APPLY_ALL.sql`](./supabase/APPLY_ALL.sql) in the repo, copy **the entire file**, paste into Supabase → **SQL → New query**, and click **Run** once.
+
+That single paste creates:
+
+- All tables / enums / helpers (including `public.exams`)
+- Row Level Security policies
+- PLAB 1 exam + settings (65% pass)
+- Topics, tags, expanded glossary (sectioned), ~41 sample SBAs, and 8 flashcards
+
+If you already partially applied older SQL and get “already exists” errors, either use a fresh Supabase project **or** drop the conflicting public objects, then re-run `APPLY_ALL.sql`.
+
+**Manual (same content, split):** run in order:
 
 1. `supabase/migrations/20261111000001_schema.sql`
 2. `supabase/migrations/20261111000002_rls.sql`
-3. `supabase/seed.sql` (includes Stage f glossary terms, patient-centred tag, long-stem Q41)
-4. Optional (Stage b): `supabase/seed_flashcards.sql` — 8 sample flashcards for flashcard / SR decks (SBA bank still works as flashcard fallback if you skip this)
-5. Optional if you already seeded before Stage f: `supabase/seed_stage_f.sql` — incremental glossary / tags / Q41 only
+3. `supabase/migrations/20261112000003_glossary_section.sql` (only if schema was applied before the `section` column existed)
+4. `supabase/seed.sql`
+5. `supabase/seed_flashcards.sql`
+6. Optional if you already seeded before Stage f: `supabase/seed_stage_f.sql`
 
 ### Quick RLS check
 
@@ -54,10 +66,13 @@ Also confirm seed:
 select slug, name from public.exams;
 select count(*) as topic_count from public.topics;
 select count(*) as question_count from public.questions;
+select count(*) as glossary_count from public.glossary_terms;
 select pass_mark_percent from public.exam_settings;
 ```
 
-Expect: exam `plab1`, ~14 topics, **41** sample SBA questions (incl. long-stem Q41), pass mark **65**.
+Expect: exam `plab1`, ~14 topics, **~49** questions (41 SBA + 8 flashcards), glossary terms present, pass mark **65**.
+
+If the app says `Could not find the table 'public.exams'`, the SQL above was not applied yet — run `APPLY_ALL.sql`.
 
 ## 3. Environment variables (local)
 

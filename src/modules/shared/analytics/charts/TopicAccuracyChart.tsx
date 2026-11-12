@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { EmptyChartShell } from '@/modules/shared/analytics/charts/EmptyChartShell'
 import { CHART, tooltipStyle } from '@/modules/shared/analytics/chartTheme'
 import type { TopicAccuracy } from '@/modules/shared/analytics/kpiMetrics'
 
@@ -15,7 +16,15 @@ type Props = { data: TopicAccuracy[]; passMark: number }
 
 export function TopicAccuracyChart({ data, passMark }: Props) {
   if (data.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted">No topic attempts yet.</p>
+    return (
+      <EmptyChartShell
+        kind="bar"
+        message="No topic attempts yet."
+        yDomain={[0, 100]}
+        yUnit="%"
+        heightClass="h-72"
+      />
+    )
   }
   const chartData = [...data].sort((a, b) => b.accuracy - a.accuracy)
   return (

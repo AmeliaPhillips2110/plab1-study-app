@@ -15,6 +15,7 @@ import { DashboardPage } from '@/routes/dashboard/DashboardPage'
 import { AdminComparisonPage } from '@/routes/admin/AdminComparisonPage'
 import { AdminGlossaryPage } from '@/routes/admin/AdminGlossaryPage'
 import { GlossaryPage } from '@/routes/glossary/GlossaryPage'
+import { AccountPage } from '@/routes/account/AccountPage'
 
 export function AppRoutes() {
   return (
@@ -33,6 +34,7 @@ export function AppRoutes() {
         <Route path="/attempts/question/:questionId" element={<QuestionTimelinePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/glossary" element={<GlossaryPage />} />
+        <Route path="/account" element={<AccountPage />} />
       </Route>
 
       <Route element={<RequireAdmin />}>

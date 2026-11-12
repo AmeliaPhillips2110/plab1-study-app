@@ -15,6 +15,9 @@ export default {
           hover: 'var(--accent-hover)',
           subtle: 'var(--accent-subtle)',
         },
+        brand: {
+          banner: 'var(--color-brand-banner)',
+        },
         correct: 'var(--color-correct)',
         incorrect: 'var(--color-incorrect)',
         black: 'var(--color-black)',
@@ -32,6 +35,8 @@ export default {
       },
       fontFamily: {
         sans: ['var(--font-sans)'],
+        display: ['var(--font-display)'],
+        serif: ['var(--font-sans)'],
       },
       fontSize: {
         xs: 'var(--text-xs)',
@@ -45,6 +50,7 @@ export default {
         normal: 'var(--font-normal)',
         medium: 'var(--font-medium)',
         semibold: 'var(--font-semibold)',
+        bold: 'var(--font-bold)',
       },
     },
   },

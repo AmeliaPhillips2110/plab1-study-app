@@ -20,7 +20,36 @@ export function TopicHeatmap({ data }: Props) {
   }, [data])
 
   if (topics.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted">No topic×day activity yet.</p>
+    const placeholderTopics = ['Cardiology', 'Respiratory', 'Ethics']
+    return (
+      <div className="relative overflow-x-auto">
+        <table className="w-full min-w-[28rem] border-collapse text-xs">
+          <thead>
+            <tr>
+              <th className="p-1 text-left font-medium text-muted">Topic</th>
+              {DAYS.map((d) => (
+                <th key={d} className="p-1 text-center font-medium text-muted">
+                  {d}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {placeholderTopics.map((topic) => (
+              <tr key={topic}>
+                <td className="max-w-[8rem] truncate p-1 text-muted">{topic}</td>
+                {DAYS.map((day) => (
+                  <td key={day} className="p-1">
+                    <div className="mx-auto h-5 w-full max-w-[2rem] rounded-sm bg-border/30" />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-3 text-center text-sm text-muted">No topic×day activity yet.</p>
+      </div>
+    )
   }
 
   function cell(topic: string, day: string) {

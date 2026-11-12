@@ -9,8 +9,27 @@ import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import type { GlossaryTerm } from '@/types/database'
 
+const SECTION_ORDER = [
+  'Exam & PLAB',
+  'UK systems',
+  'Acute care',
+  'Cardiology',
+  'Respiratory',
+  'Endocrine',
+  'Renal',
+  'Neurology',
+  'Paediatrics',
+  'Ethics & law',
+  'General',
+]
+
+function sectionRank(section: string): number {
+  const i = SECTION_ORDER.indexOf(section)
+  return i >= 0 ? i : SECTION_ORDER.length
+}
+
 export function GlossaryPage() {
-  const { user, profile, preferences, refreshProfile, isAdmin } = useAuth()
+  const { user, preferences, refreshProfile, isAdmin } = useAuth()
   const { exam, loading: examLoading, error: examError } = useExam()
   const [terms, setTerms] = useState<GlossaryTerm[]>([])
   const [q, setQ] = useState('')
@@ -38,9 +57,30 @@ export function GlossaryPage() {
       (t) =>
         t.term.toLowerCase().includes(needle) ||
         t.definition.toLowerCase().includes(needle) ||
+        (t.section ?? '').toLowerCase().includes(needle) ||
         (t.aliases ?? []).some((a) => a.toLowerCase().includes(needle)),
     )
   }, [terms, q])
+
+  const bySection = useMemo(() => {
+    const map = new Map<string, GlossaryTerm[]>()
+    for (const t of filtered) {
+      const key = t.section?.trim() || 'General'
+      const list = map.get(key) ?? []
+      list.push(t)
+      map.set(key, list)
+    }
+    return [...map.entries()].sort((a, b) => {
+      const rank = sectionRank(a[0]) - sectionRank(b[0])
+      if (rank !== 0) return rank
+      return a[0].localeCompare(b[0])
+    })
+  }, [filtered])
+
+  const alphabetical = useMemo(
+    () => [...filtered].sort((a, b) => a.term.localeCompare(b.term, undefined, { sensitivity: 'base' })),
+    [filtered],
+  )
 
   async function saveWpm() {
     if (!user) return
@@ -55,13 +95,12 @@ export function GlossaryPage() {
 
   return (
     <AppShell title="Glossary">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm text-muted">
-              English PLAB terms — tap or hover underlined words in stems for the same definitions.
-            </p>
-          </div>
+      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        <div className="flex flex-wrap items-end justify-center gap-3 text-center sm:justify-between sm:text-left">
+          <p className="text-sm text-muted">
+            PLAB and UK clinical terms — tap or hover underlined words in stems for the same
+            definitions.
+          </p>
           {isAdmin ? (
             <Link to="/admin/glossary" className="text-sm font-medium text-accent hover:underline">
               Edit glossary
@@ -69,13 +108,20 @@ export function GlossaryPage() {
           ) : null}
         </div>
 
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search terms, sections, aliases…"
+          aria-label="Search glossary"
+        />
+
         <section className="rounded-md border border-border bg-surface p-4">
-          <h2 className="mb-2 text-sm font-semibold">Reading speed (WPM)</h2>
-          <p className="mb-3 text-xs text-muted">
+          <h2 className="mb-2 text-center font-display text-sm font-semibold">Reading speed (WPM)</h2>
+          <p className="mb-3 text-center text-xs text-muted">
             Used for long-stem reading tips and pace-vs-length analytics. Typical study reading is
             150–250 WPM.
           </p>
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="flex flex-wrap items-end justify-center gap-2">
             <Input
               label="Words per minute"
               name="wpm"
@@ -86,43 +132,61 @@ export function GlossaryPage() {
               onChange={(e) => setWpm(e.target.value)}
               className="max-w-[10rem]"
             />
-            <Button type="button" variant="secondary" onClick={() => void saveWpm()}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void saveWpm()}
+              disabled={!user}
+            >
               Save
             </Button>
           </div>
-          {wpmMsg ? <p className="mt-2 text-xs text-muted">{wpmMsg}</p> : null}
-          {profile ? null : (
-            <p className="mt-2 text-xs text-muted">Sign in to persist reading speed.</p>
-          )}
+          {wpmMsg ? <p className="mt-2 text-center text-xs text-muted">{wpmMsg}</p> : null}
+          {!user ? (
+            <p className="mt-2 text-center text-xs text-muted">Sign in to persist reading speed.</p>
+          ) : null}
         </section>
 
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search terms…"
-          aria-label="Search glossary"
-        />
-
-        {examLoading ? <p className="text-sm text-muted">Loading…</p> : null}
+        {examLoading ? <p className="text-center text-sm text-muted">Loading…</p> : null}
         {examError || error ? (
-          <p className="text-sm text-incorrect">{examError || error}</p>
+          <p className="text-center text-sm text-incorrect">{examError || error}</p>
         ) : null}
 
-        <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
-          {filtered.length === 0 ? (
-            <li className="px-4 py-8 text-center text-sm text-muted">No matching terms.</li>
-          ) : (
-            filtered.map((t) => (
-              <li key={t.id} className="px-4 py-3">
-                <p className="font-semibold text-fg">{t.term}</p>
-                <p className="mt-1 text-sm text-muted">{t.definition}</p>
-                {t.aliases?.length ? (
-                  <p className="mt-1 text-xs text-muted">Also: {t.aliases.join(', ')}</p>
-                ) : null}
-              </li>
-            ))
-          )}
-        </ul>
+        {bySection.map(([section, rows]) => (
+          <section key={section} className="space-y-2">
+            <h2 className="text-center font-display text-lg font-semibold">{section}</h2>
+            <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+              {rows.map((t) => (
+                <li key={t.id} className="px-4 py-3">
+                  <p className="font-display font-semibold text-fg">{t.term}</p>
+                  <p className="mt-1 text-sm text-muted">{t.definition}</p>
+                  {t.aliases?.length ? (
+                    <p className="mt-1 text-xs text-muted">Also: {t.aliases.join(', ')}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+
+        <section className="space-y-2">
+          <h2 className="text-center font-display text-lg font-semibold">All terms (A–Z)</h2>
+          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+            {alphabetical.length === 0 ? (
+              <li className="px-4 py-8 text-center text-sm text-muted">No matching terms.</li>
+            ) : (
+              alphabetical.map((t) => (
+                <li key={`az-${t.id}`} className="px-4 py-3">
+                  <p className="font-display font-semibold text-fg">
+                    {t.term}
+                    <span className="ml-2 text-xs font-normal text-muted">{t.section || 'General'}</span>
+                  </p>
+                  <p className="mt-1 text-sm text-muted">{t.definition}</p>
+                </li>
+              ))
+            )}
+          </ul>
+        </section>
       </div>
     </AppShell>
   )

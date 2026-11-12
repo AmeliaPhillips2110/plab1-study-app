@@ -180,19 +180,19 @@ function Tile({
 }) {
   return (
     <div className="rounded-md border border-border bg-surface px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-center text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
       <p
         className={
           tone === 'good'
-            ? 'mt-1 text-2xl font-semibold text-correct'
+            ? 'mt-1 text-center font-display text-2xl font-bold text-correct'
             : tone === 'warn'
-              ? 'mt-1 text-2xl font-semibold text-incorrect'
-              : 'mt-1 text-2xl font-semibold text-fg'
+              ? 'mt-1 text-center font-display text-2xl font-bold text-incorrect'
+              : 'mt-1 text-center font-display text-2xl font-bold text-fg'
         }
       >
         {value}
       </p>
-      <p className="mt-1 text-xs text-muted">{hint}</p>
+      <p className="mt-1 text-center text-xs text-muted">{hint}</p>
     </div>
   )
 }
@@ -208,8 +208,8 @@ function Panel({
 }) {
   return (
     <section className="rounded-md border border-border bg-surface p-4">
-      <div className="mb-3">
-        <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="mb-3 text-center">
+        <h2 className="font-display text-lg font-semibold">{title}</h2>
         {subtitle ? <p className="text-xs text-muted">{subtitle}</p> : null}
       </div>
       {children}

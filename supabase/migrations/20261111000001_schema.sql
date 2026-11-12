@@ -144,12 +144,14 @@ create table public.glossary_terms (
   term          text not null,
   definition    text not null,
   aliases       text[] not null default '{}',
+  section       text not null default 'General', -- UI grouping (e.g. Cardiology, UK practice)
   topic_id      uuid references public.topics (id) on delete set null,
   is_active     boolean not null default true,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   unique (exam_id, term)
 );
+create index glossary_terms_exam_section_idx on public.glossary_terms (exam_id, section);
 
 create table public.exam_settings (
   exam_id           uuid primary key references public.exams (id) on delete cascade,
