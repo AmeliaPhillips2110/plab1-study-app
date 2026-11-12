@@ -16,19 +16,13 @@ import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
 export function HomePage() {
   const { user } = useAuth()
   const { loading, exam, settings, topics, error, schemaMissing } = useExam()
-  const [now, setNow] = useState(() => new Date())
   const [bankCount, setBankCount] = useState<number | null>(null)
   const [topicAccuracy, setTopicAccuracy] = useState<
     Record<string, { accuracy: number; total: number }>
   >({})
 
-  const examDay = useMemo(() => nextExamDate(now), [now])
-  const cd = useMemo(() => countdownTo(examDay, now), [examDay, now])
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(id)
-  }, [])
+  const examDay = useMemo(() => nextExamDate(new Date()), [])
+  const daysLeft = useMemo(() => countdownTo(examDay, new Date()).days, [examDay])
 
   useEffect(() => {
     if (!exam) {
@@ -81,23 +75,11 @@ export function HomePage() {
               day: 'numeric',
             })}
           </p>
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
-            {[
-              { label: 'Days', value: cd.days },
-              { label: 'Hours', value: cd.hours },
-              { label: 'Minutes', value: cd.minutes },
-              { label: 'Seconds', value: cd.seconds },
-            ].map((cell) => (
-              <div
-                key={cell.label}
-                className="rounded-md border border-accent/30 bg-accent-subtle px-2 py-3"
-              >
-                <p className="font-display text-2xl font-bold text-accent sm:text-3xl">
-                  {String(cell.value).padStart(2, '0')}
-                </p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-muted">{cell.label}</p>
-              </div>
-            ))}
+          <div className="mx-auto max-w-xs rounded-md border border-accent/30 bg-accent-subtle px-4 py-5">
+            <p className="font-display text-4xl font-bold text-accent sm:text-5xl">{daysLeft}</p>
+            <p className="mt-1 text-xs uppercase tracking-wide text-muted">
+              {daysLeft === 1 ? 'Day' : 'Days'} remaining
+            </p>
           </div>
         </section>
 
