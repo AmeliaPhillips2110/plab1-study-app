@@ -6,10 +6,34 @@ type Props = { data: MistakeSlice[] }
 
 export function MistakeBreakdownChart({ data }: Props) {
   if (data.length === 0) {
+    const placeholder = [
+      { tag: '—', label: 'No tags', count: 1 },
+      { tag: '--', label: '—', count: 1 },
+      { tag: '---', label: '—', count: 1 },
+    ]
     return (
-      <p className="py-8 text-center text-sm text-muted">
-        No mistake tags yet — tag wrong answers in Quiz or Mock review.
-      </p>
+      <div className="relative h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={placeholder}
+              dataKey="count"
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              outerRadius={80}
+              fillOpacity={0.2}
+            >
+              {placeholder.map((row, i) => (
+                <Cell key={row.tag} fill={CHART.series[i % CHART.series.length]} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-muted">
+          No mistake tags yet — tag wrong answers in Quiz or Mock review.
+        </p>
+      </div>
     )
   }
   return (

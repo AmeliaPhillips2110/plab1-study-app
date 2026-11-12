@@ -5,15 +5,24 @@ insert into public.tags (id, exam_id, slug, label, category) values
   ('a3000000-0000-4000-8000-000000000003', 'a1000000-0000-4000-8000-000000000001', 'patient-centred', 'Patient-centred', 'communication')
 on conflict (exam_id, slug) do nothing;
 
-insert into public.glossary_terms (exam_id, term, definition, aliases, is_active) values
-  ('a1000000-0000-4000-8000-000000000001', 'NICE', 'National Institute for Health and Care Excellence — UK guidance body.', array['NICE guideline'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'GMC', 'General Medical Council — UK medical regulator; Good Medical Practice sets professional standards.', array['General Medical Council'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'ACS', 'Acute coronary syndrome — unstable angina / NSTEMI / STEMI spectrum.', array['acute coronary syndrome'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'STEMI', 'ST-elevation myocardial infarction — ECG ST elevation with coronary occlusion pattern.', array['ST elevation MI'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'COPD', 'Chronic obstructive pulmonary disease — progressive airflow limitation, usually smoking-related.', array[]::text[], true),
-  ('a1000000-0000-4000-8000-000000000001', 'PEFR', 'Peak expiratory flow rate — bedside measure of airway obstruction in asthma.', array['peak flow'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'capacity', 'Mental capacity (UK MCA 2005): ability to understand, retain, weigh and communicate a decision.', array['mental capacity'], true)
-on conflict (exam_id, term) do nothing;
+-- Prefer full seed.sql / APPLY_ALL.sql for new projects. This incremental file keeps older DBs usable.
+alter table public.glossary_terms
+  add column if not exists section text not null default 'General';
+
+insert into public.glossary_terms (exam_id, term, definition, aliases, section, is_active) values
+  ('a1000000-0000-4000-8000-000000000001', 'NICE', 'National Institute for Health and Care Excellence — UK guidance body.', array['NICE guideline'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'GMC', 'General Medical Council — UK medical regulator; Good Medical Practice sets professional standards.', array['General Medical Council'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'ACS', 'Acute coronary syndrome — unstable angina / NSTEMI / STEMI spectrum.', array['acute coronary syndrome'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'STEMI', 'ST-elevation myocardial infarction — ECG ST elevation with coronary occlusion pattern.', array['ST elevation MI'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'COPD', 'Chronic obstructive pulmonary disease — progressive airflow limitation, usually smoking-related.', array[]::text[], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'PEFR', 'Peak expiratory flow rate — bedside measure of airway obstruction in asthma.', array['peak flow'], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'capacity', 'Mental capacity (UK MCA 2005): ability to understand, retain, weigh and communicate a decision.', array['mental capacity'], 'Ethics & law', true)
+on conflict (exam_id, term) do update
+  set definition = excluded.definition,
+      aliases = excluded.aliases,
+      section = excluded.section,
+      is_active = true,
+      updated_at = now();
 
 insert into public.questions (id, exam_id, topic_id, question_type, stem, explanation, difficulty, is_active, is_uk_practice, payload) values (
   'a4000000-0000-4000-8000-000000000041',

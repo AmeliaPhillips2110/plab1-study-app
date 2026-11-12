@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { EmptyChartShell } from '@/modules/shared/analytics/charts/EmptyChartShell'
 import { CHART, tooltipStyle } from '@/modules/shared/analytics/chartTheme'
 import type { QpmPoint } from '@/modules/shared/analytics/kpiMetrics'
 
@@ -14,7 +15,13 @@ type Props = { data: QpmPoint[] }
 
 export function QpmChart({ data }: Props) {
   if (data.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted">No timed attempts for QPM yet.</p>
+    return (
+      <EmptyChartShell
+        message="No timed attempts for QPM yet."
+        yDomain={[0, 4]}
+        heightClass="h-56"
+      />
+    )
   }
   return (
     <div className="h-56 w-full">

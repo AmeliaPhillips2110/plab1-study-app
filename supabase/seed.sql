@@ -36,18 +36,64 @@ insert into public.tags (id, exam_id, slug, label, category) values
   ('a3000000-0000-4000-8000-000000000003', 'a1000000-0000-4000-8000-000000000001', 'patient-centred', 'Patient-centred', 'communication')
 on conflict (exam_id, slug) do nothing;
 
--- Glossary (English terms highlighted in stems)
-insert into public.glossary_terms (exam_id, term, definition, aliases, is_active) values
-  ('a1000000-0000-4000-8000-000000000001', 'SBA', 'Single Best Answer — one correct option among several.', array['single best answer'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'CURB-65', 'Severity score for community-acquired pneumonia (Confusion, Urea, Respiratory rate, Blood pressure, age ≥65).', array['CURB65'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'NICE', 'National Institute for Health and Care Excellence — UK guidance body.', array['NICE guideline'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'GMC', 'General Medical Council — UK medical regulator; Good Medical Practice sets professional standards.', array['General Medical Council'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'ACS', 'Acute coronary syndrome — unstable angina / NSTEMI / STEMI spectrum.', array['acute coronary syndrome'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'STEMI', 'ST-elevation myocardial infarction — ECG ST elevation with coronary occlusion pattern.', array['ST elevation MI'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'COPD', 'Chronic obstructive pulmonary disease — progressive airflow limitation, usually smoking-related.', array[]::text[], true),
-  ('a1000000-0000-4000-8000-000000000001', 'PEFR', 'Peak expiratory flow rate — bedside measure of airway obstruction in asthma.', array['peak flow'], true),
-  ('a1000000-0000-4000-8000-000000000001', 'capacity', 'Mental capacity (UK MCA 2005): ability to understand, retain, weigh and communicate a decision.', array['mental capacity'], true)
-on conflict (exam_id, term) do nothing;
+-- Glossary (English PLAB / UK clinical terms; section used for UI grouping)
+insert into public.glossary_terms (exam_id, term, definition, aliases, section, is_active) values
+  ('a1000000-0000-4000-8000-000000000001', 'SBA', 'Single Best Answer — one correct option among several plausible answers; PLAB 1 format.', array['single best answer'], 'Exam & PLAB', true),
+  ('a1000000-0000-4000-8000-000000000001', 'PLAB', 'Professional and Linguistic Assessments Board — GMC pathway exams for international medical graduates (PLAB 1 written SBA; PLAB 2 OSCE).', array['PLAB 1', 'PLAB 2'], 'Exam & PLAB', true),
+  ('a1000000-0000-4000-8000-000000000001', 'OSCE', 'Objective Structured Clinical Examination — station-based clinical skills assessment (PLAB 2 style).', array['objective structured clinical examination'], 'Exam & PLAB', true),
+  ('a1000000-0000-4000-8000-000000000001', 'MLA', 'Medical Licensing Assessment — UK medical school / GMC licensing framework; PLAB aligns with similar knowledge expectations.', array['Medical Licensing Assessment'], 'Exam & PLAB', true),
+  ('a1000000-0000-4000-8000-000000000001', 'NICE', 'National Institute for Health and Care Excellence — UK guidance body for clinical pathways and technology appraisal.', array['NICE guideline'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'GMC', 'General Medical Council — UK medical regulator; Good Medical Practice sets professional standards.', array['General Medical Council'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'BNF', 'British National Formulary — UK reference for prescribing, doses, and cautions.', array['British National Formulary'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'NHS', 'National Health Service — publicly funded UK healthcare system.', array['National Health Service'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'CQC', 'Care Quality Commission — independent regulator of health and social care in England.', array['Care Quality Commission'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'DVLA', 'Driver and Vehicle Licensing Agency — driving fitness standards after medical conditions (e.g. seizure, vision).', array['Driver and Vehicle Licensing Agency'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'A&E', 'Accident and Emergency — UK emergency department for acute unscheduled care.', array['ED', 'emergency department'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'GP', 'General Practitioner — primary care doctor in UK community practice.', array['general practitioner', 'general practice'], 'UK systems', true),
+  ('a1000000-0000-4000-8000-000000000001', 'ACS', 'Acute coronary syndrome — unstable angina / NSTEMI / STEMI spectrum.', array['acute coronary syndrome'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'STEMI', 'ST-elevation myocardial infarction — ECG ST elevation with coronary occlusion pattern.', array['ST elevation MI'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'NSTEMI', 'Non-ST-elevation myocardial infarction — troponin-positive ACS without persistent ST elevation.', array['non-ST elevation MI'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'AF', 'Atrial fibrillation — irregularly irregular supraventricular arrhythmia; stroke risk assessed with CHA2DS2-VASc.', array['atrial fibrillation'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'CHA2DS2-VASc', 'Stroke risk score in atrial fibrillation (CHF, Hypertension, Age, Diabetes, Stroke/TIA, Vascular disease, Sex category).', array['CHADS-VASc', 'CHA2DS2VASc'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'heart failure', 'Clinical syndrome of reduced cardiac output or elevated filling pressures causing breathlessness, oedema, or fatigue.', array['HF', 'CHF'], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'COPD', 'Chronic obstructive pulmonary disease — progressive airflow limitation, usually smoking-related.', array[]::text[], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'PEFR', 'Peak expiratory flow rate — bedside measure of airway obstruction in asthma.', array['peak flow'], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'CURB-65', 'Severity score for community-acquired pneumonia (Confusion, Urea, Respiratory rate, Blood pressure, age ≥65).', array['CURB65'], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'CAP', 'Community-acquired pneumonia — pneumonia acquired outside hospital.', array['community-acquired pneumonia'], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'PE', 'Pulmonary embolism — venous thromboembolism lodging in pulmonary arteries.', array['pulmonary embolism'], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'asthma', 'Reversible airway obstruction with wheeze, cough, or dyspnoea; treat acute attacks with bronchodilators ± steroids.', array[]::text[], 'Respiratory', true),
+  ('a1000000-0000-4000-8000-000000000001', 'DKA', 'Diabetic ketoacidosis — hyperglycaemia, ketosis, and metabolic acidosis; emergency insulin/fluid protocol.', array['diabetic ketoacidosis'], 'Endocrine', true),
+  ('a1000000-0000-4000-8000-000000000001', 'HHS', 'Hyperosmolar hyperglycaemic state — marked hyperglycaemia and osmolarity, usually without significant ketoacidosis.', array['HONK'], 'Endocrine', true),
+  ('a1000000-0000-4000-8000-000000000001', 'HbA1c', 'Glycated haemoglobin — reflects average glycaemia over ~2–3 months; used to diagnose/monitor diabetes.', array['A1c'], 'Endocrine', true),
+  ('a1000000-0000-4000-8000-000000000001', 'thyroid storm', 'Life-threatening thyrotoxicosis with fever, tachycardia, and systemic decompensation.', array['thyrotoxic crisis'], 'Endocrine', true),
+  ('a1000000-0000-4000-8000-000000000001', 'AKI', 'Acute kidney injury — abrupt fall in GFR; staged by creatinine/urine output (KDIGO).', array['acute kidney injury'], 'Renal', true),
+  ('a1000000-0000-4000-8000-000000000001', 'CKD', 'Chronic kidney disease — reduced GFR or markers of kidney damage lasting ≥3 months.', array['chronic kidney disease'], 'Renal', true),
+  ('a1000000-0000-4000-8000-000000000001', 'eGFR', 'Estimated glomerular filtration rate — kidney function estimate from creatinine (± cystatin C).', array['estimated GFR'], 'Renal', true),
+  ('a1000000-0000-4000-8000-000000000001', 'stroke', 'Acute focal neurological deficit from infarction or haemorrhage; time-critical imaging and pathway.', array['CVA', 'cerebrovascular accident'], 'Neurology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'TIA', 'Transient ischaemic attack — brief focal ischaemia without lasting infarction on imaging; high early stroke risk.', array['transient ischaemic attack'], 'Neurology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'SAH', 'Subarachnoid haemorrhage — often thunderclap headache; exclude urgently with CT ± LP.', array['subarachnoid haemorrhage'], 'Neurology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'seizure', 'Episodic abnormal neuronal discharge; first seizure work-up differs from known epilepsy management.', array['fit'], 'Neurology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'capacity', 'Mental capacity (UK MCA 2005): ability to understand, retain, weigh and communicate a decision.', array['mental capacity'], 'Ethics & law', true),
+  ('a1000000-0000-4000-8000-000000000001', 'MCA', 'Mental Capacity Act 2005 (England/Wales) — framework for capacity, best interests, and lasting powers of attorney.', array['Mental Capacity Act'], 'Ethics & law', true),
+  ('a1000000-0000-4000-8000-000000000001', 'consent', 'Valid consent requires capacity, adequate information (benefits/risks/alternatives), and voluntariness.', array['informed consent'], 'Ethics & law', true),
+  ('a1000000-0000-4000-8000-000000000001', 'safeguarding', 'Protecting adults/children at risk of abuse or neglect; escalate via local multi-agency pathways.', array['safeguarding adults', 'safeguarding children'], 'Ethics & law', true),
+  ('a1000000-0000-4000-8000-000000000001', 'DNACPR', 'Do Not Attempt Cardiopulmonary Resuscitation — documented decision after appropriate discussion.', array['DNAR', 'DNR'], 'Ethics & law', true),
+  ('a1000000-0000-4000-8000-000000000001', 'NEWS2', 'National Early Warning Score 2 — UK track-and-trigger for acute deterioration (RR, SpO2, air/O2, BP, HR, consciousness, temperature).', array['NEWS'], 'Acute care', true),
+  ('a1000000-0000-4000-8000-000000000001', 'sepsis', 'Life-threatening organ dysfunction from infection; UK pathways emphasise early recognition and antibiotics.', array['septic'], 'Acute care', true),
+  ('a1000000-0000-4000-8000-000000000001', 'anaphylaxis', 'Severe systemic allergic reaction — IM adrenaline is first-line emergency treatment.', array['anaphylactic'], 'Acute care', true),
+  ('a1000000-0000-4000-8000-000000000001', 'ABCDE', 'Airway, Breathing, Circulation, Disability, Exposure — structured approach to the acutely ill patient.', array['ABC'], 'Acute care', true),
+  ('a1000000-0000-4000-8000-000000000001', 'GCS', 'Glasgow Coma Scale — eye, verbal, motor response score for consciousness.', array['Glasgow Coma Scale'], 'Acute care', true),
+  ('a1000000-0000-4000-8000-000000000001', 'Wells score', 'Clinical probability tool for DVT or PE before D-dimer / imaging decisions.', array['Wells'], 'Acute care', true),
+  ('a1000000-0000-4000-8000-000000000001', 'croup', 'Viral laryngotracheitis in children — barking cough and stridor; usually managed supportively ± steroids.', array['laryngotracheitis'], 'Paediatrics', true),
+  ('a1000000-0000-4000-8000-000000000001', 'bronchiolitis', 'Viral lower airway infection in infants (often RSV) — supportive care is mainstay.', array[]::text[], 'Paediatrics', true),
+  ('a1000000-0000-4000-8000-000000000001', 'NSTEMI pathway', 'UK ACS pathway for non-ST elevation MI — antiplatelet therapy, risk stratification, and timely angiography.', array[]::text[], 'Cardiology', true),
+  ('a1000000-0000-4000-8000-000000000001', 'patient-centred', 'Care that respects patient values, preferences, and shared decision-making alongside clinical evidence.', array['patient centred', 'shared decision-making'], 'Ethics & law', true)
+on conflict (exam_id, term) do update
+  set definition = excluded.definition,
+      aliases = excluded.aliases,
+      section = excluded.section,
+      is_active = true,
+      updated_at = now();
 
 -- Clear previous sample questions (by meta tag) is skipped for safety; inserts use fixed IDs.
 

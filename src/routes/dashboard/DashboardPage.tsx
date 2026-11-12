@@ -11,7 +11,7 @@ export function DashboardPage() {
 
   return (
     <AppShell title="KPI dashboard">
-      <p className="mb-4 max-w-2xl text-sm text-muted">
+      <p className="mb-4 text-center text-sm text-muted">
         Headline metrics, score trend with pass-mark line, specialty accuracy, heatmaps, mistake
         mix, pace, coverage, and Focus next weakness drills.
       </p>

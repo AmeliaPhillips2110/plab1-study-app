@@ -10,10 +10,15 @@ type Props = {
 export function WeaknessChart({ items }: Props) {
   if (items.length === 0) {
     return (
-      <p className="text-sm text-muted">
-        Need at least a couple of graded attempts per topic to rank weaknesses. Keep practising, then
-        return here for Focus next.
-      </p>
+      <div className="rounded border border-dashed border-border bg-bg px-4 py-8 text-center">
+        <div className="mx-auto mb-3 h-2 w-full max-w-md rounded-full bg-border">
+          <div className="h-full w-1/3 rounded-full bg-accent/30" />
+        </div>
+        <p className="text-sm text-muted">
+          Need at least a couple of graded attempts per topic to rank weaknesses. Keep practising,
+          then return here for Focus next.
+        </p>
+      </div>
     )
   }
 

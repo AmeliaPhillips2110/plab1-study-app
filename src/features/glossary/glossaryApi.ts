@@ -34,6 +34,7 @@ export async function upsertGlossaryTerm(
   const payload = {
     ...row,
     aliases: row.aliases ?? [],
+    section: row.section?.trim() || 'General',
     is_active: row.is_active ?? true,
     updated_at: new Date().toISOString(),
   }

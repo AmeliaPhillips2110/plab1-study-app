@@ -157,6 +157,7 @@ export type GlossaryTerm = {
   term: string
   definition: string
   aliases: string[]
+  section: string
   topic_id: string | null
   is_active: boolean
   created_at: string
