@@ -10,6 +10,3 @@ export function isMissingSchemaError(message: string | null | undefined): boolea
     m.includes('public.exams')
   )
 }
-
-export const SETUP_SQL_CTA =
-  'Database tables are not set up yet. In Supabase → SQL → New query, paste the entire file supabase/APPLY_ALL.sql from the repo, click Run, then refresh this page.'

@@ -11,7 +11,7 @@ export function AdminGlossaryPage() {
   useEffect(() => {
     void (async () => {
       const exam = await fetchDefaultExam()
-      if (!exam) setError('No exam found. Run supabase/APPLY_ALL.sql first.')
+      if (!exam) setError('No exam found yet.')
       else setExamId(exam.id)
     })()
   }, [])

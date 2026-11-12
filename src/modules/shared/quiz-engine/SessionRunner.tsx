@@ -36,8 +36,14 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const [attempts, setAttempts] = useState<LocalAttempt[]>([])
   const [saving, setSaving] = useState(false)
   const [finalPercent, setFinalPercent] = useState<number | null>(null)
+  const [questionElapsedSec, setQuestionElapsedSec] = useState(0)
   const startedAt = useRef<number>(Date.now())
   const bootstrapped = useRef(false)
+  const attemptsRef = useRef<LocalAttempt[]>([])
+
+  useEffect(() => {
+    attemptsRef.current = attempts
+  }, [attempts])
 
   useEffect(() => {
     if (bootstrapped.current) return
@@ -72,6 +78,22 @@ export function SessionRunner({ userId, config, onExit }: Props) {
       setPhase('running')
     })()
   }, [config, userId])
+
+  useEffect(() => {
+    if (phase !== 'running') return
+    setQuestionElapsedSec(0)
+    const id = window.setInterval(() => {
+      setQuestionElapsedSec(Math.floor((Date.now() - startedAt.current) / 1000))
+    }, 500)
+    return () => window.clearInterval(id)
+  }, [phase, index])
+
+  async function endSession(nextAttempts: LocalAttempt[]) {
+    if (!sessionId) return
+    const finished = await finishStudySession({ sessionId, attempts: nextAttempts })
+    setFinalPercent(finished.percent)
+    setPhase('summary')
+  }
 
   async function handleSubmit(args: {
     result: LocalAttempt['result']
@@ -141,14 +163,28 @@ export function SessionRunner({ userId, config, onExit }: Props) {
     setSaving(false)
 
     if (index + 1 >= questions.length) {
-      const finished = await finishStudySession({ sessionId, attempts: nextAttempts })
-      setFinalPercent(finished.percent)
-      setPhase('summary')
+      await endSession(nextAttempts)
       return
     }
 
     setIndex((i) => i + 1)
     startedAt.current = Date.now()
+  }
+
+  async function handleFinishEarly() {
+    if (!sessionId || phase !== 'running') return
+    if (
+      !window.confirm(
+        attemptsRef.current.length === 0
+          ? 'Finish without answering any questions?'
+          : `Finish now with ${attemptsRef.current.length} answered?`,
+      )
+    ) {
+      return
+    }
+    setSaving(true)
+    await endSession(attemptsRef.current)
+    setSaving(false)
   }
 
   if (phase === 'loading') {
@@ -177,9 +213,10 @@ export function SessionRunner({ userId, config, onExit }: Props) {
     const stats = summariseAttempts(attempts)
     return (
       <div className="flex max-w-xl flex-col gap-4 rounded-md border border-border bg-surface p-4">
-        <h2 className="text-xl font-semibold">Session complete</h2>
+        <h2 className="font-display text-xl font-semibold">Session complete</h2>
         <p className="text-sm text-muted">
-          {SESSION_TYPE_LABELS[config.sessionType]} · {FORMAT_LABELS[config.presentationFormat]}
+          {config.openEnded ? 'Open quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
+          {FORMAT_LABELS[config.presentationFormat]}
         </p>
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
           <Stat label="Score" value={`${finalPercent ?? stats.percent}%`} />
@@ -214,23 +251,29 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const current = questions[index]
   if (!current) return null
 
+  const format =
+    config.openEnded || config.presentationFormat !== 'rapid_fire'
+      ? config.presentationFormat
+      : config.presentationFormat
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
         <span>
-          {SESSION_TYPE_LABELS[config.sessionType]} · {FORMAT_LABELS[config.presentationFormat]}
+          {config.openEnded ? 'Open quiz (no time limit)' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
+          {FORMAT_LABELS[format]}
         </span>
-        <Link to="/study" className="text-accent hover:underline">
-          Exit
-        </Link>
+        <span className="font-medium text-fg" aria-live="polite">
+          This question: {questionElapsedSec}s
+        </span>
       </div>
-      {saving ? <p className="text-xs text-muted">Saving attempt…</p> : null}
+      {saving ? <p className="text-xs text-muted">Saving…</p> : null}
       {error ? <p className="text-sm text-incorrect">{error}</p> : null}
       <QuestionView
         key={current.id}
         question={current}
-        format={config.presentationFormat}
-        rapidFireSeconds={config.rapidFireSeconds ?? 15}
+        format={config.openEnded ? 'sba' : config.presentationFormat}
+        rapidFireSeconds={config.openEnded ? undefined : config.rapidFireSeconds ?? 15}
         index={index}
         total={questions.length}
         glossaryTerms={glossaryTerms}
@@ -245,6 +288,11 @@ export function SessionRunner({ userId, config, onExit }: Props) {
           })
         }
       />
+      <div className="flex justify-end">
+        <Button variant="secondary" disabled={saving} onClick={() => void handleFinishEarly()}>
+          Finish
+        </Button>
+      </div>
     </div>
   )
 }

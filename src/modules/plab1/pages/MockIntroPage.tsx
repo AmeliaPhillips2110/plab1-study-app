@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
+import { Select } from '@/components/ui/Select'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { MockRunner } from '@/modules/shared/quiz-engine/mock/MockRunner'
@@ -28,18 +28,27 @@ type ActiveRun = {
   progress: MockProgressState
 }
 
+type UiMode = TimedMode | 'themed'
+
 export function MockIntroPage() {
   const { user } = useAuth()
-  const { loading, exam, settings, error, schemaMissing } = useExam()
+  const { loading, exam, settings, topics, error, schemaMissing } = useExam()
+  const [params] = useSearchParams()
   const defaults = defaultMockLimits(settings)
   const [bankCount, setBankCount] = useState<number | null>(null)
-  const [mode, setMode] = useState<TimedMode>('full_mock')
+  const [uiMode, setUiMode] = useState<UiMode>('full_mock')
+  const [topicId, setTopicId] = useState('')
   const [questionCount, setQuestionCount] = useState(String(defaults.questions))
   const [minutes, setMinutes] = useState(String(defaults.minutes))
   const [openSessions, setOpenSessions] = useState<StudySession[]>([])
   const [busy, setBusy] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [run, setRun] = useState<ActiveRun | null>(null)
+
+  useEffect(() => {
+    const m = params.get('mode')
+    if (m === 'full_mock' || m === 'as_many_as_you_can' || m === 'themed') setUiMode(m)
+  }, [params])
 
   useEffect(() => {
     if (settings) {
@@ -49,12 +58,19 @@ export function MockIntroPage() {
   }, [settings])
 
   useEffect(() => {
+    if (topics[0] && !topicId) setTopicId(topics[0].id)
+  }, [topics, topicId])
+
+  useEffect(() => {
     if (!exam || !user) return
     void (async () => {
       setBankCount(await countActiveSba(exam.id))
       setOpenSessions(await findOpenTimedSessions({ userId: user.id, examId: exam.id }))
     })()
   }, [exam, user])
+
+  const timedMode: TimedMode =
+    uiMode === 'as_many_as_you_can' ? 'as_many_as_you_can' : 'full_mock'
 
   async function startNew() {
     if (!exam || !user) return
@@ -64,7 +80,7 @@ export function MockIntroPage() {
     const mins = Math.min(180, Math.max(1, Number(minutes) || defaults.minutes))
     const available = bankCount ?? 0
     if (available <= 0) {
-      setLocalError('No active SBA questions in the bank. Seed or add questions first.')
+      setLocalError('No active SBA questions in the bank yet.')
       setBusy(false)
       return
     }
@@ -75,16 +91,26 @@ export function MockIntroPage() {
       setBusy(false)
       return
     }
+    let questions = loaded.questions
+    if (uiMode === 'themed' && topicId) {
+      const themed = questions.filter((q) => q.topic_id === topicId)
+      if (themed.length === 0) {
+        setLocalError('No questions in that topic yet — try another theme or Full Test.')
+        setBusy(false)
+        return
+      }
+      questions = themed
+    }
     const created = await createMockSession({
       userId: user.id,
       config: {
         examId: exam.id,
-        mode,
-        targetQuestionCount: target,
+        mode: timedMode,
+        targetQuestionCount: questions.length,
         timeLimitSec: mins * 60,
         useAvailableBank: true,
       },
-      questions: loaded.questions,
+      questions,
     })
     if (created.error || !created.sessionId || !created.progress) {
       setLocalError(created.error ?? 'Failed to start.')
@@ -93,8 +119,8 @@ export function MockIntroPage() {
     }
     setRun({
       sessionId: created.sessionId,
-      mode,
-      questions: loaded.questions,
+      mode: timedMode,
+      questions,
       progress: created.progress,
     })
     setBusy(false)
@@ -127,7 +153,7 @@ export function MockIntroPage() {
 
   if (run && exam && user) {
     return (
-      <AppShell title={run.mode === 'full_mock' ? 'Full Mock' : 'As Many as You Can'}>
+      <AppShell title={run.mode === 'full_mock' ? 'Full Test' : 'Unlimited'}>
         <MockRunner
           key={run.sessionId}
           sessionId={run.sessionId}
@@ -147,21 +173,20 @@ export function MockIntroPage() {
   const willUse = Math.min(requested, available || requested)
 
   return (
-    <AppShell title="Timed Tests">
+    <AppShell title="Tests">
       <div className="flex max-w-2xl flex-col gap-6">
-        {schemaMissing ? <SetupMissingNotice /> : null}
         <p className="text-sm text-muted">
-          Full mock: exam conditions — no feedback until the end, navigator, flagging, and a
-          countdown. As many as you can: same timer/cap, stop whenever you want. Pace is shown during
-          the test and summarised in the end report.
+          Full Test: exam conditions — no feedback until the end. Unlimited: same timer/cap, stop
+          whenever you want. Themed Test: focus on one topic. Pace is summarised in the end report.
         </p>
 
         {loading ? <p className="text-sm text-muted">Loading exam settings…</p> : null}
         {!schemaMissing && error ? <p className="text-sm text-incorrect">{error}</p> : null}
         {localError ? <p className="text-sm text-incorrect">{localError}</p> : null}
+        {!exam && !loading ? <p className="text-sm text-muted">Exam not available yet.</p> : null}
 
         <section className="rounded-md border border-border bg-surface p-4 text-sm">
-          <h2 className="mb-2 font-semibold">Defaults from exam settings</h2>
+          <h2 className="mb-2 font-display font-semibold">Defaults from exam settings</h2>
           <div className="flex flex-wrap gap-2">
             <Badge tone="accent">{defaults.questions} questions</Badge>
             <Badge>{defaults.minutes} minutes</Badge>
@@ -173,15 +198,14 @@ export function MockIntroPage() {
           {available > 0 && available < requested ? (
             <p className="mt-2 text-muted">
               The bank has fewer items than the target, so this run will use{' '}
-              <strong className="text-fg">{willUse}</strong> questions (time still as set below). Add
-              more questions in Admin when you can.
+              <strong className="text-fg">{willUse}</strong> questions.
             </p>
           ) : null}
         </section>
 
         {openSessions.length > 0 ? (
           <section className="rounded-md border border-accent/40 bg-accent-subtle p-4">
-            <h2 className="mb-2 font-semibold">Resume unfinished</h2>
+            <h2 className="mb-2 font-display font-semibold">Resume unfinished</h2>
             <ul className="flex flex-col gap-2">
               {openSessions.map((s) => {
                 const p = progressFromSession(s)
@@ -191,7 +215,7 @@ export function MockIntroPage() {
                     className="flex flex-wrap items-center justify-between gap-2 rounded border border-border bg-surface px-3 py-2 text-sm"
                   >
                     <span>
-                      {s.session_type === 'full_mock' ? 'Full mock' : 'As many as you can'} · started{' '}
+                      {s.session_type === 'full_mock' ? 'Full Test' : 'Unlimited'} · started{' '}
                       {new Date(s.started_at).toLocaleString()}
                       {p ? ` · ${Object.keys(p.answers).length}/${p.questionIds.length} answered` : ''}
                     </span>
@@ -209,19 +233,40 @@ export function MockIntroPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant={mode === 'full_mock' ? 'primary' : 'secondary'}
-              onClick={() => setMode('full_mock')}
+              variant={uiMode === 'full_mock' ? 'primary' : 'secondary'}
+              onClick={() => setUiMode('full_mock')}
             >
-              Full mock
+              Full Test
             </Button>
             <Button
               type="button"
-              variant={mode === 'as_many_as_you_can' ? 'primary' : 'secondary'}
-              onClick={() => setMode('as_many_as_you_can')}
+              variant={uiMode === 'as_many_as_you_can' ? 'primary' : 'secondary'}
+              onClick={() => setUiMode('as_many_as_you_can')}
             >
-              As many as you can
+              Unlimited
+            </Button>
+            <Button
+              type="button"
+              variant={uiMode === 'themed' ? 'primary' : 'secondary'}
+              onClick={() => setUiMode('themed')}
+            >
+              Themed Test
             </Button>
           </div>
+
+          {uiMode === 'themed' ? (
+            topics.length > 0 ? (
+              <Select
+                label="Theme (topic)"
+                name="theme-topic"
+                value={topicId}
+                onChange={(e) => setTopicId(e.target.value)}
+                options={topics.map((t) => ({ value: t.id, label: t.name }))}
+              />
+            ) : (
+              <p className="text-sm text-muted">No topics available yet.</p>
+            )
+          ) : null}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
@@ -245,19 +290,19 @@ export function MockIntroPage() {
           </div>
 
           <p className="text-xs text-muted">
-            Tip for smoke-testing: set 5 questions and 10 minutes. Product defaults remain 180 /{' '}
-            {formatDuration(defaults.seconds)} when settings say so.
+            Estimated pace target ~{formatDuration((Number(minutes) || defaults.minutes) * 60)} for{' '}
+            {willUse} questions.
           </p>
 
           <Button disabled={busy || !exam} onClick={() => void startNew()}>
-            {busy ? 'Starting…' : mode === 'full_mock' ? 'Start full mock' : 'Start as-many-as-you-can'}
+            {busy ? 'Starting…' : 'Start test'}
           </Button>
         </section>
 
         <p className="text-sm">
           Prefer tutor feedback after each item?{' '}
           <Link className="text-accent hover:underline" to="/study">
-            Open Quiz practice
+            Open study setup →
           </Link>
         </p>
       </div>

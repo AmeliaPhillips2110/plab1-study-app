@@ -13,11 +13,8 @@ export function SetupHintPage() {
       <div className="mx-auto max-w-2xl px-4 py-10">
         <h1 className="mb-4 text-center font-display text-2xl font-semibold">Setup</h1>
         <p className="mb-4 text-center text-sm text-muted">
-          If you see a missing <code className="text-fg">public.exams</code> error, paste the entire
-          file <code className="text-fg">supabase/APPLY_ALL.sql</code> into Supabase → SQL → New
-          query → Run. After creating the <code className="text-fg">amelia</code> account, run{' '}
-          <code className="text-fg">supabase/PROMOTE_AMELIA.sql</code>. Full steps are in{' '}
-          <code className="text-fg">SETUP.md</code>.
+          Repository maintainers: see <code className="text-fg">SETUP.md</code> for Supabase SQL and
+          deploy steps. Students use Sign in once the project is configured.
         </p>
         <p className="text-center">
           <Link className="text-sm text-accent hover:underline" to="/login">

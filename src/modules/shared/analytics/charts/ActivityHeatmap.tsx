@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
-import { CHART } from '@/modules/shared/analytics/chartTheme'
 import type { DayActivity } from '@/modules/shared/analytics/kpiMetrics'
 import { cn } from '@/lib/cn'
 
 type Props = { data: DayActivity[] }
 
+/** Max cell uses a lighter teal than solid accent (#337d8a). */
 function intensity(count: number, max: number): string {
   if (count <= 0) return 'bg-border/40'
   const t = max <= 0 ? 0 : count / max
-  if (t > 0.75) return 'bg-accent'
-  if (t > 0.5) return 'bg-accent/80'
-  if (t > 0.25) return 'bg-accent/50'
+  if (t > 0.75) return 'bg-[#7eb8c2]'
+  if (t > 0.5) return 'bg-[#5fa8b4]'
+  if (t > 0.25) return 'bg-accent/45'
   return 'bg-accent/25'
 }
 
@@ -62,9 +62,9 @@ export function ActivityHeatmap({ data }: Props) {
         <span>Less</span>
         <span className="h-3 w-3 rounded-sm bg-border/40" />
         <span className="h-3 w-3 rounded-sm bg-accent/25" />
-        <span className="h-3 w-3 rounded-sm bg-accent/50" />
-        <span className="h-3 w-3 rounded-sm bg-accent/80" />
-        <span className="h-3 w-3 rounded-sm bg-accent" style={{ background: CHART.accent }} />
+        <span className="h-3 w-3 rounded-sm bg-accent/45" />
+        <span className="h-3 w-3 rounded-sm bg-[#5fa8b4]" />
+        <span className="h-3 w-3 rounded-sm bg-[#7eb8c2]" />
         <span>More</span>
       </div>
       {empty ? (

@@ -17,6 +17,8 @@ export type SessionSetupConfig = {
   unseenOnly?: boolean
   questionLimit?: number
   rapidFireSeconds?: number
+  /** Untimed open quiz — track time per question; Finish ends early. */
+  openEnded?: boolean
   /** Stage f filters */
   ukPracticeOnly?: boolean
   patientCentredOnly?: boolean

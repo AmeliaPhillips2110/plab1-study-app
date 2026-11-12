@@ -1,18 +1,17 @@
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 
 const OPTIONS = [
-  { to: '/study', label: 'Quiz', variant: 'primary' as const },
-  { to: '/mock', label: 'Timed Mock', variant: 'secondary' as const },
-  { to: '/dashboard', label: 'KPIs', variant: 'secondary' as const },
-  { to: '/attempts', label: 'Attempts', variant: 'ghost' as const },
-  { to: '/glossary', label: 'Glossary', variant: 'ghost' as const },
-  { to: '/account', label: 'Account', variant: 'ghost' as const },
+  { to: '/study', label: 'Study' },
+  { to: '/mock', label: 'Tests' },
+  { to: '/dashboard', label: 'KPIs' },
+  { to: '/attempts', label: 'Attempts' },
+  { to: '/glossary', label: 'Glossary' },
+  { to: '/account', label: 'Account' },
 ]
 
 export function HomePage() {
@@ -22,21 +21,19 @@ export function HomePage() {
   return (
     <AppShell title="Start a Study Session">
       <div className="flex flex-col items-center gap-8">
-        {schemaMissing ? <SetupMissingNotice /> : null}
-
         <div className="flex w-full max-w-3xl flex-wrap items-center justify-center gap-2">
           {OPTIONS.map((opt) => (
             <Link key={opt.to} to={opt.to}>
-              <Button variant={opt.variant}>{opt.label}</Button>
+              <Button variant="primary">{opt.label}</Button>
             </Link>
           ))}
           {isAdmin ? (
             <>
               <Link to="/admin/questions">
-                <Button variant="ghost">Questions</Button>
+                <Button variant="primary">Questions</Button>
               </Link>
               <Link to="/admin/glossary">
-                <Button variant="ghost">Glossary Edit</Button>
+                <Button variant="primary">Glossary Edit</Button>
               </Link>
             </>
           ) : null}
@@ -68,13 +65,8 @@ export function HomePage() {
                 {settings?.default_mock_minutes ?? 180} min
               </p>
             </div>
-          ) : schemaMissing ? (
-            <p className="text-sm text-muted">Exam appears after you run APPLY_ALL.sql.</p>
           ) : (
-            <p className="text-sm text-muted">
-              No exam loaded. Run <code className="text-fg">supabase/APPLY_ALL.sql</code> in Supabase
-              SQL Editor.
-            </p>
+            <p className="text-sm text-muted">Exam not available yet.</p>
           )}
         </section>
 
@@ -83,9 +75,7 @@ export function HomePage() {
           {loading ? (
             <p className="text-sm text-muted">Loading topics…</p>
           ) : topics.length === 0 ? (
-            <p className="text-sm text-muted">
-              {schemaMissing ? 'Topics appear after setup.' : 'No topics yet. Run the seed SQL.'}
-            </p>
+            <p className="text-sm text-muted">No topics yet.</p>
           ) : (
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {topics.map((t) => (
