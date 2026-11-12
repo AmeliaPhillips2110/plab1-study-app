@@ -17,6 +17,11 @@
   --color-accent-tint: #e6f0f2;
   /* Banner is darker teal; buttons/accents stay --color-accent (#337d8a) */
   --color-brand-banner: #1e5560;
+  /* Slightly darker band under the title row */
+  --color-brand-nav-band: #17444d;
+  /* Nav link pastel (avatar family #a8d4db, slightly darker) */
+  --color-nav-pastel: #7eb8c2;
+  --color-nav-pastel-hover: #a8d4db;
 
   /* Semantic */
   --color-correct: #2f6f6a;

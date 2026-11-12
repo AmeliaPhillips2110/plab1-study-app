@@ -17,6 +17,9 @@ export default {
         },
         brand: {
           banner: 'var(--color-brand-banner)',
+          nav: 'var(--color-brand-nav-band)',
+          pastel: 'var(--color-nav-pastel)',
+          'pastel-hover': 'var(--color-nav-pastel-hover)',
         },
         correct: 'var(--color-correct)',
         incorrect: 'var(--color-incorrect)',

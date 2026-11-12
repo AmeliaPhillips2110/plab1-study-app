@@ -9,11 +9,16 @@ type Props = {
   className?: string
 }
 
+const OPEN_DELAY_MS = 180
+const CLOSE_DELAY_MS = 320
+
 export function UserMenu({ className }: Props) {
   const { user, profile, signOut, preferences, isAdmin } = useAuth()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
+  const openTimer = useRef<number | null>(null)
+  const closeTimer = useRef<number | null>(null)
 
   const label =
     profile?.display_name ||
@@ -23,6 +28,23 @@ export function UserMenu({ className }: Props) {
 
   const avatarUrl =
     typeof preferences?.extra?.avatar_url === 'string' ? preferences.extra.avatar_url : null
+
+  function clearTimers() {
+    if (openTimer.current) window.clearTimeout(openTimer.current)
+    if (closeTimer.current) window.clearTimeout(closeTimer.current)
+    openTimer.current = null
+    closeTimer.current = null
+  }
+
+  function scheduleOpen() {
+    clearTimers()
+    openTimer.current = window.setTimeout(() => setOpen(true), OPEN_DELAY_MS)
+  }
+
+  function scheduleClose() {
+    clearTimers()
+    closeTimer.current = window.setTimeout(() => setOpen(false), CLOSE_DELAY_MS)
+  }
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -36,6 +58,7 @@ export function UserMenu({ className }: Props) {
     return () => {
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
+      clearTimers()
     }
   }, [])
 
@@ -45,8 +68,8 @@ export function UserMenu({ className }: Props) {
     <div
       ref={rootRef}
       className={cn('relative', className)}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={scheduleOpen}
+      onMouseLeave={scheduleClose}
     >
       <button
         type="button"
@@ -54,9 +77,12 @@ export function UserMenu({ className }: Props) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          clearTimers()
+          setOpen((v) => !v)
+        }}
       >
-        <Avatar name={label} imageUrl={avatarUrl} size="sm" className="ring-1 ring-white/40" />
+        <Avatar name={label} imageUrl={avatarUrl} size="sm" className="ring-1 ring-black" />
         <span className="truncate">{label}</span>
         {isAdmin ? (
           <Badge tone="accent" className="hidden !px-1.5 !py-0 text-[10px] sm:inline-flex">
@@ -68,7 +94,12 @@ export function UserMenu({ className }: Props) {
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-md border border-border bg-surface py-1 text-fg shadow-md"
+          className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-md border border-border bg-surface py-1 text-fg shadow-md before:absolute before:-top-2 before:left-0 before:h-2 before:w-full before:content-['']"
+          onMouseEnter={() => {
+            clearTimers()
+            setOpen(true)
+          }}
+          onMouseLeave={scheduleClose}
         >
           <Link
             role="menuitem"
@@ -88,7 +119,7 @@ export function UserMenu({ className }: Props) {
               void signOut()
             }}
           >
-            Sign out
+            Sign Out
           </button>
         </div>
       ) : null}

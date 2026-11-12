@@ -92,7 +92,14 @@ export type AttemptFilters = {
   query: string
 }
 
-export type AttemptSort = 'answered_at_desc' | 'answered_at_asc' | 'result' | 'time_spent'
+export type AttemptSort = 'most_recent' | 'best' | 'worst'
+
+const RESULT_RANK: Record<string, number> = {
+  correct: 3,
+  partial: 2,
+  skipped: 1,
+  incorrect: 0,
+}
 
 export function filterAndSortAttempts(
   rows: AttemptLogRow[],
@@ -119,14 +126,13 @@ export function filterAndSortAttempts(
   })
 
   out = [...out].sort((a, b) => {
-    if (sort === 'answered_at_asc') {
-      return new Date(a.answered_at).getTime() - new Date(b.answered_at).getTime()
-    }
-    if (sort === 'answered_at_desc') {
-      return new Date(b.answered_at).getTime() - new Date(a.answered_at).getTime()
-    }
-    if (sort === 'result') return a.result.localeCompare(b.result)
-    return (b.time_spent_ms ?? 0) - (a.time_spent_ms ?? 0)
+    const byRecent =
+      new Date(b.answered_at).getTime() - new Date(a.answered_at).getTime()
+    if (sort === 'most_recent') return byRecent
+    const ra = RESULT_RANK[a.result] ?? 0
+    const rb = RESULT_RANK[b.result] ?? 0
+    if (sort === 'best') return rb - ra || byRecent
+    return ra - rb || byRecent
   })
 
   return out

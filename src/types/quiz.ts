@@ -55,27 +55,27 @@ export type SessionProgress = {
 export type BankQuestion = QuestionWithOptions
 
 export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
-  topic: 'Topic practice',
-  random: 'Random mix',
-  weakness: 'Weakness drill',
-  spaced_repetition: 'Spaced repetition',
-  full_mock: 'Full mock',
-  as_many_as_you_can: 'As many as you can',
-  flashcard: 'Flashcard deck',
+  topic: 'Topic Practice',
+  random: 'Random Mix',
+  weakness: 'Weakness Drill',
+  spaced_repetition: 'Spaced Repetition',
+  full_mock: 'Full Mock',
+  as_many_as_you_can: 'As Many As You Can',
+  flashcard: 'Flashcard Deck',
 }
 
 export const FORMAT_LABELS: Record<PresentationFormat, string> = {
-  sba: 'SBA (options visible)',
+  sba: 'SBA (Options Visible)',
   flashcard: 'Flashcard',
-  cover_the_options: 'Cover the options',
-  rapid_fire: 'Rapid fire',
+  cover_the_options: 'Cover The Options',
+  rapid_fire: 'Rapid Fire',
 }
 
 export const WEAKNESS_LABELS: Record<WeaknessVariant, string> = {
-  by_topic: 'Weakest topics',
-  by_tag: 'Weakest tags',
-  recent_mistakes: 'Recent mistakes',
-  most_missed: 'Most missed overall',
+  by_topic: 'Weakest Topics',
+  by_tag: 'Weakest Tags',
+  recent_mistakes: 'Recent Mistakes',
+  most_missed: 'Most Missed Overall',
 }
 
 export const STAGE_B_SESSION_TYPES: SessionType[] = [

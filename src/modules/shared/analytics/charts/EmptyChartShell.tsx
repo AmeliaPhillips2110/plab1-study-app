@@ -18,6 +18,7 @@ const PLACEHOLDER = [
 ]
 
 type Props = {
+  /** Optional; omit to leave blank axes with no copy. */
   message?: string
   kind?: 'line' | 'bar'
   yDomain?: [number, number]
@@ -25,9 +26,9 @@ type Props = {
   heightClass?: string
 }
 
-/** Empty axes shell so KPI panels never look blank/broken with no data. */
+/** Empty axes shell — blank by default (no empty-state copy). */
 export function EmptyChartShell({
-  message = 'No data yet — shells stay ready as you practise.',
+  message,
   kind = 'line',
   yDomain = [0, 100],
   yUnit,
@@ -67,9 +68,11 @@ export function EmptyChartShell({
           </LineChart>
         )}
       </ResponsiveContainer>
-      <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-muted">
-        {message}
-      </p>
+      {message ? (
+        <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-muted">
+          {message}
+        </p>
+      ) : null}
     </div>
   )
 }

@@ -196,7 +196,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
       <div className="flex flex-col gap-3">
         <p className="text-sm text-incorrect">{error}</p>
         <div className="flex gap-2">
-          <Link className="text-sm text-accent hover:underline" to="/study">
+          <Link className="text-sm text-accent hover:underline" to="/study/practice-questions">
             Back to study setup
           </Link>
           {onExit ? (
@@ -226,10 +226,10 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         </dl>
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/study"
+            to="/study/practice-questions"
             className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
           >
-            New session
+            New Session
           </Link>
           <Link
             to="/attempts"
