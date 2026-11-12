@@ -261,7 +261,7 @@ export function MockRunner({
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
             disabled={progress.currentIndex <= 0}
@@ -279,24 +279,22 @@ export function MockRunner({
           <Button variant={flaggedSet.has(current.id) ? 'primary' : 'ghost'} onClick={() => void toggleFlag()}>
             {flaggedSet.has(current.id) ? 'Flagged' : 'Flag for review'}
           </Button>
-          <Button
-            variant="danger"
-            disabled={phase === 'submitting'}
-            onClick={() => {
-              const unanswered = questions.length - answeredCount
-              const msg =
-                mode === 'full_mock'
-                  ? `Submit mock now? ${unanswered} unanswered will be marked skipped.`
-                  : `End test now? You have answered ${answeredCount} of ${questions.length}.`
-              if (window.confirm(msg)) void submitTest('manual')
-            }}
-          >
-            {phase === 'submitting'
-              ? 'Submitting…'
-              : mode === 'full_mock'
-                ? 'Submit mock'
-                : 'End test'}
-          </Button>
+          <div className="ml-auto">
+            <Button
+              variant="danger"
+              disabled={phase === 'submitting'}
+              onClick={() => {
+                const unanswered = questions.length - answeredCount
+                const msg =
+                  mode === 'full_mock'
+                    ? `Finish mock now? ${unanswered} unanswered will be marked skipped.`
+                    : `Finish now? You have answered ${answeredCount} of ${questions.length}.`
+                if (window.confirm(msg)) void submitTest('manual')
+              }}
+            >
+              {phase === 'submitting' ? 'Submitting…' : 'Finish'}
+            </Button>
+          </div>
         </div>
 
         {saveHint ? <p className="text-xs text-muted">Auto-save: {saveHint}</p> : null}
@@ -314,7 +312,7 @@ export function MockRunner({
         />
         <p className="text-xs text-muted">
           Progress auto-saves to Supabase and this browser. You can resume an unfinished timed test
-          from the Mocks page.
+          from the Tests page.
         </p>
       </aside>
     </div>

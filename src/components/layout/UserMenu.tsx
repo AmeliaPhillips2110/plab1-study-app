@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Avatar } from '@/components/ui/Avatar'
+import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/cn'
 
@@ -8,7 +10,7 @@ type Props = {
 }
 
 export function UserMenu({ className }: Props) {
-  const { user, profile, signOut, preferences } = useAuth()
+  const { user, profile, signOut, preferences, isAdmin } = useAuth()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
@@ -48,30 +50,25 @@ export function UserMenu({ className }: Props) {
     >
       <button
         type="button"
-        className="inline-flex max-w-[10rem] items-center gap-2 rounded-md px-2 py-1.5 text-sm text-white/90 hover:bg-white/10 hover:text-white"
+        className="inline-flex max-w-[12rem] items-center gap-2 rounded-md px-2 py-1.5 text-sm text-white/90 hover:bg-white/10 hover:text-white"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
       >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt=""
-            className="h-7 w-7 rounded-full object-cover ring-1 ring-white/40"
-          />
-        ) : (
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-xs font-medium uppercase">
-            {label.slice(0, 1)}
-          </span>
-        )}
+        <Avatar name={label} imageUrl={avatarUrl} size="sm" className="ring-1 ring-white/40" />
         <span className="truncate">{label}</span>
+        {isAdmin ? (
+          <Badge tone="accent" className="hidden !px-1.5 !py-0 text-[10px] sm:inline-flex">
+            Admin
+          </Badge>
+        ) : null}
       </button>
       {open ? (
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 top-full z-40 mt-1 min-w-[10rem] rounded-md border border-border bg-surface py-1 text-fg shadow-md"
+          className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-md border border-border bg-surface py-1 text-fg shadow-md"
         >
           <Link
             role="menuitem"
@@ -80,6 +77,7 @@ export function UserMenu({ className }: Props) {
             onClick={() => setOpen(false)}
           >
             Account
+            {isAdmin ? <span className="mt-0.5 block text-xs text-muted">Administrator</span> : null}
           </Link>
           <button
             role="menuitem"

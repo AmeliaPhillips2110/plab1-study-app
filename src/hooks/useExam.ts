@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { isMissingSchemaError, SETUP_SQL_CTA } from '@/lib/schemaErrors'
+import { isMissingSchemaError } from '@/lib/schemaErrors'
 import { supabase, supabaseConfigured } from '@/lib/supabase'
 import type { Exam, ExamSettings, Topic } from '@/types/database'
 import { PLAB1_SLUG } from '@/modules/plab1/config'
@@ -43,7 +43,8 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
     if (examError) {
       const missing = isMissingSchemaError(examError.message)
       setSchemaMissing(missing)
-      setError(missing ? SETUP_SQL_CTA : examError.message)
+      // Soft empty — never surface raw PostgREST / SETUP paths in the UI.
+      setError(missing ? null : examError.message)
       setExam(null)
       setSettings(null)
       setTopics([])
@@ -53,7 +54,7 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
 
     if (!examRow) {
       setSchemaMissing(false)
-      setError(`Exam "${slug}" was not found. Run supabase/APPLY_ALL.sql in Supabase SQL Editor.`)
+      setError(null)
       setExam(null)
       setSettings(null)
       setTopics([])

@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
-import { DEFAULT_READING_WPM, saveReadingSpeedWpm } from '@/features/preferences/readingSpeed'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { isMissingSchemaError } from '@/lib/schemaErrors'
@@ -32,18 +30,12 @@ function sectionRank(section: string): number {
 }
 
 export function GlossaryPage() {
-  const { user, preferences, refreshProfile, isAdmin } = useAuth()
+  const { isAdmin } = useAuth()
   const { exam, loading: examLoading, error: examError, schemaMissing } = useExam()
   const [terms, setTerms] = useState<GlossaryTerm[]>([])
   const [q, setQ] = useState('')
   const [theme, setTheme] = useState<string>('All')
   const [error, setError] = useState<string | null>(null)
-  const [wpm, setWpm] = useState(String(preferences?.reading_speed_wpm ?? DEFAULT_READING_WPM))
-  const [wpmMsg, setWpmMsg] = useState<string | null>(null)
-
-  useEffect(() => {
-    setWpm(String(preferences?.reading_speed_wpm ?? DEFAULT_READING_WPM))
-  }, [preferences?.reading_speed_wpm])
 
   useEffect(() => {
     if (!exam) return
@@ -95,28 +87,15 @@ export function GlossaryPage() {
     [filtered],
   )
 
-  async function saveWpm() {
-    if (!user) return
-    setWpmMsg(null)
-    const { error: err } = await saveReadingSpeedWpm(user.id, Number(wpm) || DEFAULT_READING_WPM)
-    if (err) setWpmMsg(err)
-    else {
-      setWpmMsg('Saved reading speed.')
-      await refreshProfile()
-    }
-  }
-
   const softGlossaryError = error && isMissingSchemaError(error) ? null : error
 
   return (
     <AppShell title="Glossary">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
-        {schemaMissing ? <SetupMissingNotice /> : null}
-
         <div className="flex flex-wrap items-end justify-center gap-3 text-center sm:justify-between sm:text-left">
           <p className="text-sm text-muted">
             PLAB and UK clinical practice terms — tap or hover underlined words in stems for the
-            same definitions.
+            same definitions. Reading speed lives under Account.
           </p>
           {isAdmin ? (
             <Link to="/admin/glossary" className="text-sm font-medium text-accent hover:underline">
@@ -146,41 +125,12 @@ export function GlossaryPage() {
           ))}
         </div>
 
-        <section className="rounded-md border border-border bg-surface p-4">
-          <h2 className="mb-2 text-center font-display text-sm font-semibold">Reading Speed (WPM)</h2>
-          <p className="mb-3 text-center text-xs text-muted">
-            Used for long-stem reading tips and pace-vs-length analytics. Typical study reading is
-            150–250 WPM.
-          </p>
-          <div className="flex flex-wrap items-end justify-center gap-2">
-            <Input
-              label="Words per minute"
-              name="wpm"
-              type="number"
-              min={80}
-              max={600}
-              value={wpm}
-              onChange={(e) => setWpm(e.target.value)}
-              className="max-w-[10rem]"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => void saveWpm()}
-              disabled={!user}
-            >
-              Save
-            </Button>
-          </div>
-          {wpmMsg ? <p className="mt-2 text-center text-xs text-muted">{wpmMsg}</p> : null}
-          {!user ? (
-            <p className="mt-2 text-center text-xs text-muted">Sign in to persist reading speed.</p>
-          ) : null}
-        </section>
-
         {examLoading ? <p className="text-center text-sm text-muted">Loading…</p> : null}
         {!schemaMissing && (examError || softGlossaryError) ? (
           <p className="text-center text-sm text-incorrect">{examError || softGlossaryError}</p>
+        ) : null}
+        {!exam && !examLoading ? (
+          <p className="text-center text-sm text-muted">Glossary not available yet.</p>
         ) : null}
 
         {bySection.map(([section, rows]) => (

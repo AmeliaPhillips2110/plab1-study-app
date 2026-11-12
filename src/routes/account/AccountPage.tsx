@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
+import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { saveAvatarUrl } from '@/features/preferences/avatar'
+import { DEFAULT_READING_WPM, saveReadingSpeedWpm } from '@/features/preferences/readingSpeed'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { fetchKpiBundle } from '@/modules/shared/analytics/kpiData'
@@ -18,7 +19,7 @@ function formatHours(ms: number): string {
 }
 
 export function AccountPage() {
-  const { user, profile, preferences, refreshProfile } = useAuth()
+  const { user, profile, preferences, refreshProfile, isAdmin } = useAuth()
   const { exam, settings, loading: examLoading, error: examError, schemaMissing } = useExam()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,12 +29,18 @@ export function AccountPage() {
   )
   const [avatarMsg, setAvatarMsg] = useState<string | null>(null)
   const [avatarBusy, setAvatarBusy] = useState(false)
+  const [wpm, setWpm] = useState(String(preferences?.reading_speed_wpm ?? DEFAULT_READING_WPM))
+  const [wpmMsg, setWpmMsg] = useState<string | null>(null)
 
   useEffect(() => {
     setAvatarUrl(
       typeof preferences?.extra?.avatar_url === 'string' ? preferences.extra.avatar_url : '',
     )
   }, [preferences?.extra?.avatar_url])
+
+  useEffect(() => {
+    setWpm(String(preferences?.reading_speed_wpm ?? DEFAULT_READING_WPM))
+  }, [preferences?.reading_speed_wpm])
 
   useEffect(() => {
     if (!user || !exam) {
@@ -65,7 +72,7 @@ export function AccountPage() {
 
   const passMark = Number(settings?.pass_mark_percent ?? 65)
   const display = profile?.display_name || user.email?.split('@')[0] || 'Student'
-  const roleLabel = profile?.role === 'admin' ? 'Administrator' : 'Student'
+  const roleLabel = isAdmin || profile?.role === 'admin' ? 'Administrator' : 'Student'
 
   async function onSaveAvatar(e: FormEvent) {
     e.preventDefault()
@@ -80,29 +87,33 @@ export function AccountPage() {
     }
   }
 
+  async function onSaveWpm(e: FormEvent) {
+    e.preventDefault()
+    setWpmMsg(null)
+    const { error: err } = await saveReadingSpeedWpm(user!.id, Number(wpm) || DEFAULT_READING_WPM)
+    if (err) setWpmMsg(err)
+    else {
+      setWpmMsg('Saved reading speed.')
+      await refreshProfile()
+    }
+  }
+
   return (
     <AppShell title="Account">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
-        {schemaMissing ? <SetupMissingNotice /> : null}
-
         <section className="rounded-md border border-border bg-surface p-4 text-center">
           <div className="mb-3 flex justify-center">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                className="h-20 w-20 rounded-full object-cover ring-2 ring-accent/40"
-              />
-            ) : (
-              <span className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-accent-subtle font-display text-2xl font-semibold text-accent">
-                {display.slice(0, 1).toUpperCase()}
-              </span>
-            )}
+            <Avatar
+              name={display}
+              imageUrl={avatarUrl || null}
+              size="lg"
+              className="ring-2 ring-accent/30"
+            />
           </div>
           <h2 className="font-display text-lg font-semibold">{display}</h2>
-          <p className="mt-1 text-sm text-muted">
-            {roleLabel}
-            {exam ? ` · ${exam.name}` : ''}
+          <p className="mt-1 flex flex-wrap items-center justify-center gap-2 text-sm text-muted">
+            <Badge tone={roleLabel === 'Administrator' ? 'accent' : 'neutral'}>{roleLabel}</Badge>
+            {exam ? <span>{exam.name}</span> : null}
           </p>
           <p className="mt-3 text-xs text-muted">Theme: {preferences?.theme ?? 'dark'}</p>
           <p className="text-xs text-muted">
@@ -116,8 +127,7 @@ export function AccountPage() {
         >
           <h2 className="mb-2 text-center font-display text-sm font-semibold">Profile image</h2>
           <p className="mb-3 text-center text-xs text-muted">
-            Paste an image URL (HTTPS). Upload-to-Storage can be added later; URL works on GitHub
-            Pages without extra buckets.
+            Optional HTTPS image URL. Leave blank to use the pastel teal initial avatar.
           </p>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
             <Input
@@ -134,6 +144,33 @@ export function AccountPage() {
             </Button>
           </div>
           {avatarMsg ? <p className="mt-2 text-center text-xs text-muted">{avatarMsg}</p> : null}
+        </form>
+
+        <form
+          onSubmit={(e) => void onSaveWpm(e)}
+          className="rounded-md border border-border bg-surface p-4"
+        >
+          <h2 className="mb-2 text-center font-display text-sm font-semibold">Reading speed (WPM)</h2>
+          <p className="mb-3 text-center text-xs text-muted">
+            Used for long-stem reading tips and pace-vs-length analytics. Typical study reading is
+            150–250 WPM.
+          </p>
+          <div className="flex flex-wrap items-end justify-center gap-2">
+            <Input
+              label="Words per minute"
+              name="wpm"
+              type="number"
+              min={80}
+              max={600}
+              value={wpm}
+              onChange={(e) => setWpm(e.target.value)}
+              className="max-w-[10rem]"
+            />
+            <Button type="submit" variant="secondary">
+              Save
+            </Button>
+          </div>
+          {wpmMsg ? <p className="mt-2 text-center text-xs text-muted">{wpmMsg}</p> : null}
         </form>
 
         {examLoading || loading ? (
@@ -168,11 +205,7 @@ export function AccountPage() {
               value={`${stats.headlines.coveragePercent}%`}
               hint={`${stats.headlines.uniqueAttempted}/${stats.headlines.bankActive} active questions`}
             />
-            <Stat
-              label="Pace"
-              value={`${stats.headlines.qpm}`}
-              hint="Questions per minute (avg)"
-            />
+            <Stat label="Pace" value={`${stats.headlines.qpm}`} hint="Questions per minute (avg)" />
             <Stat
               label="Active days (30d)"
               value={String(stats.headlines.activeDays30)}
@@ -185,7 +218,7 @@ export function AccountPage() {
           </section>
         ) : !loading && exam ? (
           <p className="text-center text-sm text-muted">
-            No attempt data yet — start a quiz to fill this in.
+            No attempt data yet — start a study session to fill this in.
           </p>
         ) : null}
 

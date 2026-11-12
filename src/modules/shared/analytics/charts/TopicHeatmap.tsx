@@ -56,7 +56,17 @@ export function TopicHeatmap({ data }: Props) {
     // kpiMetrics uses Sun..Sat abbreviations matching DAYS except order
     const count = matrix.get(`${topic}||${day}`) ?? 0
     const t = max <= 0 ? 0 : count / max
-    return { count, cls: count === 0 ? 'bg-border/30' : t > 0.66 ? 'bg-accent' : t > 0.33 ? 'bg-accent/60' : 'bg-accent/30' }
+    return {
+      count,
+      cls:
+        count === 0
+          ? 'bg-border/30'
+          : t > 0.66
+            ? 'bg-[#7eb8c2]'
+            : t > 0.33
+              ? 'bg-[#5fa8b4]'
+              : 'bg-accent/30',
+    }
   }
 
   return (

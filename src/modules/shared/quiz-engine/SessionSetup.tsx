@@ -18,6 +18,7 @@ export type SessionSetupInitial = {
   topicId?: string | null
   weaknessVariant?: WeaknessVariant | null
   questionLimit?: number
+  unseenOnly?: boolean
   autostart?: boolean
 }
 
@@ -35,7 +36,7 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
   const [weaknessVariant, setWeaknessVariant] = useState<WeaknessVariant>(
     initial?.weaknessVariant ?? 'recent_mistakes',
   )
-  const [unseenOnly, setUnseenOnly] = useState(false)
+  const [unseenOnly, setUnseenOnly] = useState(Boolean(initial?.unseenOnly))
   const [ukPracticeOnly, setUkPracticeOnly] = useState(false)
   const [patientCentredOnly, setPatientCentredOnly] = useState(false)
   const [longStemOnly, setLongStemOnly] = useState(false)
@@ -121,7 +122,7 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
             options={topicOptions}
           />
         ) : (
-          <p className="text-sm text-incorrect">No topics loaded. Run the seed SQL.</p>
+          <p className="text-sm text-muted">No topics loaded yet.</p>
         )
       ) : null}
 

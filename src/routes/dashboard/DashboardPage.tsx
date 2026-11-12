@@ -1,6 +1,5 @@
 import { Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
 import { KpiDashboard } from '@/modules/shared/analytics/KpiDashboard'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
@@ -12,7 +11,6 @@ export function DashboardPage() {
 
   return (
     <AppShell title="KPI Dashboard">
-      {schemaMissing ? <SetupMissingNotice /> : null}
       <p className="mb-4 text-center text-sm text-muted">
         Headline metrics, score trend with pass-mark line, specialty accuracy, heatmaps, mistake
         mix, pace, coverage, and Focus next weakness drills.

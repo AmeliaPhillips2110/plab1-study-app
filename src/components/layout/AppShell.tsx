@@ -10,34 +10,38 @@ type Props = {
   title?: string
 }
 
+/**
+ * Banner layout avoids overlap at all widths:
+ * - top row: brand left, controls right
+ * - middle: large centered page title
+ * - bottom: centered nav (wraps)
+ */
 export function AppShell({ children, title }: Props) {
   return (
     <div className="min-h-screen bg-bg text-fg">
       <header className="border-b border-black/20 bg-brand-banner text-white">
-        <div className="mx-auto w-full max-w-6xl px-4 py-3">
-          <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
-            <div className="flex justify-start">
-              <Link
-                to="/"
-                className="font-display text-3xl font-normal tracking-tight text-white hover:opacity-95 sm:text-4xl md:text-5xl"
-              >
-                PLABoratory
-              </Link>
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              {title ? (
-                <p className="text-center font-display text-base font-medium tracking-wide text-white sm:text-lg">
-                  {title}
-                </p>
-              ) : null}
-              <Nav onBanner />
-            </div>
-
-            <div className="flex items-center justify-center gap-2 md:justify-end">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              to="/"
+              className="min-w-0 shrink font-display text-2xl font-normal tracking-tight text-white hover:opacity-95 sm:text-3xl md:text-4xl lg:text-5xl"
+            >
+              PLABoratory
+            </Link>
+            <div className="flex shrink-0 items-center gap-2">
               <ThemeToggle className="border border-white/30 text-white hover:bg-white/15 hover:text-white" />
               <UserMenu />
             </div>
+          </div>
+
+          {title ? (
+            <p className="px-2 text-center font-display text-xl font-medium tracking-wide text-white sm:text-2xl md:text-3xl">
+              {title}
+            </p>
+          ) : null}
+
+          <div className="flex justify-center overflow-visible">
+            <Nav onBanner />
           </div>
         </div>
       </header>

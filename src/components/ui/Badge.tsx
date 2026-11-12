@@ -4,9 +4,10 @@ import { cn } from '@/lib/cn'
 type Props = {
   children: ReactNode
   tone?: 'neutral' | 'accent' | 'correct' | 'incorrect'
+  className?: string
 }
 
-export function Badge({ children, tone = 'neutral' }: Props) {
+export function Badge({ children, tone = 'neutral', className }: Props) {
   return (
     <span
       className={cn(
@@ -15,6 +16,7 @@ export function Badge({ children, tone = 'neutral' }: Props) {
         tone === 'accent' && 'bg-accent text-white',
         tone === 'correct' && 'bg-correct/15 text-correct',
         tone === 'incorrect' && 'bg-incorrect/15 text-incorrect',
+        className,
       )}
     >
       {children}
