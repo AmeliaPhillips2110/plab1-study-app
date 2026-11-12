@@ -3,6 +3,7 @@
 -- Paste this entire file into Supabase → SQL → New query → Run
 -- Creates schema, RLS, PLAB 1 seed (~41 SBA + flashcards + glossary).
 -- Prefer a project where these tables do not already exist (or drop them first).
+-- AFTER this succeeds and Amelia has signed up, also run: supabase/PROMOTE_AMELIA.sql
 -- Individual files remain under supabase/migrations/ and supabase/seed*.sql
 -- =============================================================================
 
@@ -1148,3 +1149,5 @@ select count(*) as topic_count from public.topics;
 select count(*) as question_count from public.questions;
 select count(*) as glossary_count from public.glossary_terms;
 select pass_mark_percent from public.exam_settings;
+
+-- Next (after Amelia creates her account): run supabase/PROMOTE_AMELIA.sql

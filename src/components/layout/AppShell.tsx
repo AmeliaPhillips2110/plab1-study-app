@@ -2,57 +2,46 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Nav } from '@/components/layout/Nav'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import { Button } from '@/components/ui/Button'
-import { useAuth } from '@/hooks/useAuth'
+import { UserMenu } from '@/components/layout/UserMenu'
 
-export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
-  const { signOut, user, profile } = useAuth()
-  const signedIn = Boolean(user)
-  const label =
-    profile?.display_name ||
-    profile?.email?.split('@')[0] ||
-    user?.email?.split('@')[0] ||
-    'Account'
+type Props = {
+  children: ReactNode
+  /** Shown in the banner (Title Case). Not repeated as a main H1. */
+  title?: string
+}
 
+export function AppShell({ children, title }: Props) {
   return (
     <div className="min-h-screen bg-bg text-fg">
-      <header className="border-b border-black/10 bg-brand-banner text-white">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-3 px-4 py-3">
-          <Link
-            to="/"
-            className="font-display text-xl font-bold tracking-tight text-white hover:opacity-95"
-          >
-            PLABoratory
-          </Link>
-          <div className="flex w-full flex-wrap items-center justify-center gap-2">
-            <Nav onBanner />
-            <ThemeToggle
-              className="border border-white/30 text-white hover:bg-white/15 hover:text-white"
-            />
-            {signedIn ? (
-              <>
-                <span className="hidden text-xs text-white/80 sm:inline">
-                  {label}
-                  {profile?.role ? ` · ${profile.role}` : ''}
-                </span>
-                <Button
-                  variant="secondary"
-                  className="border-white/40 bg-white/15 text-white hover:bg-white/25"
-                  onClick={() => void signOut()}
-                >
-                  Sign out
-                </Button>
-              </>
-            ) : null}
+      <header className="border-b border-black/20 bg-brand-banner text-white">
+        <div className="mx-auto w-full max-w-6xl px-4 py-3">
+          <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+            <div className="flex justify-start">
+              <Link
+                to="/"
+                className="font-display text-3xl font-normal tracking-tight text-white hover:opacity-95 sm:text-4xl md:text-5xl"
+              >
+                PLABoratory
+              </Link>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              {title ? (
+                <p className="text-center font-display text-base font-medium tracking-wide text-white sm:text-lg">
+                  {title}
+                </p>
+              ) : null}
+              <Nav onBanner />
+            </div>
+
+            <div className="flex items-center justify-center gap-2 md:justify-end">
+              <ThemeToggle className="border border-white/30 text-white hover:bg-white/15 hover:text-white" />
+              <UserMenu />
+            </div>
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6">
-        {title ? (
-          <h1 className="mb-4 text-center font-display text-2xl font-bold tracking-tight">{title}</h1>
-        ) : null}
-        {children}
-      </main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-6">{children}</main>
     </div>
   )
 }

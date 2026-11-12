@@ -6,7 +6,7 @@ export function AdminSettingsPage() {
   const { loading, exam, settings, error, refresh } = useExam()
 
   return (
-    <AppShell title="Exam settings">
+    <AppShell title="Exam Settings">
       <p className="mb-4 max-w-xl text-sm text-muted">
         Pass mark defaults to 65% and can be changed here. Mock length fields are stored now for
         Stage c.

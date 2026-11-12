@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { SessionRunner } from '@/modules/shared/quiz-engine/SessionRunner'
@@ -13,7 +14,7 @@ import type { SessionType, WeaknessVariant } from '@/types/database'
 
 export function StudySetupPage() {
   const { user } = useAuth()
-  const { loading, exam, topics, error } = useExam()
+  const { loading, exam, topics, error, schemaMissing } = useExam()
   const [params] = useSearchParams()
   const [run, setRun] = useState<{ id: string; config: SessionSetupConfig } | null>(null)
 
@@ -34,7 +35,7 @@ export function StudySetupPage() {
 
   if (run && exam) {
     return (
-      <AppShell title="Quiz session">
+      <AppShell title="Quiz Session">
         <SessionRunner
           key={run.id}
           userId={user.id}
@@ -46,13 +47,14 @@ export function StudySetupPage() {
   }
 
   return (
-    <AppShell title="Start a study session">
-      <div className="mb-4 max-w-xl text-sm text-muted">
+    <AppShell title="Quiz Setup">
+      {schemaMissing ? <SetupMissingNotice /> : null}
+      <div className="mb-4 max-w-xl text-center text-sm text-muted md:text-left">
         Choose how questions are selected and how they are shown. Feedback appears after each item
         (tutor mode). Links from the KPI dashboard can pre-fill and auto-start a weakness drill.
       </div>
       {loading ? <p className="text-sm text-muted">Loading exam…</p> : null}
-      {error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
+      {!schemaMissing && error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
       {exam ? (
         <SessionSetup
           examId={exam.id}
@@ -60,8 +62,8 @@ export function StudySetupPage() {
           initial={initial}
           onStart={(config) => setRun({ id: crypto.randomUUID(), config })}
         />
-      ) : !loading ? (
-        <p className="text-sm text-muted">Exam not loaded. Finish SETUP.md first.</p>
+      ) : !loading && !schemaMissing ? (
+        <p className="text-sm text-muted">Exam not loaded. Run supabase/APPLY_ALL.sql first.</p>
       ) : null}
     </AppShell>
   )

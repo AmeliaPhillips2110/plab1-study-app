@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
+import { isMissingSchemaError } from '@/lib/schemaErrors'
 import { ActivityHeatmap } from '@/modules/shared/analytics/charts/ActivityHeatmap'
 import { MistakeBreakdownChart } from '@/modules/shared/analytics/charts/MistakeBreakdownChart'
 import { PaceVsStemChart } from '@/modules/shared/analytics/charts/PaceVsStemChart'
@@ -19,22 +20,52 @@ import {
   computeTopicAccuracy,
   computeTopicWeekdayHeatmap,
   computeWeaknesses,
+  type HeadlineKpis,
 } from '@/modules/shared/analytics/kpiMetrics'
 import { WeaknessChart } from '@/modules/shared/analytics/WeaknessChart'
 
 type Props = {
-  userId: string
-  examId: string
+  userId?: string | null
+  examId?: string | null
   passMarkPercent: number
   isAdmin?: boolean
+  /** Force blank shells (e.g. exam not loaded yet). */
+  forceEmpty?: boolean
 }
 
-export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props) {
-  const [loading, setLoading] = useState(true)
+const EMPTY_HEADLINES: HeadlineKpis = {
+  accuracyPercent: 0,
+  attemptCount: 0,
+  gradedCount: 0,
+  correctCount: 0,
+  sessionCount: 0,
+  finishedSessionCount: 0,
+  coveragePercent: 0,
+  uniqueAttempted: 0,
+  bankActive: 0,
+  qpm: 0,
+  activeDays30: 0,
+  latestMockPercent: null,
+}
+
+export function KpiDashboard({
+  userId,
+  examId,
+  passMarkPercent,
+  isAdmin,
+  forceEmpty,
+}: Props) {
+  const [loading, setLoading] = useState(Boolean(userId && examId && !forceEmpty))
   const [error, setError] = useState<string | null>(null)
   const [bundle, setBundle] = useState<Awaited<ReturnType<typeof fetchKpiBundle>> | null>(null)
 
   useEffect(() => {
+    if (!userId || !examId || forceEmpty) {
+      setBundle(null)
+      setError(null)
+      setLoading(false)
+      return
+    }
     void (async () => {
       setLoading(true)
       const data = await fetchKpiBundle({ userId, examId })
@@ -42,10 +73,22 @@ export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props
       setError(data.error)
       setLoading(false)
     })()
-  }, [userId, examId])
+  }, [userId, examId, forceEmpty])
 
   const derived = useMemo(() => {
-    if (!bundle) return null
+    if (!bundle) {
+      return {
+        headlines: EMPTY_HEADLINES,
+        scoreTrend: [],
+        topicAccuracy: [],
+        mistakes: [],
+        qpm: [],
+        paceStem: { points: [], buckets: [], languageMistakes: 0, ukPracticeMistakes: 0 },
+        calendar: [],
+        topicHeat: [],
+        weaknesses: [],
+      }
+    }
     const headlines = computeHeadlineKpis({
       attempts: bundle.attempts,
       sessions: bundle.sessions,
@@ -65,22 +108,32 @@ export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props
     }
   }, [bundle])
 
-  if (loading) return <p className="text-sm text-muted">Loading KPIs…</p>
-  if (error) return <p className="text-sm text-incorrect">{error}</p>
-  if (!derived) return null
-
   const h = derived.headlines
+  const softError = error && isMissingSchemaError(error) ? null : error
 
   return (
     <div className="flex flex-col gap-8">
+      {loading ? <p className="text-center text-sm text-muted">Loading KPIs…</p> : null}
+      {softError ? <p className="text-center text-sm text-incorrect">{softError}</p> : null}
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
           label="Accuracy"
           value={`${h.accuracyPercent}%`}
           hint={`${h.correctCount}/${h.gradedCount} graded`}
-          tone={h.accuracyPercent >= passMarkPercent ? 'good' : 'warn'}
+          tone={
+            h.gradedCount === 0
+              ? undefined
+              : h.accuracyPercent >= passMarkPercent
+                ? 'good'
+                : 'warn'
+          }
         />
-        <Tile label="Attempts" value={String(h.attemptCount)} hint={`${h.finishedSessionCount} finished sessions`} />
+        <Tile
+          label="Attempts"
+          value={String(h.attemptCount)}
+          hint={`${h.finishedSessionCount} finished sessions`}
+        />
         <Tile
           label="Coverage"
           value={`${h.coveragePercent}%`}
@@ -94,7 +147,7 @@ export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props
       </section>
 
       {h.latestMockPercent != null ? (
-        <p className="text-sm text-muted">
+        <p className="text-center text-sm text-muted">
           Latest timed test score:{' '}
           <Badge tone={h.latestMockPercent >= passMarkPercent ? 'correct' : 'incorrect'}>
             {h.latestMockPercent}%
@@ -128,7 +181,7 @@ export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props
                 style={{ width: `${Math.min(100, h.coveragePercent)}%` }}
               />
             </div>
-            <p className="text-sm text-muted">
+            <p className="text-center text-sm text-muted">
               {h.uniqueAttempted} of {h.bankActive} active items ({h.coveragePercent}%). Grow the bank
               in Admin as you author more questions.
             </p>
@@ -156,7 +209,7 @@ export function KpiDashboard({ userId, examId, passMarkPercent, isAdmin }: Props
       </Panel>
 
       {isAdmin ? (
-        <p className="text-sm">
+        <p className="text-center text-sm">
           Admin group comparison (opt-out respected):{' '}
           <Link className="text-accent hover:underline" to="/admin/comparison">
             Open comparison →

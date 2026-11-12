@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { isMissingSchemaError, SETUP_SQL_CTA } from '@/lib/schemaErrors'
 import { supabase, supabaseConfigured } from '@/lib/supabase'
 import type { Exam, ExamSettings, Topic } from '@/types/database'
 import { PLAB1_SLUG } from '@/modules/plab1/config'
@@ -9,6 +10,8 @@ type ExamState = {
   settings: ExamSettings | null
   topics: Topic[]
   error: string | null
+  /** True when public.exams (or related schema) is missing — show setup CTA, not raw PostgREST text. */
+  schemaMissing: boolean
   refresh: () => Promise<void>
 }
 
@@ -18,15 +21,18 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
   const [settings, setSettings] = useState<ExamSettings | null>(null)
   const [topics, setTopics] = useState<Topic[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [schemaMissing, setSchemaMissing] = useState(false)
 
   const refresh = useCallback(async () => {
     if (!supabaseConfigured) {
       setError('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
+      setSchemaMissing(false)
       setLoading(false)
       return
     }
     setLoading(true)
     setError(null)
+    setSchemaMissing(false)
 
     const { data: examRow, error: examError } = await supabase
       .from('exams')
@@ -35,7 +41,9 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
       .maybeSingle()
 
     if (examError) {
-      setError(examError.message)
+      const missing = isMissingSchemaError(examError.message)
+      setSchemaMissing(missing)
+      setError(missing ? SETUP_SQL_CTA : examError.message)
       setExam(null)
       setSettings(null)
       setTopics([])
@@ -44,7 +52,8 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
     }
 
     if (!examRow) {
-      setError(`Exam "${slug}" was not found. Run the seed SQL in Supabase.`)
+      setSchemaMissing(false)
+      setError(`Exam "${slug}" was not found. Run supabase/APPLY_ALL.sql in Supabase SQL Editor.`)
       setExam(null)
       setSettings(null)
       setTopics([])
@@ -66,6 +75,7 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
     setExam(examData)
     setSettings((settingsRow as ExamSettings | null) ?? null)
     setTopics((topicRows as Topic[]) ?? [])
+    setSchemaMissing(false)
     setLoading(false)
   }, [slug])
 
@@ -73,5 +83,5 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
     void refresh()
   }, [refresh])
 
-  return { loading, exam, settings, topics, error, refresh }
+  return { loading, exam, settings, topics, error, schemaMissing, refresh }
 }
