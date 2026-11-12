@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
 import { DEFAULT_READING_WPM, saveReadingSpeedWpm } from '@/features/preferences/readingSpeed'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
+import { isMissingSchemaError } from '@/lib/schemaErrors'
 import type { GlossaryTerm } from '@/types/database'
+import { cn } from '@/lib/cn'
 
 const SECTION_ORDER = [
   'Exam & PLAB',
@@ -30,9 +33,10 @@ function sectionRank(section: string): number {
 
 export function GlossaryPage() {
   const { user, preferences, refreshProfile, isAdmin } = useAuth()
-  const { exam, loading: examLoading, error: examError } = useExam()
+  const { exam, loading: examLoading, error: examError, schemaMissing } = useExam()
   const [terms, setTerms] = useState<GlossaryTerm[]>([])
   const [q, setQ] = useState('')
+  const [theme, setTheme] = useState<string>('All')
   const [error, setError] = useState<string | null>(null)
   const [wpm, setWpm] = useState(String(preferences?.reading_speed_wpm ?? DEFAULT_READING_WPM))
   const [wpmMsg, setWpmMsg] = useState<string | null>(null)
@@ -50,17 +54,26 @@ export function GlossaryPage() {
     })()
   }, [exam])
 
+  const themes = useMemo(() => {
+    const set = new Set<string>()
+    for (const t of terms) set.add(t.section?.trim() || 'General')
+    return ['All', ...[...set].sort((a, b) => sectionRank(a) - sectionRank(b) || a.localeCompare(b))]
+  }, [terms])
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    if (!needle) return terms
-    return terms.filter(
-      (t) =>
+    return terms.filter((t) => {
+      const section = t.section?.trim() || 'General'
+      if (theme !== 'All' && section !== theme) return false
+      if (!needle) return true
+      return (
         t.term.toLowerCase().includes(needle) ||
         t.definition.toLowerCase().includes(needle) ||
-        (t.section ?? '').toLowerCase().includes(needle) ||
-        (t.aliases ?? []).some((a) => a.toLowerCase().includes(needle)),
-    )
-  }, [terms, q])
+        section.toLowerCase().includes(needle) ||
+        (t.aliases ?? []).some((a) => a.toLowerCase().includes(needle))
+      )
+    })
+  }, [terms, q, theme])
 
   const bySection = useMemo(() => {
     const map = new Map<string, GlossaryTerm[]>()
@@ -93,13 +106,17 @@ export function GlossaryPage() {
     }
   }
 
+  const softGlossaryError = error && isMissingSchemaError(error) ? null : error
+
   return (
     <AppShell title="Glossary">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        {schemaMissing ? <SetupMissingNotice /> : null}
+
         <div className="flex flex-wrap items-end justify-center gap-3 text-center sm:justify-between sm:text-left">
           <p className="text-sm text-muted">
-            PLAB and UK clinical terms — tap or hover underlined words in stems for the same
-            definitions.
+            PLAB and UK clinical practice terms — tap or hover underlined words in stems for the
+            same definitions.
           </p>
           {isAdmin ? (
             <Link to="/admin/glossary" className="text-sm font-medium text-accent hover:underline">
@@ -115,8 +132,22 @@ export function GlossaryPage() {
           aria-label="Search glossary"
         />
 
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {themes.map((name) => (
+            <Button
+              key={name}
+              type="button"
+              variant={theme === name ? 'primary' : 'ghost'}
+              className={cn(theme === name ? '' : 'border border-border')}
+              onClick={() => setTheme(name)}
+            >
+              {name}
+            </Button>
+          ))}
+        </div>
+
         <section className="rounded-md border border-border bg-surface p-4">
-          <h2 className="mb-2 text-center font-display text-sm font-semibold">Reading speed (WPM)</h2>
+          <h2 className="mb-2 text-center font-display text-sm font-semibold">Reading Speed (WPM)</h2>
           <p className="mb-3 text-center text-xs text-muted">
             Used for long-stem reading tips and pace-vs-length analytics. Typical study reading is
             150–250 WPM.
@@ -148,8 +179,8 @@ export function GlossaryPage() {
         </section>
 
         {examLoading ? <p className="text-center text-sm text-muted">Loading…</p> : null}
-        {examError || error ? (
-          <p className="text-center text-sm text-incorrect">{examError || error}</p>
+        {!schemaMissing && (examError || softGlossaryError) ? (
+          <p className="text-center text-sm text-incorrect">{examError || softGlossaryError}</p>
         ) : null}
 
         {bySection.map(([section, rows]) => (
@@ -170,7 +201,7 @@ export function GlossaryPage() {
         ))}
 
         <section className="space-y-2">
-          <h2 className="text-center font-display text-lg font-semibold">All terms (A–Z)</h2>
+          <h2 className="text-center font-display text-lg font-semibold">All Terms (A–Z)</h2>
           <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
             {alphabetical.length === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-muted">No matching terms.</li>
@@ -179,7 +210,9 @@ export function GlossaryPage() {
                 <li key={`az-${t.id}`} className="px-4 py-3">
                   <p className="font-display font-semibold text-fg">
                     {t.term}
-                    <span className="ml-2 text-xs font-normal text-muted">{t.section || 'General'}</span>
+                    <span className="ml-2 text-xs font-normal text-muted">
+                      {t.section || 'General'}
+                    </span>
                   </p>
                   <p className="mt-1 text-sm text-muted">{t.definition}</p>
                 </li>

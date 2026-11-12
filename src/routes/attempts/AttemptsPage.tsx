@@ -10,7 +10,7 @@ export function AttemptsPage() {
   if (!user) return <Navigate to="/login" replace />
 
   return (
-    <AppShell title="Attempt log">
+    <AppShell title="Attempt Log">
       <p className="mb-4 max-w-2xl text-sm text-muted">
         Filter and sort every saved attempt, open a per-question timeline, and export CSV for
         attempts or sessions. Mistake tags come from tutor feedback and post-mock review.

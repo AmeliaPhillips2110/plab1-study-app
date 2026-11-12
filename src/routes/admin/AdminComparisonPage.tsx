@@ -8,7 +8,7 @@ export function AdminComparisonPage() {
   const { loading, exam, error } = useExam()
 
   return (
-    <AppShell title="Group comparison">
+    <AppShell title="Group Comparison">
       <p className="mb-4 max-w-2xl text-sm text-muted">
         Admin view of opted-in students only. Users with comparison opt-out are counted but excluded
         from averages and the peer list.

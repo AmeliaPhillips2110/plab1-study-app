@@ -20,7 +20,7 @@ type Props = {
 }
 
 export function Nav({ onBanner = false }: Props) {
-  const { isAdmin, user } = useAuth()
+  const { isAdmin } = useAuth()
 
   return (
     <nav className="flex flex-wrap items-center justify-center gap-1" aria-label="Main">
@@ -42,11 +42,6 @@ export function Nav({ onBanner = false }: Props) {
       <NavLink to="/glossary" className={linkClass(onBanner)}>
         Glossary
       </NavLink>
-      {user ? (
-        <NavLink to="/account" className={linkClass(onBanner)}>
-          Account
-        </NavLink>
-      ) : null}
       {isAdmin ? (
         <>
           <NavLink to="/admin" end className={linkClass(onBanner)}>

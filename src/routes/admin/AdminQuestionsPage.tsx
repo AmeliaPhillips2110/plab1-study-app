@@ -6,7 +6,7 @@ export function AdminQuestionsPage() {
   const { loading, exam, topics, error } = useExam()
 
   return (
-    <AppShell title="Question bank">
+    <AppShell title="Question Bank">
       {loading ? <p className="text-sm text-muted">Loading…</p> : null}
       {error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
       {exam ? <QuestionList examId={exam.id} topics={topics} /> : null}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { SetupMissingNotice } from '@/components/layout/SetupMissingNotice'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
@@ -29,7 +30,7 @@ type ActiveRun = {
 
 export function MockIntroPage() {
   const { user } = useAuth()
-  const { loading, exam, settings, error } = useExam()
+  const { loading, exam, settings, error, schemaMissing } = useExam()
   const defaults = defaultMockLimits(settings)
   const [bankCount, setBankCount] = useState<number | null>(null)
   const [mode, setMode] = useState<TimedMode>('full_mock')
@@ -126,7 +127,7 @@ export function MockIntroPage() {
 
   if (run && exam && user) {
     return (
-      <AppShell title={run.mode === 'full_mock' ? 'Full mock' : 'As many as you can'}>
+      <AppShell title={run.mode === 'full_mock' ? 'Full Mock' : 'As Many as You Can'}>
         <MockRunner
           key={run.sessionId}
           sessionId={run.sessionId}
@@ -146,8 +147,9 @@ export function MockIntroPage() {
   const willUse = Math.min(requested, available || requested)
 
   return (
-    <AppShell title="Timed tests">
+    <AppShell title="Timed Tests">
       <div className="flex max-w-2xl flex-col gap-6">
+        {schemaMissing ? <SetupMissingNotice /> : null}
         <p className="text-sm text-muted">
           Full mock: exam conditions — no feedback until the end, navigator, flagging, and a
           countdown. As many as you can: same timer/cap, stop whenever you want. Pace is shown during
@@ -155,7 +157,7 @@ export function MockIntroPage() {
         </p>
 
         {loading ? <p className="text-sm text-muted">Loading exam settings…</p> : null}
-        {error ? <p className="text-sm text-incorrect">{error}</p> : null}
+        {!schemaMissing && error ? <p className="text-sm text-incorrect">{error}</p> : null}
         {localError ? <p className="text-sm text-incorrect">{localError}</p> : null}
 
         <section className="rounded-md border border-border bg-surface p-4 text-sm">

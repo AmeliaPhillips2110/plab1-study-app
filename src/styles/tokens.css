@@ -15,7 +15,8 @@
   --color-accent: #337d8a;
   --color-accent-hover: #2a6873;
   --color-accent-tint: #e6f0f2;
-  --color-brand-banner: #337d8a;
+  /* Banner is darker teal; buttons/accents stay --color-accent (#337d8a) */
+  --color-brand-banner: #1e5560;
 
   /* Semantic */
   --color-correct: #2f6f6a;

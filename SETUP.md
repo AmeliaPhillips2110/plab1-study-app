@@ -25,18 +25,36 @@ This guide gets you from zero to a working local shell and a **GitHub Pages** de
    - After turning Confirm email **Off**, new signups should stop hitting the mail quota. If you already exhausted it, **wait ~1 hour** or configure **custom SMTP** / **Send Email Hook** (then you can raise the email limit).
 4. This app maps User → `{username}@plaboratory.app`. That address is **not** a real inbox — Confirm email must stay **Off**.
 
-## 2. Run SQL (schema → RLS → seed)
+## 2. Run SQL (required — fixes missing `public.exams`)
 
-**Easiest (recommended):** open [`supabase/APPLY_ALL.sql`](./supabase/APPLY_ALL.sql) in the repo, copy **the entire file**, paste into Supabase → **SQL → New query**, and click **Run** once.
+If the live app shows **`Could not find the table 'public.exams' in the schema cache`**, this step was not done yet. Deploying the website does **not** create tables.
+
+### One paste (recommended)
+
+1. Open the repo file [`supabase/APPLY_ALL.sql`](./supabase/APPLY_ALL.sql) (GitHub → raw view is fine).
+2. Select **all** of it → Copy.
+3. Supabase dashboard → **SQL** → **New query**.
+4. Paste → **Run** (wait until it finishes without errors).
+5. Confirm:
+
+```sql
+select slug, name from public.exams;
+select count(*) as topic_count from public.topics;
+select count(*) as question_count from public.questions;
+select count(*) as glossary_count from public.glossary_terms;
+select pass_mark_percent from public.exam_settings;
+```
+
+Expect: exam `plab1`, ~14 topics, **~49** questions (41 SBA + 8 flashcards), glossary practice terms, pass mark **65**.
 
 That single paste creates:
 
 - All tables / enums / helpers (including `public.exams`)
 - Row Level Security policies
 - PLAB 1 exam + settings (65% pass)
-- Topics, tags, expanded glossary (sectioned), ~41 sample SBAs, and 8 flashcards
+- Topics, tags, sectioned glossary, sample SBAs, and flashcards
 
-If you already partially applied older SQL and get “already exists” errors, either use a fresh Supabase project **or** drop the conflicting public objects, then re-run `APPLY_ALL.sql`.
+If you already partially applied older SQL and get “already exists” errors, use a **fresh** Supabase project **or** drop the conflicting public objects, then re-run `APPLY_ALL.sql`.
 
 **Manual (same content, split):** run in order:
 
@@ -49,8 +67,6 @@ If you already partially applied older SQL and get “already exists” errors, 
 
 ### Quick RLS check
 
-Still in SQL editor:
-
 ```sql
 select tablename, rowsecurity
 from pg_tables
@@ -59,20 +75,6 @@ order by tablename;
 ```
 
 Every app table should show `rowsecurity = true`.
-
-Also confirm seed:
-
-```sql
-select slug, name from public.exams;
-select count(*) as topic_count from public.topics;
-select count(*) as question_count from public.questions;
-select count(*) as glossary_count from public.glossary_terms;
-select pass_mark_percent from public.exam_settings;
-```
-
-Expect: exam `plab1`, ~14 topics, **~49** questions (41 SBA + 8 flashcards), glossary terms present, pass mark **65**.
-
-If the app says `Could not find the table 'public.exams'`, the SQL above was not applied yet — run `APPLY_ALL.sql`.
 
 ## 3. Environment variables (local)
 
@@ -114,16 +116,19 @@ Example: User `Amelia` → Auth email `amelia@plaboratory.app`, profile display 
 
 1. Confirm §1: **Confirm email = Off**. Then in the app, **Create account** with Amelia’s user name + password. You should land signed in with **no** email sent.
 2. If you still see `email rate limit exceeded`: Confirm email is still On, or the free quota is exhausted — turn it Off, wait ~1 hour (or add custom SMTP), retry.
-3. Promote Amelia to admin in the SQL editor (no password in SQL) — prefer display name / synthetic email:
+3. Promote Amelia to **Administrator** — paste [`supabase/PROMOTE_AMELIA.sql`](./supabase/PROMOTE_AMELIA.sql) into the SQL editor and Run (or run this):
 
 ```sql
 update public.profiles
-set role = 'admin'
-where display_name = 'amelia';
--- equivalent: where email = 'amelia@plaboratory.app';
+set role = 'admin',
+    display_name = coalesce(nullif(trim(display_name), ''), 'amelia'),
+    updated_at = now()
+where lower(coalesce(display_name, '')) = 'amelia'
+   or lower(email) in ('amelia@plaboratory.app', 'ameliaphillips1324@gmail.com')
+   or lower(email) like 'amelia%@plaboratory.app';
 ```
 
-4. Sign out and sign back in (or refresh) so the app reloads the profile role.
+4. Sign out and sign back in (or refresh) so the app reloads the profile role. Account should show **Administrator**.
 5. Create Hlib (or any student) the same way with **Create account** — they stay `student` by default.
 6. New students are **opted in** to peer comparison (`comparison_opt_out = false`) via `user_preferences`.
 

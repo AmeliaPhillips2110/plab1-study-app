@@ -12,7 +12,7 @@ export function QuestionTimelinePage() {
   if (!questionId) return <Navigate to="/attempts" replace />
 
   return (
-    <AppShell title="Question timeline">
+    <AppShell title="Question Timeline">
       {loading ? <p className="text-sm text-muted">Loading…</p> : null}
       {error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
       {exam ? (
