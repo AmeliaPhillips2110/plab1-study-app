@@ -1,8 +1,8 @@
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,20 +17,37 @@ type Props = { data: HourActivity[] }
 export function TimeOfDayChart({ data }: Props) {
   const has = data.some((d) => d.total > 0)
   if (!has) {
-    return <EmptyChartShell kind="bar" heightClass="h-56" yDomain={[0, 5]} />
+    return <EmptyChartShell heightClass="h-56" yDomain={[0, 5]} />
   }
   return (
     <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
           <XAxis dataKey="hour" tick={{ fill: CHART.muted, fontSize: 9 }} interval={2} />
           <YAxis tick={{ fill: CHART.muted, fontSize: 11 }} allowDecimals={false} />
           <Tooltip contentStyle={tooltipStyle} />
           <Legend />
-          <Bar dataKey="total" name="Activity" fill={CHART.accent} radius={[2, 2, 0, 0]} />
-          <Bar dataKey="errors" name="Errors" fill={CHART.incorrect} radius={[2, 2, 0, 0]} />
-        </BarChart>
+          <Line
+            type="monotone"
+            dataKey="total"
+            name="Activity"
+            stroke={CHART.accent}
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive
+          />
+          <Line
+            type="monotone"
+            dataKey="errors"
+            name="Mistakes"
+            stroke={CHART.incorrect}
+            strokeWidth={2}
+            strokeDasharray="4 3"
+            dot={false}
+            isAnimationActive
+          />
+        </LineChart>
       </ResponsiveContainer>
     </div>
   )

@@ -238,7 +238,7 @@ export function KpiDashboard({
         <ActivityHeatmap data={derived.calendar} />
       </Panel>
 
-      <Panel title="Topic × Weekday Heatmap" subtitle="Where You Practise During The Week">
+      <Panel title="Topic Activity By Weekday" subtitle="Line Plot — Practice Volume Per Specialty">
         <TopicHeatmap data={derived.topicHeat} />
       </Panel>
 

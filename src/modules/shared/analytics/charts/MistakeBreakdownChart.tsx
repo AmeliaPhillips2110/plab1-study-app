@@ -12,58 +12,50 @@ export function MistakeBreakdownChart({ data }: Props) {
       { tag: '---', label: '—', count: 1 },
     ]
     return (
-      <div className="flex h-64 w-full items-center gap-2">
-        <div className="h-full min-w-0 flex-1">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={placeholder}
-                dataKey="count"
-                nameKey="label"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                fillOpacity={0.2}
-              >
-                {placeholder.map((row, i) => (
-                  <Cell key={row.tag} fill={CHART.series[i % CHART.series.length]} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="w-28 shrink-0 text-xs text-muted" />
-      </div>
-    )
-  }
-  return (
-    <div className="flex h-64 w-full items-center">
-      <div className="h-full min-w-0 flex-1">
+      <div className="mx-auto flex h-72 w-full max-w-md items-center justify-center">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data}
+              data={placeholder}
               dataKey="count"
               nameKey="label"
               cx="50%"
               cy="50%"
-              outerRadius={80}
-              label={false}
+              outerRadius={90}
+              fillOpacity={0.2}
+              isAnimationActive
             >
-              {data.map((row, i) => (
+              {placeholder.map((row, i) => (
                 <Cell key={row.tag} fill={CHART.series[i % CHART.series.length]} />
               ))}
             </Pie>
-            <Tooltip contentStyle={tooltipStyle} />
-            <Legend
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
-              wrapperStyle={{ paddingLeft: 8 }}
-            />
           </PieChart>
         </ResponsiveContainer>
       </div>
+    )
+  }
+  return (
+    <div className="mx-auto h-72 w-full max-w-lg">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="count"
+            nameKey="label"
+            cx="50%"
+            cy="46%"
+            outerRadius={90}
+            label={false}
+            isAnimationActive
+          >
+            {data.map((row, i) => (
+              <Cell key={row.tag} fill={CHART.series[i % CHART.series.length]} />
+            ))}
+          </Pie>
+          <Tooltip contentStyle={tooltipStyle} />
+          <Legend verticalAlign="bottom" align="center" />
+        </PieChart>
+      </ResponsiveContainer>
     </div>
   )
 }

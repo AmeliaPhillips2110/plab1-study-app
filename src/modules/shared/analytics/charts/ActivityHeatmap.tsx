@@ -4,13 +4,15 @@ import { cn } from '@/lib/cn'
 
 type Props = { data: DayActivity[] }
 
-/** Teal-family cells — avoid near-black empties. */
+/** Teal family — darker cells for higher activity. */
 function intensity(count: number, max: number): string {
   if (count <= 0) return 'bg-[#d7ebee]'
   const t = max <= 0 ? 0 : count / max
-  if (t > 0.75) return 'bg-[#337d8a]'
-  if (t > 0.5) return 'bg-[#5fa8b4]'
-  if (t > 0.25) return 'bg-[#7eb8c2]'
+  if (t > 0.8) return 'bg-[#0f353c]'
+  if (t > 0.6) return 'bg-[#17444d]'
+  if (t > 0.4) return 'bg-[#1e5560]'
+  if (t > 0.25) return 'bg-[#2a6873]'
+  if (t > 0.12) return 'bg-[#5fa8b4]'
   return 'bg-[#a8d4db]'
 }
 
@@ -65,7 +67,7 @@ export function ActivityHeatmap({ data }: Props) {
             className="h-3 flex-1 rounded-sm"
             style={{
               background:
-                'linear-gradient(90deg, #d7ebee 0%, #a8d4db 25%, #7eb8c2 50%, #5fa8b4 75%, #337d8a 100%)',
+                'linear-gradient(90deg, #d7ebee 0%, #a8d4db 20%, #5fa8b4 40%, #2a6873 60%, #1e5560 80%, #0f353c 100%)',
             }}
             aria-hidden
           />

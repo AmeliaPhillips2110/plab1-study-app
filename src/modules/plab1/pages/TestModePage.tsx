@@ -18,8 +18,11 @@ import {
   loadSbaBank,
   progressFromSession,
 } from '@/modules/shared/quiz-engine/mock/mockPersist'
+import { selectQuestionsForSession } from '@/modules/shared/quiz-engine/selectQuestions'
 import type { QuestionWithOptions, StudySession } from '@/types/database'
 import type { MockProgressState, TimedMode } from '@/types/quiz'
+
+const WEAKNESS_THEME = '__weakness__'
 
 type ActiveRun = {
   sessionId: string
@@ -35,7 +38,7 @@ export function TestModePage() {
   const { loading, exam, settings, topics, error, schemaMissing } = useExam()
   const defaults = defaultMockLimits(settings)
   const [bankCount, setBankCount] = useState<number | null>(null)
-  const [topicId, setTopicId] = useState('')
+  const [themeKey, setThemeKey] = useState('')
   const [questionCount, setQuestionCount] = useState(String(defaults.questions))
   const [minutes, setMinutes] = useState(String(defaults.minutes))
   const [openSessions, setOpenSessions] = useState<StudySession[]>([])
@@ -51,8 +54,8 @@ export function TestModePage() {
   }, [settings])
 
   useEffect(() => {
-    if (topics[0] && !topicId) setTopicId(topics[0].id)
-  }, [topics, topicId])
+    if (!themeKey && topics[0]) setThemeKey(topics[0].id)
+  }, [topics, themeKey])
 
   useEffect(() => {
     if (!exam || !user) return
@@ -65,39 +68,78 @@ export function TestModePage() {
   if (!user) return <Navigate to="/login" replace />
   if (!mode) return <Navigate to="/tests/full-test" replace />
 
-  const timedMode: TimedMode =
-    mode.uiMode === 'as_many_as_you_can' ? 'as_many_as_you_can' : 'full_mock'
+  const isUnlimited = mode.uiMode === 'as_many_as_you_can'
   const isThemed = mode.uiMode === 'themed'
+  const timedMode: TimedMode = isUnlimited ? 'as_many_as_you_can' : 'full_mock'
 
   async function startNew() {
     if (!exam || !user) return
     setBusy(true)
     setLocalError(null)
-    const target = Math.min(180, Math.max(1, Number(questionCount) || defaults.questions))
-    const mins = Math.min(180, Math.max(1, Number(minutes) || defaults.minutes))
     const available = bankCount ?? 0
-    if (available <= 0) {
+    if (available <= 0 && !isThemed) {
       setLocalError('No questions available yet.')
       setBusy(false)
       return
     }
-    const take = Math.min(target, available)
-    const loaded = await loadSbaBank(exam.id, take)
-    if (loaded.error || loaded.questions.length === 0) {
-      setLocalError(loaded.error ?? 'Could not load questions.')
-      setBusy(false)
-      return
-    }
-    let questions = loaded.questions
-    if (isThemed && topicId) {
-      const themed = questions.filter((q) => q.topic_id === topicId)
-      if (themed.length === 0) {
-        setLocalError('No questions in that topic yet — try another theme.')
+
+    let questions: QuestionWithOptions[] = []
+
+    if (isThemed && themeKey === WEAKNESS_THEME) {
+      const weak = await selectQuestionsForSession(
+        {
+          examId: exam.id,
+          sessionType: 'weakness',
+          presentationFormat: 'sba',
+          weaknessVariant: 'recent_mistakes',
+          questionLimit: 50,
+        },
+        user.id,
+      )
+      if (weak.error || weak.questions.length === 0) {
+        setLocalError(weak.error ?? 'No weakness questions identified yet.')
         setBusy(false)
         return
       }
-      questions = themed
+      questions = weak.questions
+    } else if (isThemed && themeKey) {
+      const loaded = await loadSbaBank(exam.id, Math.min(180, available || 180))
+      if (loaded.error || loaded.questions.length === 0) {
+        setLocalError(loaded.error ?? 'Could not load questions.')
+        setBusy(false)
+        return
+      }
+      questions = loaded.questions.filter((q) => q.topic_id === themeKey)
+      if (questions.length === 0) {
+        setLocalError('No questions in that theme yet — try another.')
+        setBusy(false)
+        return
+      }
+    } else if (isUnlimited) {
+      const take = Math.max(1, available || 180)
+      const loaded = await loadSbaBank(exam.id, take)
+      if (loaded.error || loaded.questions.length === 0) {
+        setLocalError(loaded.error ?? 'Could not load questions.')
+        setBusy(false)
+        return
+      }
+      questions = loaded.questions
+    } else {
+      const target = Math.min(180, Math.max(1, Number(questionCount) || defaults.questions))
+      const take = Math.min(target, available || target)
+      const loaded = await loadSbaBank(exam.id, take)
+      if (loaded.error || loaded.questions.length === 0) {
+        setLocalError(loaded.error ?? 'Could not load questions.')
+        setBusy(false)
+        return
+      }
+      questions = loaded.questions
     }
+
+    const mins = isUnlimited
+      ? 0
+      : Math.min(180, Math.max(1, Number(minutes) || defaults.minutes))
+
     const created = await createMockSession({
       userId: user.id,
       config: {
@@ -165,9 +207,10 @@ export function TestModePage() {
     )
   }
 
-  const available = bankCount ?? 0
-  const requested = Number(questionCount) || defaults.questions
-  const willUse = Math.min(requested, available || requested)
+  const themeOptions = [
+    ...topics.map((t) => ({ value: t.id, label: t.name })),
+    { value: WEAKNESS_THEME, label: 'Weakness' },
+  ]
 
   return (
     <AppShell title={mode.title}>
@@ -176,19 +219,23 @@ export function TestModePage() {
         {!schemaMissing && error ? <p className="text-sm text-incorrect">{error}</p> : null}
         {localError ? <p className="text-sm text-incorrect">{localError}</p> : null}
 
-        <section className="rounded-md border border-border bg-surface p-4 text-sm">
-          <h2 className="mb-2 font-display font-semibold text-accent">Exam Settings</h2>
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="accent">{defaults.questions} Questions</Badge>
-            <Badge tone="accent">{defaults.minutes} Minutes</Badge>
-            <Badge tone="accent">Pass {settings?.pass_mark_percent ?? 65}%</Badge>
-          </div>
-          {available > 0 && available < requested ? (
-            <p className="mt-2 text-muted">
-              This run will use <strong className="text-fg">{willUse}</strong> questions.
+        {!isUnlimited ? (
+          <section className="rounded-md border border-border bg-surface p-4 text-sm">
+            <h2 className="mb-2 font-display font-semibold text-accent">Exam Settings</h2>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="accent">{defaults.questions} Questions</Badge>
+              <Badge tone="accent">{defaults.minutes} Minutes</Badge>
+              <Badge tone="accent">Pass {settings?.pass_mark_percent ?? 65}%</Badge>
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-md border border-border bg-surface p-4 text-sm">
+            <h2 className="mb-1 font-display font-semibold text-accent">Unlimited</h2>
+            <p className="text-muted">
+              No question or time targets — work through the bank and press Finish when done.
             </p>
-          ) : null}
-        </section>
+          </section>
+        )}
 
         {openSessions.length > 0 && !isThemed ? (
           <section className="rounded-md border border-accent/40 bg-accent-subtle p-4">
@@ -218,41 +265,43 @@ export function TestModePage() {
 
         <section className="flex flex-col gap-4 rounded-md border border-border bg-surface p-4">
           {isThemed ? (
-            topics.length > 0 ? (
+            themeOptions.length > 1 || topics.length > 0 ? (
               <Select
-                label="Theme (Topic)"
+                label="Theme"
                 name="theme-topic"
-                value={topicId}
-                onChange={(e) => setTopicId(e.target.value)}
-                options={topics.map((t) => ({ value: t.id, label: t.name }))}
+                value={themeKey}
+                onChange={(e) => setThemeKey(e.target.value)}
+                options={themeOptions}
               />
             ) : (
-              <p className="text-sm text-muted">No topics available yet.</p>
+              <p className="text-sm text-muted">No themes available yet.</p>
             )
           ) : null}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label="Question Target (Max 180)"
-              name="qcount"
-              type="number"
-              min={1}
-              max={180}
-              value={questionCount}
-              onChange={(e) => setQuestionCount(e.target.value)}
-              className="border-accent/50 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-            <Input
-              label="Time Limit (Minutes, Max 180)"
-              name="minutes"
-              type="number"
-              min={1}
-              max={180}
-              value={minutes}
-              onChange={(e) => setMinutes(e.target.value)}
-              className="border-accent/50 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-          </div>
+          {!isUnlimited ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="Question Target (Max 180)"
+                name="qcount"
+                type="number"
+                min={1}
+                max={180}
+                value={questionCount}
+                onChange={(e) => setQuestionCount(e.target.value)}
+                className="border-accent/50 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <Input
+                label="Time Limit (Minutes, Max 180)"
+                name="minutes"
+                type="number"
+                min={1}
+                max={180}
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+                className="border-accent/50 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </div>
+          ) : null}
 
           <Button disabled={busy || !exam} onClick={() => void startNew()}>
             {busy ? 'Starting…' : 'Start Test'}

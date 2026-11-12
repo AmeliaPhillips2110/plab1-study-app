@@ -87,13 +87,15 @@ export function MockRunner({
     return () => window.clearInterval(tick)
   }, [phase])
 
+  const unlimited = mode === 'as_many_as_you_can' || progress.timeLimitSec <= 0
+
   useEffect(() => {
-    if (phase !== 'running') return
+    if (phase !== 'running' || unlimited) return
     if (remainingSec <= 0) {
       void submitTest('time')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- submit on deadline only
-  }, [remainingSec, phase])
+  }, [remainingSec, phase, unlimited])
 
   useEffect(() => {
     if (phase !== 'running') return
@@ -171,10 +173,6 @@ export function MockRunner({
       ),
     }
     await persist(next)
-
-    if (mode === 'as_many_as_you_can' && Object.keys(answers).length >= progress.targetCount) {
-      await submitTest('cap')
-    }
   }
 
   async function toggleFlag() {
@@ -217,34 +215,46 @@ export function MockRunner({
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface px-4 py-3">
           <div>
             <p className="text-sm font-semibold">
-              {mode === 'full_mock' ? 'Full mock' : 'As many as you can'}
+              {mode === 'full_mock' ? 'Full Test' : 'Unlimited'}
             </p>
             <p className="text-xs text-muted">
-              Question {progress.currentIndex + 1} of {questions.length} · no feedback until you end
+              Question {progress.currentIndex + 1} of {questions.length}
+              {unlimited ? ' · Finish when done' : ' · no feedback until you end'}
             </p>
           </div>
-          <div className="text-right">
-            <p
-              className={
-                remainingSec <= 300
-                  ? 'text-lg font-semibold text-incorrect'
-                  : 'text-lg font-semibold text-fg'
-              }
-              aria-label="Time remaining"
-            >
-              {formatDuration(remainingSec)}
-            </p>
-            <p className="text-xs text-muted">countdown</p>
-          </div>
+          {unlimited ? (
+            <div className="text-right">
+              <p className="text-lg font-semibold text-fg" aria-label="Elapsed time">
+                {formatDuration(elapsedSec)}
+              </p>
+              <p className="text-xs text-muted">elapsed</p>
+            </div>
+          ) : (
+            <div className="text-right">
+              <p
+                className={
+                  remainingSec <= 300
+                    ? 'text-lg font-semibold text-incorrect'
+                    : 'text-lg font-semibold text-fg'
+                }
+                aria-label="Time remaining"
+              >
+                {formatDuration(remainingSec)}
+              </p>
+              <p className="text-xs text-muted">countdown</p>
+            </div>
+          )}
         </header>
 
-        <PaceWidget
-          compact
-          elapsedSec={elapsedSec}
-          timeLimitSec={progress.timeLimitSec}
-          answeredCount={answeredCount}
-          totalQuestions={questions.length}
-        />
+        {!unlimited ? (
+          <PaceWidget
+            compact
+            elapsedSec={elapsedSec}
+            timeLimitSec={progress.timeLimitSec}
+            answeredCount={answeredCount}
+            totalQuestions={questions.length}
+          />
+        ) : null}
 
         <div className="rounded-md border border-border bg-surface p-4">
           <div className="mb-4">
@@ -287,7 +297,7 @@ export function MockRunner({
                 const unanswered = questions.length - answeredCount
                 const msg =
                   mode === 'full_mock'
-                    ? `Finish mock now? ${unanswered} unanswered will be marked skipped.`
+                    ? `Finish test now? ${unanswered} unanswered will be marked skipped.`
                     : `Finish now? You have answered ${answeredCount} of ${questions.length}.`
                 if (window.confirm(msg)) void submitTest('manual')
               }}

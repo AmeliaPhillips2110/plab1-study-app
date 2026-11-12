@@ -1,99 +1,65 @@
 import { useMemo } from 'react'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import { EmptyChartShell } from '@/modules/shared/analytics/charts/EmptyChartShell'
+import { CHART, tooltipStyle } from '@/modules/shared/analytics/chartTheme'
 import type { TopicDayCell } from '@/modules/shared/analytics/kpiMetrics'
-import { cn } from '@/lib/cn'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const TOPIC_COLORS = ['#337d8a', '#7eb8c2', '#2f6f6a', '#5fa8b4', '#2a6873', '#a8d4db', '#b54a4a', '#c47a3a']
 
 type Props = { data: TopicDayCell[] }
 
+/** Topic × weekday activity as multi-line chart (replaces heat boxes). */
 export function TopicHeatmap({ data }: Props) {
-  const { topics, max, matrix } = useMemo(() => {
-    const topicSet = [...new Set(data.map((d) => d.topic))].sort()
+  const { chartData, topics } = useMemo(() => {
+    const topicSet = [...new Set(data.map((d) => d.topic))].sort().slice(0, 8)
     const map = new Map(data.map((d) => [`${d.topic}||${d.day}`, d.count]))
-    const m = Math.max(0, ...data.map((d) => d.count))
-    return { topics: topicSet.slice(0, 12), max: m, matrix: map }
+    const rows = DAYS.map((day) => {
+      const row: Record<string, string | number> = { day }
+      for (const topic of topicSet) {
+        row[topic] = map.get(`${topic}||${day}`) ?? 0
+      }
+      return row
+    })
+    return { chartData: rows, topics: topicSet }
   }, [data])
 
   if (topics.length === 0) {
-    const placeholderTopics = ['Cardiology', 'Respiratory', 'Ethics']
-    return (
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[28rem] border-collapse text-xs">
-          <thead>
-            <tr>
-              <th className="p-1 text-left font-medium text-muted">Topic</th>
-              {DAYS.map((d) => (
-                <th key={d} className="p-1 text-center font-medium text-muted">
-                  {d}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {placeholderTopics.map((topic) => (
-              <tr key={topic}>
-                <td className="max-w-[8rem] truncate p-1 text-muted">{topic}</td>
-                {DAYS.map((day) => (
-                  <td key={day} className="p-1">
-                    <div className="mx-auto h-5 w-full max-w-[2rem] rounded-sm bg-[#d7ebee]" />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
-  function cell(topic: string, day: string) {
-    const count = matrix.get(`${topic}||${day}`) ?? 0
-    const t = max <= 0 ? 0 : count / max
-    return {
-      count,
-      cls:
-        count === 0
-          ? 'bg-[#d7ebee]'
-          : t > 0.66
-            ? 'bg-[#337d8a]'
-            : t > 0.33
-              ? 'bg-[#5fa8b4]'
-              : 'bg-[#a8d4db]',
-    }
+    return <EmptyChartShell heightClass="h-64" yDomain={[0, 5]} />
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[28rem] border-collapse text-xs">
-        <thead>
-          <tr>
-            <th className="p-1 text-left font-medium text-muted">Topic</th>
-            {DAYS.map((d) => (
-              <th key={d} className="p-1 text-center font-medium text-muted">
-                {d}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {topics.map((topic) => (
-            <tr key={topic}>
-              <td className="max-w-[8rem] truncate p-1 text-fg">{topic}</td>
-              {DAYS.map((day) => {
-                const c = cell(topic, day)
-                return (
-                  <td key={day} className="p-1">
-                    <div
-                      title={`${topic} · ${day}: ${c.count}`}
-                      className={cn('mx-auto h-5 w-full max-w-[2rem] rounded-sm', c.cls)}
-                    />
-                  </td>
-                )
-              })}
-            </tr>
+    <div className="h-72 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
+          <XAxis dataKey="day" tick={{ fill: CHART.muted, fontSize: 11 }} />
+          <YAxis tick={{ fill: CHART.muted, fontSize: 11 }} allowDecimals={false} />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Legend />
+          {topics.map((topic, i) => (
+            <Line
+              key={topic}
+              type="monotone"
+              dataKey={topic}
+              name={topic}
+              stroke={TOPIC_COLORS[i % TOPIC_COLORS.length]}
+              strokeWidth={2}
+              dot={{ r: 2 }}
+              isAnimationActive
+            />
           ))}
-        </tbody>
-      </table>
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   )
 }

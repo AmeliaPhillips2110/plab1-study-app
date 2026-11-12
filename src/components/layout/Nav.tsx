@@ -16,7 +16,7 @@ function navClass(onBanner: boolean, isActive: boolean) {
     return cn(
       'rounded-sm px-2 py-1 text-sm font-medium transition-colors',
       isActive
-        ? 'bg-white/15 text-brand-pastel-hover'
+        ? 'bg-white/20 text-white'
         : 'text-brand-pastel hover:bg-white/10 hover:text-brand-pastel-hover',
     )
   }
@@ -172,17 +172,6 @@ export function Nav({ onBanner = false }: Props) {
       >
         Glossary
       </NavLink>
-      <NavLink
-        to="/account"
-        className={({ isActive }) => navClass(onBanner, isActive || location.pathname.startsWith('/account'))}
-      >
-        Account
-      </NavLink>
-      {/* keep study/tests active styling on parent via aria when menus closed */}
-      <span className="sr-only">
-        {studyActive ? 'Study section' : null}
-        {testsActive ? 'Tests section' : null}
-      </span>
     </nav>
   )
 }

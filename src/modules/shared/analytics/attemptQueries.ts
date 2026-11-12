@@ -92,13 +92,18 @@ export type AttemptFilters = {
   query: string
 }
 
-export type AttemptSort = 'most_recent' | 'best' | 'worst'
+export type AttemptSort = 'worst_scores' | 'best_scores' | 'most_recent' | 'all_attempts'
 
 const RESULT_RANK: Record<string, number> = {
   correct: 3,
   partial: 2,
   skipped: 1,
   incorrect: 0,
+}
+
+function sessionScore(row: AttemptLogRow): number {
+  if (row.study_sessions?.score_percent != null) return Number(row.study_sessions.score_percent)
+  return RESULT_RANK[row.result] ?? 0
 }
 
 export function filterAndSortAttempts(
@@ -128,11 +133,11 @@ export function filterAndSortAttempts(
   out = [...out].sort((a, b) => {
     const byRecent =
       new Date(b.answered_at).getTime() - new Date(a.answered_at).getTime()
-    if (sort === 'most_recent') return byRecent
-    const ra = RESULT_RANK[a.result] ?? 0
-    const rb = RESULT_RANK[b.result] ?? 0
-    if (sort === 'best') return rb - ra || byRecent
-    return ra - rb || byRecent
+    if (sort === 'most_recent' || sort === 'all_attempts') return byRecent
+    const sa = sessionScore(a)
+    const sb = sessionScore(b)
+    if (sort === 'best_scores') return sb - sa || byRecent
+    return sa - sb || byRecent
   })
 
   return out

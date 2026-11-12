@@ -61,8 +61,11 @@ export async function createMockSession(params: {
   questions: QuestionWithOptions[]
 }): Promise<{ sessionId: string | null; progress: MockProgressState | null; error: string | null }> {
   const now = new Date()
-  const timeLimitSec = params.config.timeLimitSec
-  const deadline = new Date(now.getTime() + timeLimitSec * 1000)
+  const timeLimitSec = Math.max(0, params.config.timeLimitSec)
+  // Unlimited (0s): far deadline so runner never auto-ends on time.
+  const deadlineMs =
+    timeLimitSec > 0 ? now.getTime() + timeLimitSec * 1000 : now.getTime() + 365 * 24 * 60 * 60 * 1000
+  const deadline = new Date(deadlineMs)
   const progress: MockProgressState = {
     version: 1,
     mode: params.config.mode,
