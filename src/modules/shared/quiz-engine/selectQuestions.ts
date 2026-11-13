@@ -93,7 +93,9 @@ export async function selectQuestionsForSession(
     query = query.eq('is_uk_practice', true)
   }
 
-  const { data, error } = await query.limit(300)
+  // Unseen / open modes need the full bank so filtering “never answered” is accurate.
+  const fetchCap = config.unseenOnly || config.openEnded ? 10_000 : 300
+  const { data, error } = await query.limit(fetchCap)
   if (error) return { questions: [], error: error.message }
 
   let pool = asQuestions(data)
@@ -107,7 +109,12 @@ export async function selectQuestionsForSession(
   pool = filtered.questions
 
   if (pool.length === 0) {
-    return { questions: [], error: 'No questions matched these filters.' }
+    return {
+      questions: [],
+      error: config.unseenOnly
+        ? 'No new questions left — every available item has already been answered.'
+        : 'No questions matched these filters.',
+    }
   }
 
   return { questions: shuffleInPlace(pool).slice(0, limit), error: null }
@@ -332,15 +339,24 @@ async function selectWeakness(
   return { questions: ordered.slice(0, limit), error: null }
 }
 
+/** Unseen = never answered by this user (any result including skipped). */
 async function filterUnseen(pool: QuestionWithOptions[], userId: string) {
   const ids = pool.map((q) => q.id)
   if (ids.length === 0) return pool
-  const { data } = await supabase
-    .from('attempts')
-    .select('question_id')
-    .eq('user_id', userId)
-    .in('question_id', ids)
-  const seen = new Set(((data as { question_id: string }[] | null) ?? []).map((r) => r.question_id))
+  const seen = new Set<string>()
+  // Chunk .in() to avoid URL/body limits on large banks.
+  const chunkSize = 200
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize)
+    const { data } = await supabase
+      .from('attempts')
+      .select('question_id')
+      .eq('user_id', userId)
+      .in('question_id', chunk)
+    for (const row of (data as { question_id: string }[] | null) ?? []) {
+      seen.add(row.question_id)
+    }
+  }
   return pool.filter((q) => !seen.has(q.id))
 }
 

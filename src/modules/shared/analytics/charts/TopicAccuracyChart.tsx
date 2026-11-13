@@ -14,6 +14,13 @@ import type { TopicAccuracy } from '@/modules/shared/analytics/kpiMetrics'
 
 type Props = { data: TopicAccuracy[]; passMark: number }
 
+/** Distinct non-teal stack colours (bottom → top matches legend order). */
+const STACK = {
+  correct: '#3d8b5a',
+  incorrect: '#b54a4a',
+  skipped: '#c47a3a',
+} as const
+
 export function TopicAccuracyChart({ data }: Props) {
   if (data.length === 0) {
     return <EmptyChartShell kind="bar" yDomain={[0, 100]} yUnit="%" heightClass="h-72" />
@@ -25,7 +32,7 @@ export function TopicAccuracyChart({ data }: Props) {
         <BarChart
           data={chartData}
           layout="vertical"
-          margin={{ top: 8, right: 12, left: 8, bottom: 0 }}
+          margin={{ top: 8, right: 110, left: 8, bottom: 0 }}
         >
           <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
           <XAxis
@@ -45,26 +52,31 @@ export function TopicAccuracyChart({ data }: Props) {
             cursor={false}
             formatter={(value, name) => [`${value}%`, String(name)]}
           />
-          <Legend />
+          <Legend
+            layout="vertical"
+            verticalAlign="middle"
+            align="right"
+            wrapperStyle={{ paddingLeft: 8 }}
+          />
           <Bar
             dataKey="correctPct"
             name="% Correct"
             stackId="stack"
-            fill={CHART.correct}
+            fill={STACK.correct}
             activeBar={false}
           />
           <Bar
             dataKey="incorrectPct"
             name="% Incorrect"
             stackId="stack"
-            fill={CHART.incorrect}
+            fill={STACK.incorrect}
             activeBar={false}
           />
           <Bar
             dataKey="skippedPct"
             name="% Skipped"
             stackId="stack"
-            fill="#a3a3a3"
+            fill={STACK.skipped}
             radius={[0, 4, 4, 0]}
             activeBar={false}
           />

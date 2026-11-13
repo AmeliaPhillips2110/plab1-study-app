@@ -332,11 +332,12 @@ export const COVERAGE_STATUS_LABELS: Record<CoverageStatus, string> = {
   forgotten: 'Forgotten',
 }
 
+/** Distinct non-teal hues — order matches CoverageStatusBar stack (left → right). */
 export const COVERAGE_STATUS_COLORS: Record<CoverageStatus, string> = {
   new: '#a3a3a3',
   incorrect: '#b54a4a',
-  correct: '#2f6f6a',
-  repeated_correct: '#337d8a',
+  correct: '#3d8b5a',
+  repeated_correct: '#4a6fb5',
   forgotten: '#c47a3a',
 }
 

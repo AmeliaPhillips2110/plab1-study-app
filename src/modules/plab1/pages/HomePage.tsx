@@ -130,15 +130,32 @@ export function HomePage() {
         </section>
 
         <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-4">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-lg font-semibold">Topics</h2>
-            <Link to="/study/topics" className="text-sm text-accent hover:underline">
-              Practise by topic →
-            </Link>
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h2 className="font-display text-lg font-semibold">Topics</h2>
+              <Link to="/study/topics" className="text-sm text-accent hover:underline">
+                Practise by topic →
+              </Link>
+            </div>
+            <ul className="flex flex-col gap-1 text-xs text-muted sm:items-end">
+              <li className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#3d8b5a]" aria-hidden />
+                Correct
+              </li>
+              <li className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#b54a4a]" aria-hidden />
+                Incorrect
+              </li>
+              <li className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#c47a3a]" aria-hidden />
+                Skipped
+              </li>
+              <li className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#737373]" aria-hidden />
+                Unanswered
+              </li>
+            </ul>
           </div>
-          <p className="mb-3 text-xs text-muted">
-            Grey unanswered · green correct · red incorrect · white skipped
-          </p>
           {loading ? (
             <p className="text-sm text-muted">Loading topics…</p>
           ) : topics.length === 0 ? (
@@ -161,25 +178,25 @@ export function HomePage() {
                         {s?.pctCorrect == null ? '—' : `${s.pctCorrect}%`}
                       </span>
                     </div>
-                    <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-neutral-400/40">
+                    <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-[#ece7df]">
                       <div
-                        className="h-full bg-correct"
-                        style={{ width: `${pct(s?.correct ?? 0)}%` }}
+                        className="h-full"
+                        style={{ width: `${pct(s?.correct ?? 0)}%`, backgroundColor: '#3d8b5a' }}
                         title="Correct"
                       />
                       <div
-                        className="h-full bg-incorrect"
-                        style={{ width: `${pct(s?.incorrect ?? 0)}%` }}
+                        className="h-full"
+                        style={{ width: `${pct(s?.incorrect ?? 0)}%`, backgroundColor: '#b54a4a' }}
                         title="Incorrect"
                       />
                       <div
-                        className="h-full bg-white"
-                        style={{ width: `${pct(s?.skipped ?? 0)}%` }}
+                        className="h-full"
+                        style={{ width: `${pct(s?.skipped ?? 0)}%`, backgroundColor: '#c47a3a' }}
                         title="Skipped"
                       />
                       <div
-                        className="h-full bg-neutral-400/70"
-                        style={{ width: `${pct(s?.unanswered ?? 1)}%` }}
+                        className="h-full"
+                        style={{ width: `${pct(s?.unanswered ?? 1)}%`, backgroundColor: '#737373' }}
                         title="Unanswered"
                       />
                     </div>

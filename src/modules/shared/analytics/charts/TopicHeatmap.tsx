@@ -14,15 +14,16 @@ import { CHART, tooltipStyle } from '@/modules/shared/analytics/chartTheme'
 import type { TopicDayCell } from '@/modules/shared/analytics/kpiMetrics'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+/** Distinct hues (not teal shades) for stacked topic series. */
 const TOPIC_COLORS = [
-  '#337d8a',
-  '#7eb8c2',
-  '#2f6f6a',
-  '#5fa8b4',
-  '#2a6873',
-  '#a8d4db',
   '#b54a4a',
   '#c47a3a',
+  '#4a6fb5',
+  '#6b4c9a',
+  '#2d6a4f',
+  '#d4a017',
+  '#9b2226',
+  '#8b5a2b',
 ]
 
 type Props = { data: TopicDayCell[] }
@@ -49,12 +50,17 @@ export function TopicHeatmap({ data }: Props) {
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+        <BarChart data={chartData} margin={{ top: 8, right: 120, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
           <XAxis dataKey="day" tick={{ fill: CHART.muted, fontSize: 11 }} />
           <YAxis tick={{ fill: CHART.muted, fontSize: 11 }} allowDecimals={false} />
           <Tooltip contentStyle={tooltipStyle} cursor={false} />
-          <Legend />
+          <Legend
+            layout="vertical"
+            verticalAlign="middle"
+            align="right"
+            wrapperStyle={{ paddingLeft: 8 }}
+          />
           {topics.map((topic, i) => (
             <Bar
               key={topic}

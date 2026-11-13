@@ -11,6 +11,7 @@ import {
   saveAttempt,
   updateSpacedRepetition,
 } from '@/modules/shared/quiz-engine/persist'
+import { formatDuration } from '@/modules/shared/quiz-engine/pace'
 import { selectQuestionsForSession } from '@/modules/shared/quiz-engine/selectQuestions'
 import { summariseAttempts } from '@/modules/shared/quiz-engine/scoring'
 import type { GlossaryTerm, QuestionWithOptions } from '@/types/database'
@@ -42,6 +43,8 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const [draftByQuestion, setDraftByQuestion] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [finalPercent, setFinalPercent] = useState<number | null>(null)
+  const [questionElapsedSec, setQuestionElapsedSec] = useState(0)
+  const questionStartedAt = useRef(Date.now())
   const bootstrapped = useRef(false)
   const attemptMapRef = useRef<AttemptMap>({})
   const draftRef = useRef<Record<string, string>>({})
@@ -109,6 +112,16 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const openProgress = Boolean(config.openEnded)
 
   useEffect(() => {
+    if (phase !== 'running') return
+    questionStartedAt.current = Date.now()
+    setQuestionElapsedSec(0)
+    const id = window.setInterval(() => {
+      setQuestionElapsedSec(Math.floor((Date.now() - questionStartedAt.current) / 1000))
+    }, 500)
+    return () => window.clearInterval(id)
+  }, [phase, index])
+
+  useEffect(() => {
     if (bootstrapped.current) return
     bootstrapped.current = true
 
@@ -118,7 +131,14 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         fetchGlossaryTerms(config.examId),
       ])
       if (selected.error || selected.questions.length === 0) {
-        setError(selected.error ?? 'No questions available for this session.')
+        const exhausted =
+          config.unseenOnly &&
+          (!selected.error || /matched these filters|unseen|new questions/i.test(selected.error))
+        setError(
+          exhausted
+            ? 'No new questions left — you have already answered every available item in the bank.'
+            : selected.error ?? 'No questions available for this session.',
+        )
         setPhase('error')
         return
       }
@@ -256,7 +276,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         <p className="text-sm text-incorrect">{error}</p>
         <div className="flex gap-2">
           <Link className="text-sm text-accent hover:underline" to="/study">
-            Back to Study
+            Back to Practice
           </Link>
           {onExit ? (
             <Button variant="ghost" onClick={onExit}>
@@ -304,7 +324,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
             to="/study"
             className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
           >
-            Study Hub
+            Practice Hub
           </Link>
           <Link
             to="/tests"
@@ -350,8 +370,11 @@ export function SessionRunner({ userId, config, onExit }: Props) {
     <div className="flex w-full flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
         <span>
-          {config.openEnded ? 'Open quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
+          {config.openEnded ? 'Open Quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
           {FORMAT_LABELS[config.openEnded ? 'sba' : config.presentationFormat]}
+        </span>
+        <span className="tabular-nums font-medium text-fg" aria-live="polite">
+          This question: {formatDuration(questionElapsedSec)}
         </span>
       </div>
       {saving ? <p className="text-xs text-muted">Saving…</p> : null}

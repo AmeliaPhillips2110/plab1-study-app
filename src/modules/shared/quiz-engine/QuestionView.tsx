@@ -81,6 +81,7 @@ export function QuestionView({
   const [startedAt] = useState(() => Date.now())
   const [mistakeTags, setMistakeTags] = useState<string[]>([])
   const [mistakeNote, setMistakeNote] = useState('')
+  const [flashcardFlagged, setFlashcardFlagged] = useState(false)
   const [answerChanges, setAnswerChanges] = useState(0)
   const [advanced, setAdvanced] = useState(false)
 
@@ -94,6 +95,7 @@ export function QuestionView({
     setTimedOut(false)
     setMistakeTags([])
     setMistakeNote('')
+    setFlashcardFlagged(false)
     setAnswerChanges(0)
     setAdvanced(false)
     // Only reset when the question (or lock state) changes — not on every draft keystroke.
@@ -213,19 +215,34 @@ export function QuestionView({
   if (format === 'flashcard' || question.question_type === 'flashcard') {
     return (
       <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <p className="text-sm font-medium text-fg">This Question:</p>
+          {topicName ? (
+            <span className="rounded-md border-2 border-accent bg-accent px-2.5 py-1 text-xs font-semibold text-white">
+              {topicName}
+            </span>
+          ) : null}
+        </div>
         <FlashcardView question={question} disabled={revealed} onGrade={onFlashGrade} />
         {revealed && result ? (
-          <FeedbackPanel
-            question={question}
-            result={result}
-            grade={grade}
-            format={format}
-            timeSpentMs={Date.now() - startedAt}
-            onTagsChange={(tags, note) => {
-              setMistakeTags(tags)
-              setMistakeNote(note)
-            }}
-          />
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface p-3 text-sm">
+            <span className="font-medium text-muted">
+              Self-grade: <span className="text-fg capitalize">{grade ?? '—'}</span>
+            </span>
+            <button
+              type="button"
+              className={
+                flashcardFlagged
+                  ? 'inline-flex items-center gap-1 text-incorrect'
+                  : 'inline-flex items-center gap-1 text-muted hover:text-incorrect'
+              }
+              aria-pressed={flashcardFlagged}
+              onClick={() => setFlashcardFlagged((v) => !v)}
+            >
+              <span aria-hidden>⚑</span>
+              {flashcardFlagged ? 'Flagged' : 'Flag for Review'}
+            </button>
+          </div>
         ) : null}
         {navRow}
         {revealed && result && !lockedResult ? (
@@ -237,7 +254,12 @@ export function QuestionView({
                 onSubmit({
                   result,
                   selectedOptionId: null,
-                  payload: buildPayload({ grade }),
+                  payload: {
+                    ...buildPayload({ grade }),
+                    flagged: flashcardFlagged,
+                    mistakeTags: undefined,
+                    mistakeNote: null,
+                  },
                   timeSpentMs: Date.now() - startedAt,
                   answerChanges,
                 })
@@ -270,7 +292,7 @@ export function QuestionView({
           ) : null}
         </div>
         {topicName ? (
-          <span className="rounded-md border border-accent/40 bg-accent-subtle px-2.5 py-1 text-xs font-semibold text-accent">
+          <span className="rounded-md border-2 border-accent bg-accent px-2.5 py-1 text-xs font-semibold text-white">
             {topicName}
           </span>
         ) : null}

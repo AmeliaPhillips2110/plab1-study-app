@@ -24,7 +24,7 @@ export type TestModeDef = {
   uiMode: TimedMode | 'themed'
 }
 
-/** Modes shown in Study dropdown + Study hub (Topics is separate page). */
+/** Modes shown in Practice dropdown + Practice hub (Topics is separate page). */
 export const STUDY_MODES: StudyModeDef[] = [
   {
     slug: 'topics',
