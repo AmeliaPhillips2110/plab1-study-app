@@ -1,14 +1,12 @@
 -- =============================================================================
--- Expand / rename PLAB 1 topics to Amelia’s MLA-aligned list (safe to re-run)
+-- Expand / rename PLAB 1 topics to Amelia’s full list (safe to re-run)
 -- Amelia: paste this in Supabase SQL → Run → hard-refresh the site
 -- Display order is alphabetical by name (sort_order + UI order by name).
 -- =============================================================================
 -- Existing topic IDs kept (question FKs stay valid). Slugs for remapped rows
--- stay stable. New MLA areas get IDs 023–030.
--- Normalised names: ENT; Palliative Care and End of Life; Perioperative and
--- Anaesthesia; Human Factors and Quality Improvement; Acute and Emergency
--- Medicine; etc. Kept extras: Breast Surgery, Orthopaedics, Rheumatology,
--- Paediatrics, Infectious Disease.
+-- stay stable. New rows: Urology, Vascular (IDs 031–032).
+-- Renal renamed from “Renal and Urology”. ENT kept. All seeded topics stay
+-- is_active = true so Home shows every specialty even with 0 questions.
 
 insert into public.topics (id, exam_id, slug, name, sort_order, is_active) values
   ('a2000000-0000-4000-8000-000000000023', 'a1000000-0000-4000-8000-000000000001', 'acute-emergency-medicine', 'Acute and Emergency Medicine', 10, true),
@@ -35,18 +33,36 @@ insert into public.topics (id, exam_id, slug, name, sort_order, is_active) value
   ('a2000000-0000-4000-8000-000000000009', 'a1000000-0000-4000-8000-000000000001', 'paediatrics', 'Paediatrics', 220, true),
   ('a2000000-0000-4000-8000-000000000017', 'a1000000-0000-4000-8000-000000000001', 'palliative-end-of-life-care', 'Palliative Care and End of Life', 230, true),
   ('a2000000-0000-4000-8000-000000000018', 'a1000000-0000-4000-8000-000000000001', 'perioperative-anaesthesia', 'Perioperative and Anaesthesia', 240, true),
-  ('a2000000-0000-4000-8000-000000000005', 'a1000000-0000-4000-8000-000000000001', 'renal', 'Renal and Urology', 250, true),
+  ('a2000000-0000-4000-8000-000000000005', 'a1000000-0000-4000-8000-000000000001', 'renal', 'Renal', 250, true),
   ('a2000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000001', 'respiratory', 'Respiratory', 260, true),
   ('a2000000-0000-4000-8000-000000000019', 'a1000000-0000-4000-8000-000000000001', 'rheumatology', 'Rheumatology', 270, true),
   ('a2000000-0000-4000-8000-000000000020', 'a1000000-0000-4000-8000-000000000001', 'sexual-health', 'Sexual Health', 280, true),
   ('a2000000-0000-4000-8000-000000000021', 'a1000000-0000-4000-8000-000000000001', 'social-population-health', 'Social and Population Health', 290, true),
-  ('a2000000-0000-4000-8000-000000000030', 'a1000000-0000-4000-8000-000000000001', 'surgery', 'Surgery', 300, true)
+  ('a2000000-0000-4000-8000-000000000030', 'a1000000-0000-4000-8000-000000000001', 'surgery', 'Surgery', 300, true),
+  ('a2000000-0000-4000-8000-000000000031', 'a1000000-0000-4000-8000-000000000001', 'urology', 'Urology', 310, true),
+  ('a2000000-0000-4000-8000-000000000032', 'a1000000-0000-4000-8000-000000000001', 'vascular', 'Vascular', 320, true)
 on conflict (id) do update
   set slug = excluded.slug,
       name = excluded.name,
       sort_order = excluded.sort_order,
       is_active = true,
       updated_at = now();
+
+-- Ensure every seeded specialty is visible (do not hide empty banks)
+update public.topics
+set is_active = true,
+    updated_at = now()
+where exam_id = 'a1000000-0000-4000-8000-000000000001'
+  and slug in (
+    'acute-emergency-medicine', 'breast-surgery', 'cancer', 'cardiology',
+    'clinical-imaging', 'dermatology', 'ent', 'endocrine', 'ethics-uk-practice',
+    'gastroenterology', 'general-practice-primary-healthcare', 'haematology',
+    'human-factors-quality-improvement', 'infectious-disease', 'medicine-older-adult',
+    'psychiatry', 'musculoskeletal', 'neurology', 'obstetrics-gynaecology',
+    'ophthalmology', 'orthopaedics', 'paediatrics', 'palliative-end-of-life-care',
+    'perioperative-anaesthesia', 'renal', 'respiratory', 'rheumatology',
+    'sexual-health', 'social-population-health', 'surgery', 'urology', 'vascular'
+  );
 
 -- Alphabetical sort_order from name
 with ranked as (
@@ -61,8 +77,8 @@ set sort_order = ranked.sort_order,
 from ranked
 where t.id = ranked.id;
 
--- Confirm (alphabetical)
-select slug, name, sort_order
+-- Confirm (alphabetical) — expect Urology, Vascular, ENT among others
+select slug, name, sort_order, is_active
 from public.topics
 where exam_id = 'a1000000-0000-4000-8000-000000000001'
   and is_active = true
