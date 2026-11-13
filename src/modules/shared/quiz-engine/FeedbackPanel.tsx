@@ -3,6 +3,7 @@ import { MistakeTagPicker } from '@/features/mistakes'
 import { suggestMistakeTags, type MistakeTagCode } from '@/features/mistakes/tags'
 import type { AttemptResult, PresentationFormat, QuestionWithOptions } from '@/types/database'
 import type { FlashcardGrade } from '@/types/quiz'
+import { cn } from '@/lib/cn'
 
 type Props = {
   question: QuestionWithOptions
@@ -68,6 +69,7 @@ export function FeedbackPanel({
   )
   const [localTags, setLocalTags] = useState<string[]>(initialTags ?? suggested)
   const [localNote, setLocalNote] = useState(initialNote ?? '')
+  const [showExplanation, setShowExplanation] = useState(false)
 
   const title =
     result === 'skipped'
@@ -107,8 +109,19 @@ export function FeedbackPanel({
       ) : null}
       {question.explanation ? (
         <div className="text-sm">
-          <p className="mb-1 font-medium">Explanation</p>
-          <p className="whitespace-pre-wrap text-muted">{question.explanation}</p>
+          <button
+            type="button"
+            className={cn(
+              'rounded border border-dashed border-accent/50 px-2 py-1 text-left font-medium text-accent hover:bg-accent-subtle',
+            )}
+            aria-expanded={showExplanation}
+            onClick={() => setShowExplanation((v) => !v)}
+          >
+            {showExplanation ? 'Hide Explanation' : 'Show Explanation'}
+          </button>
+          {showExplanation ? (
+            <p className="mt-2 whitespace-pre-wrap text-muted">{question.explanation}</p>
+          ) : null}
         </div>
       ) : (
         <p className="text-sm text-muted">No explanation stored for this item yet.</p>

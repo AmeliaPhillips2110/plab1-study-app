@@ -24,10 +24,12 @@ export async function selectQuestionsForSession(
   config: SessionSetupConfig,
   userId: string,
 ): Promise<{ questions: QuestionWithOptions[]; error: string | null }> {
-  const limit = Math.min(Math.max(config.questionLimit ?? 10, 1), 50)
+  // Open / new-questions modes are effectively unlimited (bank-sized).
+  const maxLimit = config.openEnded || config.unseenOnly ? 10_000 : 50
+  const limit = Math.min(Math.max(config.questionLimit ?? 10, 1), maxLimit)
 
   if (config.sessionType === 'spaced_repetition') {
-    return selectSpacedRepetition(config.examId, userId, limit, config.presentationFormat)
+    return selectSpacedRepetition(config.examId, userId, limit)
   }
 
   if (config.sessionType === 'weakness') {
@@ -111,59 +113,57 @@ export async function selectQuestionsForSession(
   return { questions: shuffleInPlace(pool).slice(0, limit), error: null }
 }
 
-async function selectSpacedRepetition(
-  examId: string,
-  userId: string,
-  limit: number,
-  format: SessionSetupConfig['presentationFormat'],
-) {
-  const now = new Date().toISOString()
-  const { data: dueRows, error: dueErr } = await supabase
-    .from('spaced_repetition_state')
-    .select('question_id, due_at')
+/**
+ * Spaced Review: only items previously wrong, or wrong before and correct
+ * fewer than 3 times since the last incorrect attempt.
+ */
+async function selectSpacedRepetition(examId: string, userId: string, limit: number) {
+  const { data: attempts, error: attErr } = await supabase
+    .from('attempts')
+    .select('question_id, result, answered_at')
     .eq('exam_id', examId)
     .eq('user_id', userId)
-    .lte('due_at', now)
-    .order('due_at', { ascending: true })
-    .limit(limit)
+    .order('answered_at', { ascending: true })
+    .limit(2000)
 
-  if (dueErr) return { questions: [], error: dueErr.message }
+  if (attErr) return { questions: [], error: attErr.message }
+  const rows = (attempts as AttemptRow[] | null) ?? []
 
-  let questionIds = ((dueRows as { question_id: string }[] | null) ?? []).map((r) => r.question_id)
+  const byQ = new Map<string, AttemptRow[]>()
+  for (const row of rows) {
+    const list = byQ.get(row.question_id) ?? []
+    list.push(row)
+    byQ.set(row.question_id, list)
+  }
 
-  // Cold start: seed from active bank questions the user has not mastered.
-  if (questionIds.length === 0) {
-    let q = supabase
-      .from('questions')
-      .select('id')
-      .eq('exam_id', examId)
-      .eq('is_active', true)
-      .limit(limit)
-    if (format === 'flashcard') {
-      // include SBA fallback
-    } else {
-      q = q.eq('question_type', 'sba')
+  const eligibleIds: string[] = []
+  for (const [qid, history] of byQ) {
+    const lastWrongIdx = [...history].map((h) => h.result).lastIndexOf('incorrect')
+    const lastPartialIdx = [...history].map((h) => h.result).lastIndexOf('partial')
+    const wrongIdx = Math.max(lastWrongIdx, lastPartialIdx)
+    if (wrongIdx < 0) continue
+    const sinceWrong = history.slice(wrongIdx + 1)
+    const correctsSince = sinceWrong.filter((h) => h.result === 'correct').length
+    if (correctsSince < 3) eligibleIds.push(qid)
+  }
+
+  if (eligibleIds.length === 0) {
+    return {
+      questions: [],
+      error: 'No spaced-review items yet — miss a question in practice first.',
     }
-    const { data: fresh, error } = await q
-    if (error) return { questions: [], error: error.message }
-    questionIds = ((fresh as { id: string }[] | null) ?? []).map((r) => r.id)
   }
 
-  if (questionIds.length === 0) {
-    return { questions: [], error: 'No spaced-repetition items due yet.' }
-  }
-
+  const take = shuffleInPlace([...eligibleIds]).slice(0, limit)
   const { data, error } = await supabase
     .from('questions')
     .select('*, question_options(*)')
-    .in('id', questionIds)
+    .in('id', take)
     .eq('is_active', true)
 
   if (error) return { questions: [], error: error.message }
   const loaded = asQuestions(data)
-  const map = new Map(loaded.map((q) => [q.id, q]))
-  const ordered = questionIds.map((id) => map.get(id)).filter(Boolean) as QuestionWithOptions[]
-  return { questions: ordered.slice(0, limit), error: null }
+  return { questions: shuffleInPlace(loaded).slice(0, limit), error: null }
 }
 
 async function selectWeakness(

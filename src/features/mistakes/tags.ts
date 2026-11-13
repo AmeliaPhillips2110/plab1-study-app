@@ -1,16 +1,16 @@
 import type { AttemptResult, PresentationFormat } from '@/types/database'
 import type { FlashcardGrade } from '@/types/quiz'
 
-/** Canonical mistake tags — language / UK practice tracked separately from knowledge gaps. */
+/** Canonical mistake tags shown in the Mistake dropdown. */
 export const MISTAKE_TAG_DEFS = [
-  { tag: 'knowledge_gap', label: 'Knowledge gap', hint: 'Did not know / recall the fact' },
-  { tag: 'misread', label: 'Misread stem', hint: 'Missed a key word or detail' },
-  { tag: 'language_issue', label: 'Language / wording', hint: 'English phrasing or vocabulary tripped you up' },
-  { tag: 'uk_practice_gap', label: 'UK practice gap', hint: 'UK pathway / guideline / service model unfamiliar' },
-  { tag: 'rush', label: 'Rushed', hint: 'Too fast / timed out pressure' },
+  { tag: 'guessed', label: 'Guessed', hint: 'Chose without a clear reason' },
+  { tag: 'did_not_read', label: 'Did not read correctly', hint: 'Missed a key word or detail in the stem' },
+  { tag: 'nice_guideline', label: 'NICE Guideline', hint: 'Missed or mixed up NICE guidance' },
+  { tag: 'core_knowledge_gap', label: 'Core Knowledge Gap', hint: 'Did not know the core fact' },
+  { tag: 'uk_practice_gap', label: 'UK Practice Gap', hint: 'UK pathway / service model unfamiliar' },
   { tag: 'calculation', label: 'Calculation', hint: 'Arithmetic or unit error' },
-  { tag: 'guideline_mixup', label: 'Guideline mix-up', hint: 'Confused two protocols' },
-  { tag: 'elimination_error', label: 'Elimination error', hint: 'Ruled out the right option' },
+  { tag: 'rushed', label: 'Rushed', hint: 'Too fast or timed-out pressure' },
+  { tag: 'elimination_error', label: 'Elimination Error', hint: 'Ruled out the right option' },
   { tag: 'other', label: 'Other', hint: 'Something else — add a note' },
 ] as const
 
@@ -34,19 +34,19 @@ export function suggestMistakeTags(input: {
 
   const suggestions = new Set<MistakeTagCode>()
 
-  if (input.timedOut || input.format === 'rapid_fire') suggestions.add('rush')
+  if (input.timedOut || input.format === 'rapid_fire') suggestions.add('rushed')
   if (input.timeSpentMs != null && input.timeSpentMs > 0 && input.timeSpentMs < 8000) {
-    suggestions.add('rush')
+    suggestions.add('rushed')
   }
   if (input.format === 'cover_the_options' || input.coverRevealed === false) {
-    suggestions.add('misread')
+    suggestions.add('did_not_read')
   }
-  if (input.grade === 'again' || input.grade === 'hard') suggestions.add('knowledge_gap')
+  if (input.grade === 'again' || input.grade === 'hard') suggestions.add('core_knowledge_gap')
   if (input.isUkPractice) suggestions.add('uk_practice_gap')
   if (input.stemWordCount != null && input.stemWordCount >= 80) {
-    suggestions.add('language_issue')
+    suggestions.add('did_not_read')
   }
 
-  if (suggestions.size === 0) suggestions.add('knowledge_gap')
+  if (suggestions.size === 0) suggestions.add('core_knowledge_gap')
   return [...suggestions]
 }

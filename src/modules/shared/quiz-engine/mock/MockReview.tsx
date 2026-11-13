@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { MistakeTagPicker, loadMistakeTagsForAttempts, saveMistakeTags } from '@/features/mistakes'
 import { suggestMistakeTags, type MistakeTagCode } from '@/features/mistakes/tags'
 import { PaceWidget } from '@/modules/shared/quiz-engine/mock/PaceWidget'
-import { computePace, formatDuration } from '@/modules/shared/quiz-engine/pace'
+import { formatDuration } from '@/modules/shared/quiz-engine/pace'
 import type { QuestionWithOptions } from '@/types/database'
 import type { MockProgressState, TimedMode } from '@/types/quiz'
 
@@ -22,6 +22,13 @@ type Props = {
   attemptIdByQuestionId: Record<string, string>
 }
 
+const FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'incorrect', label: 'Incorrect' },
+  { id: 'flagged', label: 'Flagged' },
+  { id: 'skipped', label: 'New' },
+] as const
+
 export function MockReview({
   mode,
   questions,
@@ -34,14 +41,12 @@ export function MockReview({
   elapsedSec,
   attemptIdByQuestionId,
 }: Props) {
-  const [filter, setFilter] = useState<'all' | 'incorrect' | 'flagged' | 'skipped'>('all')
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
   const [tagMap, setTagMap] = useState<Record<string, string[]>>({})
-  const pace = computePace({
-    elapsedSec,
-    timeLimitSec: progress.timeLimitSec,
-    answeredCount: answered,
-    totalQuestions: questions.length,
-  })
+  const [openExplain, setOpenExplain] = useState<Record<string, boolean>>({})
+
+  const incorrect = Math.max(0, answered - correct)
+  const unanswered = Math.max(0, questions.length - answered)
 
   useEffect(() => {
     const ids = Object.values(attemptIdByQuestionId)
@@ -76,60 +81,81 @@ export function MockReview({
       })
   }, [questions, progress, filter, attemptIdByQuestionId])
 
+  const totalForBar = Math.max(questions.length, 1)
+  const correctPct = (correct / totalForBar) * 100
+  const incorrectPct = (incorrect / totalForBar) * 100
+  const newPct = (unanswered / totalForBar) * 100
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <section className="rounded-md border border-border bg-surface p-4">
-        <h2 className="text-xl font-semibold">
-          {mode === 'full_mock' ? 'Mock complete' : 'As-many-as-you-can complete'}
+        <h2 className="font-display text-xl font-semibold">
+          {mode === 'full_mock' ? 'Mock Complete' : 'Unlimited Complete'}
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge tone={passed ? 'correct' : 'incorrect'}>
-            {passed ? 'At/above pass mark' : 'Below pass mark'} ({passMark}%)
+            {passed ? 'At/Above Pass Mark' : 'Below Pass Mark'} ({passMark}%)
           </Badge>
           <Badge tone="accent">{percent}%</Badge>
-          <Badge>
-            {correct}/{answered || questions.length} correct of answered
-          </Badge>
-          <Badge>Time used {formatDuration(elapsedSec)}</Badge>
+          <Badge>Time Used {formatDuration(elapsedSec)}</Badge>
         </div>
-        <p className="mt-2 text-sm text-muted">
-          Tag incorrect items below so Stage e weakness charts can use them. Full history lives in the{' '}
-          <Link className="text-accent hover:underline" to="/attempts">
-            attempt log
-          </Link>
-          .
-        </p>
+
+        <div className="mt-4">
+          <div className="mb-1 flex flex-wrap justify-between gap-2 text-sm">
+            <span className="font-medium">Results</span>
+            <span className="tabular-nums text-muted">{percent}%</span>
+          </div>
+          <div className="flex h-3 overflow-hidden rounded-full border border-border">
+            <div className="h-full bg-correct" style={{ width: `${correctPct}%` }} title="Correct" />
+            <div
+              className="h-full bg-incorrect"
+              style={{ width: `${incorrectPct}%` }}
+              title="Incorrect"
+            />
+            <div className="h-full bg-neutral-300" style={{ width: `${newPct}%` }} title="New" />
+          </div>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+            <div className="rounded border border-border px-3 py-2">
+              <dt className="text-xs text-muted">Answered</dt>
+              <dd className="text-lg font-semibold">{answered}</dd>
+            </div>
+            <div className="rounded border border-correct/40 bg-correct/10 px-3 py-2">
+              <dt className="text-xs text-muted">Correct</dt>
+              <dd className="text-lg font-semibold text-correct">{correct}</dd>
+            </div>
+            <div className="rounded border border-incorrect/40 bg-incorrect/10 px-3 py-2">
+              <dt className="text-xs text-muted">Incorrect</dt>
+              <dd className="text-lg font-semibold text-incorrect">{incorrect}</dd>
+            </div>
+            <div className="rounded border border-border px-3 py-2">
+              <dt className="text-xs text-muted">New</dt>
+              <dd className="text-lg font-semibold">{unanswered}</dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
       <section>
-        <h3 className="mb-2 text-lg font-semibold">Pace report</h3>
+        <h3 className="mb-2 font-display text-lg font-semibold">Pace Report</h3>
         <PaceWidget
           elapsedSec={elapsedSec}
           timeLimitSec={progress.timeLimitSec}
           answeredCount={answered}
           totalQuestions={questions.length}
         />
-        <p className="mt-2 text-sm text-muted">
-          Ideal pace was about {formatDuration(Math.round(pace.idealSecPerQ))} per question. You
-          finished {pace.status === 'ahead' ? 'ahead of' : pace.status === 'behind' ? 'behind' : 'on'}{' '}
-          that curve
-          {pace.projectedFinishSec != null
-            ? ` (projected finish ~${formatDuration(Math.round(pace.projectedFinishSec))} at your average).`
-            : '.'}
-        </p>
       </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-lg font-semibold">Review</h3>
+          <h3 className="font-display text-lg font-semibold">Review</h3>
           <div className="flex flex-wrap gap-2">
-            {(['all', 'incorrect', 'flagged', 'skipped'] as const).map((f) => (
+            {FILTERS.map((f) => (
               <Button
-                key={f}
-                variant={filter === f ? 'primary' : 'secondary'}
-                onClick={() => setFilter(f)}
+                key={f.id}
+                variant={filter === f.id ? 'primary' : 'secondary'}
+                onClick={() => setFilter(f.id)}
               >
-                {f}
+                {f.label}
               </Button>
             ))}
           </div>
@@ -145,6 +171,7 @@ export function MockReview({
                 result === 'incorrect'
                   ? suggestMistakeTags({ result: 'incorrect' })
                   : ([] as MistakeTagCode[])
+              const explainOpen = Boolean(openExplain[q.id])
               return (
                 <li key={q.id} className="rounded-md border border-border bg-surface p-4">
                   <div className="mb-2 flex flex-wrap gap-2">
@@ -158,7 +185,7 @@ export function MockReview({
                             : 'neutral'
                       }
                     >
-                      {result}
+                      {result === 'skipped' ? 'New' : result === 'correct' ? 'Correct' : 'Incorrect'}
                     </Badge>
                     {isFlagged ? <Badge tone="accent">Flagged</Badge> : null}
                   </div>
@@ -180,22 +207,32 @@ export function MockReview({
                         >
                           <span className="font-semibold">{o.label}.</span> {o.body}
                           {isCor ? ' ✓' : ''}
-                          {isSel && !isCor ? ' (your answer)' : ''}
-                          {isSel && isCor ? ' (your answer)' : ''}
+                          {isSel && !isCor ? ' (Your Answer)' : ''}
+                          {isSel && isCor ? ' (Your Answer)' : ''}
                         </li>
                       )
                     })}
                   </ul>
                   {selectedOpt || correctOpt ? (
                     <p className="mb-2 text-xs text-muted">
-                      You chose {selectedOpt ? selectedOpt.label : 'nothing'} · Best answer{' '}
+                      You Chose {selectedOpt ? selectedOpt.label : 'Nothing'} · Best Answer{' '}
                       {correctOpt?.label ?? '—'}
                     </p>
                   ) : null}
                   {q.explanation ? (
-                    <div className="mb-3 rounded border border-border bg-bg p-3 text-sm">
-                      <p className="mb-1 font-medium">Explanation</p>
-                      <p className="whitespace-pre-wrap text-muted">{q.explanation}</p>
+                    <div className="mb-3 text-sm">
+                      <button
+                        type="button"
+                        className="rounded border border-dashed border-accent/50 px-2 py-1 font-medium text-accent hover:bg-accent-subtle"
+                        onClick={() =>
+                          setOpenExplain((prev) => ({ ...prev, [q.id]: !prev[q.id] }))
+                        }
+                      >
+                        {explainOpen ? 'Hide Explanation' : 'Show Explanation'}
+                      </button>
+                      {explainOpen ? (
+                        <p className="mt-2 whitespace-pre-wrap text-muted">{q.explanation}</p>
+                      ) : null}
                     </div>
                   ) : null}
                   {result === 'incorrect' && attemptId ? (
@@ -220,22 +257,40 @@ export function MockReview({
 
       <div className="flex flex-wrap gap-2">
         <Link
-          to="/tests/full-test"
+          to="/tests"
           className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
         >
-          Another timed test
+          Tests Hub
+        </Link>
+        <Link
+          to="/study"
+          className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+        >
+          Study Hub
         </Link>
         <Link
           to="/attempts"
           className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
         >
-          Attempt log
+          Attempt Log
         </Link>
         <Link
           to="/"
           className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
         >
-          Study home
+          Home
+        </Link>
+        <Link
+          to="/kpis"
+          className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+        >
+          KPIs
+        </Link>
+        <Link
+          to="/glossary"
+          className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+        >
+          Glossary
         </Link>
       </div>
     </div>

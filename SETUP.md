@@ -59,6 +59,18 @@ where id between 'a4000000-0000-4000-8000-000000000042'
 - Loads Q42–Q51 + matching glossary, and ensures required exam/topics/tags exist.
 - If Run fails with **Schema missing** / `public.exams` not found → skip to **§2B** (`APPLY_ALL.sql`) first, then re-run this pack.
 
+### Expand / rename topics (`seed_topics_expand.sql`)
+
+Use this when Home topics are missing specialties (e.g. Ophthalmology, Haematology, Paediatrics, Breast Surgery) or still show old spellings.
+
+| Step | What to do |
+| --- | --- |
+| 1 | Open [`supabase/seed_topics_expand.sql`](https://github.com/AmeliaPhillips2110/plab1-study-app/blob/main/supabase/seed_topics_expand.sql) → **Raw** → copy all |
+| 2 | Supabase → **SQL** → **New query** → paste → **Run** |
+| 3 | Hard-refresh the live site |
+
+Safe to re-run. Also embedded in `APPLY_ALL.sql` / `seed.sql` for fresh projects.
+
 ### A. Same pack (short checklist)
 
 1. Raw-copy [`seed_example_pack.sql`](./supabase/seed_example_pack.sql) → Supabase SQL → Run.  

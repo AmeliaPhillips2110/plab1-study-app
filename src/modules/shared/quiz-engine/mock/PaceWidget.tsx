@@ -18,7 +18,7 @@ export function PaceWidget({
 }: Props) {
   const pace = computePace({ elapsedSec, timeLimitSec, answeredCount, totalQuestions })
   const label =
-    pace.status === 'ahead' ? 'Ahead of pace' : pace.status === 'behind' ? 'Behind pace' : 'On pace'
+    pace.status === 'ahead' ? 'Ahead Of Pace' : pace.status === 'behind' ? 'Behind Pace' : 'On Pace'
 
   return (
     <div
@@ -32,11 +32,11 @@ export function PaceWidget({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-medium">{label}</span>
         <span className="text-muted">
-          {answeredCount}/{totalQuestions} answered
+          {answeredCount}/{totalQuestions} Answered
         </span>
       </div>
       {!compact ? (
-        <dl className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted sm:grid-cols-4">
+        <dl className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted sm:grid-cols-3">
           <div>
             <dt>Elapsed</dt>
             <dd className="font-medium text-fg">{formatDuration(pace.elapsedSec)}</dd>
@@ -46,11 +46,7 @@ export function PaceWidget({
             <dd className="font-medium text-fg">{formatDuration(pace.remainingSec)}</dd>
           </div>
           <div>
-            <dt>Ideal / Q</dt>
-            <dd className="font-medium text-fg">{formatDuration(Math.round(pace.idealSecPerQ))}</dd>
-          </div>
-          <div>
-            <dt>Your avg / Q</dt>
+            <dt>Your Avg / Q</dt>
             <dd className="font-medium text-fg">
               {pace.secondsPerAnswered != null
                 ? formatDuration(Math.round(pace.secondsPerAnswered))
