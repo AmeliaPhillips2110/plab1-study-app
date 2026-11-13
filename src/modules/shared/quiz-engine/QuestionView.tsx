@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
+import { QuestionImage, questionImageUrl } from '@/components/ui/QuestionImage'
 import { countWords } from '@/features/glossary/glossaryApi'
 import { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
 import { FeedbackPanel } from '@/modules/shared/quiz-engine/FeedbackPanel'
@@ -303,6 +304,10 @@ export function QuestionView({
       </div>
 
       <StemWithGlossary text={question.stem} terms={glossaryTerms} />
+
+      {questionImageUrl(question.payload) ? (
+        <QuestionImage src={questionImageUrl(question.payload)!} alt="Clinical figure for this question" />
+      ) : null}
 
       {question.is_uk_practice ? (
         <p className="text-xs font-medium text-accent">UK practice item</p>

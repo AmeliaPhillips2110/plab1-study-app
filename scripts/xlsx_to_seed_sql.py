@@ -50,7 +50,7 @@ TOPICS: dict[str, tuple[str, str]] = {
     "medicine-older-adult": ("029", "Medicine of the Older Adult"),
     "psychiatry": ("007", "Mental Health"),
     "musculoskeletal": ("011", "Musculoskeletal"),
-    "neurology": ("006", "Neurosciences"),
+    "neurology": ("006", "Neurology"),
     "obstetrics-gynaecology": ("008", "Obstetrics and Gynaecology"),
     "ophthalmology": ("015", "Ophthalmology"),
     "orthopaedics": ("016", "Orthopaedics"),
@@ -172,6 +172,14 @@ def sql_str(value: object) -> str:
         return "null"
     text = str(value).replace("\r\n", "\n").replace("\r", "\n").strip()
     return "'" + text.replace("'", "''") + "'"
+
+
+def commons_to_file_path(url: str) -> str:
+    """Turn a Commons File: page into Special:FilePath for <img src> embedding."""
+    m = re.search(r"commons\.wikimedia\.org/wiki/File:(.+)$", url.strip(), flags=re.I)
+    if m:
+        return f"https://commons.wikimedia.org/wiki/Special:FilePath/{m.group(1)}"
+    return url.strip()
 
 
 def resolve_topic(raw: object) -> str | None:
@@ -315,6 +323,8 @@ def main() -> int:
     )
     i_uk = pick_col(headers, "uk practice", "uk", "is uk practice", "uk_practice")
     i_guidelines = pick_col(headers, "guidelines", "guideline", "nice", "refs", "references")
+    i_image = pick_col(headers, "image", "image url", "figure", "img", "picture")
+    source_tag = "plab1-xlsx-v2" if "2" in path.stem or "bank_2" in path.name.lower() else "plab1-xlsx"
 
     if i_stem is None or i_a is None or i_b is None or i_c is None or i_d is None or i_e is None:
         print(
@@ -385,7 +395,7 @@ def main() -> int:
             is_uk = str(uk_raw).strip().lower() in {"1", "true", "yes", "y", "uk", "uk practice"}
 
         guidelines_raw = cell(row, i_guidelines)
-        payload_bits = ["'source', 'plab1-xlsx'"]
+        payload_bits = [f"'source', '{source_tag}'"]
         if guidelines_raw and str(guidelines_raw).strip():
             # Store free-text; UI also auto-linkifies NICE/BNF in explanation
             g = str(guidelines_raw).strip().replace("'", "''")
@@ -394,8 +404,14 @@ def main() -> int:
             if not expl:
                 expl = str(guidelines_raw).strip()
 
+        image_raw = cell(row, i_image)
+        if image_raw and str(image_raw).strip():
+            image_url = commons_to_file_path(str(image_raw).strip()).replace("'", "''")
+            payload_bits.append(f"'image_url', '{image_url}'")
+
         seed = "|".join(
             [
+                source_tag,
                 str(stem).strip(),
                 opts["A"],
                 opts["B"],
@@ -442,13 +458,18 @@ def main() -> int:
     out_lines.append(
         "select count(*) as sba_count from public.questions "
         f"where exam_id = '{EXAM_ID}' and question_type = 'sba' and is_active = true "
-        "and coalesce(payload->>'source','') = 'plab1-xlsx';"
+        f"and coalesce(payload->>'source','') = '{source_tag}';"
     )
     out_lines.append(
         "select t.name, count(*) as n from public.questions q "
         "left join public.topics t on t.id = q.topic_id "
-        f"where q.exam_id = '{EXAM_ID}' and coalesce(q.payload->>'source','') = 'plab1-xlsx' "
+        f"where q.exam_id = '{EXAM_ID}' and coalesce(q.payload->>'source','') = '{source_tag}' "
         "group by t.name order by n desc;"
+    )
+    out_lines.append(
+        "select count(*) as with_image from public.questions "
+        f"where exam_id = '{EXAM_ID}' and coalesce(payload->>'source','') = '{source_tag}' "
+        "and coalesce(payload->>'image_url','') <> '';"
     )
 
     out_path = Path(args.output)

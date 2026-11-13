@@ -21,9 +21,17 @@ export function AppShell({ children, title }: Props) {
         <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
           <Link
             to="/"
-            className="min-w-0 shrink font-display text-xl font-bold tracking-tight text-white hover:opacity-95 sm:text-2xl md:text-3xl"
+            className="inline-flex min-w-0 shrink items-center gap-2 font-display text-xl font-bold tracking-tight text-white hover:opacity-95 sm:gap-2.5 sm:text-2xl md:text-3xl"
           >
-            PLABoratory
+            <img
+              src={`${import.meta.env.BASE_URL}lab-coat.svg`}
+              alt=""
+              width={36}
+              height={36}
+              className="h-7 w-7 shrink-0 sm:h-8 sm:w-8 md:h-9 md:w-9"
+              aria-hidden
+            />
+            <span>PLABoratory</span>
           </Link>
           {title ? (
             <p className="min-w-0 flex-1 truncate text-center font-display text-lg font-medium tracking-wide text-white sm:text-xl md:text-2xl">

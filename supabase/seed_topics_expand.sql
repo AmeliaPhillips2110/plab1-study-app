@@ -32,7 +32,7 @@ insert into public.topics (id, exam_id, slug, name, sort_order, is_active) value
   ('a2000000-0000-4000-8000-000000000029', 'a1000000-0000-4000-8000-000000000001', 'medicine-older-adult', 'Medicine of the Older Adult', 150, true),
   ('a2000000-0000-4000-8000-000000000007', 'a1000000-0000-4000-8000-000000000001', 'psychiatry', 'Mental Health', 160, true),
   ('a2000000-0000-4000-8000-000000000011', 'a1000000-0000-4000-8000-000000000001', 'musculoskeletal', 'Musculoskeletal', 170, true),
-  ('a2000000-0000-4000-8000-000000000006', 'a1000000-0000-4000-8000-000000000001', 'neurology', 'Neurosciences', 180, true),
+  ('a2000000-0000-4000-8000-000000000006', 'a1000000-0000-4000-8000-000000000001', 'neurology', 'Neurology', 180, true),
   ('a2000000-0000-4000-8000-000000000008', 'a1000000-0000-4000-8000-000000000001', 'obstetrics-gynaecology', 'Obstetrics and Gynaecology', 190, true),
   ('a2000000-0000-4000-8000-000000000015', 'a1000000-0000-4000-8000-000000000001', 'ophthalmology', 'Ophthalmology', 200, true),
   ('a2000000-0000-4000-8000-000000000016', 'a1000000-0000-4000-8000-000000000001', 'orthopaedics', 'Orthopaedics', 210, true),

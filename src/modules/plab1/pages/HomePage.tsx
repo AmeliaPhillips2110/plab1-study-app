@@ -29,8 +29,7 @@ export function HomePage() {
   const [timeSpentMs, setTimeSpentMs] = useState(0)
   const [studyStreak, setStudyStreak] = useState(0)
 
-  const examDay = useMemo(() => nextExamDate(new Date()), [])
-  const daysLeft = useMemo(() => countdownTo(examDay, new Date()).days, [examDay])
+  const daysLeft = useMemo(() => countdownTo(nextExamDate(new Date()), new Date()).days, [])
   /** Always show every seeded topic (including 0-question banks), A→Z. */
   const topicsAz = useMemo(() => sortTopicsByName(topics), [topics])
 
@@ -134,32 +133,22 @@ export function HomePage() {
 
         <EmptyBankHint examMissing={examMissing} bankEmpty={bankEmpty} />
 
-        <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-5 text-center">
-          <h2 className="mb-1 font-display text-lg font-semibold">Exam Countdown</h2>
-          <p className="mb-4 text-sm text-muted">
-            Next exam date:{' '}
-            {examDay.toLocaleDateString(undefined, {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </p>
-          <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-3">
-            <div className="rounded-md border border-accent/30 bg-accent-subtle px-4 py-5">
+        <section className="w-full max-w-5xl" aria-label="Study overview">
+          <div className="grid w-full gap-3 sm:grid-cols-3">
+            <div className="rounded-md border border-accent/30 bg-accent-subtle px-4 py-5 text-center">
               <p className="font-display text-4xl font-bold text-accent sm:text-5xl">{daysLeft}</p>
               <p className="mt-1 text-xs uppercase tracking-wide text-muted">
                 {daysLeft === 1 ? 'Day' : 'Days'} remaining
               </p>
             </div>
-            <div className="rounded-md border border-border bg-surface px-4 py-5">
-              <p className="font-display text-4xl font-bold text-fg sm:text-5xl">
+            <div className="rounded-md border border-accent/30 bg-accent-subtle px-4 py-5 text-center">
+              <p className="font-display text-4xl font-bold text-accent sm:text-5xl">
                 {user ? formatDurationHours(timeSpentMs) : '—'}
               </p>
               <p className="mt-1 text-xs uppercase tracking-wide text-muted">Time Spent</p>
             </div>
-            <div className="rounded-md border border-border bg-surface px-4 py-5">
-              <p className="font-display text-4xl font-bold text-fg sm:text-5xl">
+            <div className="rounded-md border border-accent/30 bg-accent-subtle px-4 py-5 text-center">
+              <p className="font-display text-4xl font-bold text-accent sm:text-5xl">
                 {user ? studyStreak : '—'}
               </p>
               <p className="mt-1 text-xs uppercase tracking-wide text-muted">Study streak</p>
@@ -185,7 +174,7 @@ export function HomePage() {
                 Incorrect
               </li>
               <li className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#c47a3a]" aria-hidden />
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#eab308]" aria-hidden />
                 Skipped
               </li>
               <li className="inline-flex items-center gap-1.5">
@@ -206,7 +195,7 @@ export function HomePage() {
               <p className="mb-3 text-xs text-muted">
                 {topicsAz.length} specialties · A–Z · empty topics still listed
               </p>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {topicsAz.map((t) => {
                   const s = topicStacks[t.id]
                   const total =
@@ -236,7 +225,7 @@ export function HomePage() {
                         />
                         <div
                           className="h-full"
-                          style={{ width: `${pct(s?.skipped ?? 0)}%`, backgroundColor: '#c47a3a' }}
+                          style={{ width: `${pct(s?.skipped ?? 0)}%`, backgroundColor: '#eab308' }}
                           title="Skipped"
                         />
                         <div
