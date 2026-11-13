@@ -5,23 +5,27 @@
 -- =============================================================================
 -- IMPORTANT: public.topics has NO updated_at column (only created_at).
 -- Do not set updated_at here — that caused ERROR 42703.
--- Existing topic IDs kept (question FKs stay valid). Slugs for remapped rows
--- stay stable. New rows: Urology, Vascular (IDs 031–032).
--- Renal renamed from “Renal and Urology”. ENT kept. All seeded topics stay
--- is_active = true so Home shows every specialty even with 0 questions.
+-- Existing topic IDs kept (question FKs stay valid).
+-- New rows for Excel bank: Biomedical Sciences, Clinical Pharmacology,
+-- Critical Care, Genetics and Genomics (IDs 033–036). Urology/Vascular kept.
+-- All seeded topics stay is_active = true so Home shows every specialty.
 
 insert into public.topics (id, exam_id, slug, name, sort_order, is_active) values
   ('a2000000-0000-4000-8000-000000000023', 'a1000000-0000-4000-8000-000000000001', 'acute-emergency-medicine', 'Acute and Emergency Medicine', 10, true),
+  ('a2000000-0000-4000-8000-000000000033', 'a1000000-0000-4000-8000-000000000001', 'biomedical-sciences', 'Biomedical Sciences', 15, true),
   ('a2000000-0000-4000-8000-000000000022', 'a1000000-0000-4000-8000-000000000001', 'breast-surgery', 'Breast Surgery', 20, true),
   ('a2000000-0000-4000-8000-000000000024', 'a1000000-0000-4000-8000-000000000001', 'cancer', 'Cancer', 30, true),
   ('a2000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000001', 'cardiology', 'Cardiovascular', 40, true),
   ('a2000000-0000-4000-8000-000000000025', 'a1000000-0000-4000-8000-000000000001', 'clinical-imaging', 'Clinical Imaging', 50, true),
+  ('a2000000-0000-4000-8000-000000000034', 'a1000000-0000-4000-8000-000000000001', 'clinical-pharmacology', 'Clinical Pharmacology and Therapeutics', 55, true),
+  ('a2000000-0000-4000-8000-000000000035', 'a1000000-0000-4000-8000-000000000001', 'critical-care', 'Critical Care', 58, true),
   ('a2000000-0000-4000-8000-000000000012', 'a1000000-0000-4000-8000-000000000001', 'dermatology', 'Dermatology', 60, true),
   ('a2000000-0000-4000-8000-000000000026', 'a1000000-0000-4000-8000-000000000001', 'ent', 'ENT', 70, true),
   ('a2000000-0000-4000-8000-000000000004', 'a1000000-0000-4000-8000-000000000001', 'endocrine', 'Endocrine, Diabetes and Metabolic', 80, true),
   ('a2000000-0000-4000-8000-000000000013', 'a1000000-0000-4000-8000-000000000001', 'ethics-uk-practice', 'Ethics and UK Practice', 90, true),
   ('a2000000-0000-4000-8000-000000000003', 'a1000000-0000-4000-8000-000000000001', 'gastroenterology', 'Gastroenterology', 100, true),
   ('a2000000-0000-4000-8000-000000000027', 'a1000000-0000-4000-8000-000000000001', 'general-practice-primary-healthcare', 'General Practice and Primary Healthcare', 110, true),
+  ('a2000000-0000-4000-8000-000000000036', 'a1000000-0000-4000-8000-000000000001', 'genetics-genomics', 'Genetics and Genomics', 115, true),
   ('a2000000-0000-4000-8000-000000000014', 'a1000000-0000-4000-8000-000000000001', 'haematology', 'Haematology', 120, true),
   ('a2000000-0000-4000-8000-000000000028', 'a1000000-0000-4000-8000-000000000001', 'human-factors-quality-improvement', 'Human Factors and Quality Improvement', 130, true),
   ('a2000000-0000-4000-8000-000000000010', 'a1000000-0000-4000-8000-000000000001', 'infectious-disease', 'Infectious Disease', 140, true),
@@ -54,9 +58,10 @@ update public.topics
 set is_active = true
 where exam_id = 'a1000000-0000-4000-8000-000000000001'
   and slug in (
-    'acute-emergency-medicine', 'breast-surgery', 'cancer', 'cardiology',
-    'clinical-imaging', 'dermatology', 'ent', 'endocrine', 'ethics-uk-practice',
-    'gastroenterology', 'general-practice-primary-healthcare', 'haematology',
+    'acute-emergency-medicine', 'biomedical-sciences', 'breast-surgery', 'cancer',
+    'cardiology', 'clinical-imaging', 'clinical-pharmacology', 'critical-care',
+    'dermatology', 'ent', 'endocrine', 'ethics-uk-practice', 'gastroenterology',
+    'general-practice-primary-healthcare', 'genetics-genomics', 'haematology',
     'human-factors-quality-improvement', 'infectious-disease', 'medicine-older-adult',
     'psychiatry', 'musculoskeletal', 'neurology', 'obstetrics-gynaecology',
     'ophthalmology', 'orthopaedics', 'paediatrics', 'palliative-end-of-life-care',
@@ -76,7 +81,7 @@ set sort_order = ranked.sort_order
 from ranked
 where t.id = ranked.id;
 
--- Confirm (alphabetical) — expect Urology, Vascular, ENT among others
+-- Confirm (alphabetical)
 select slug, name, sort_order, is_active
 from public.topics
 where exam_id = 'a1000000-0000-4000-8000-000000000001'
