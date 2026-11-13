@@ -67,10 +67,15 @@ export function AccountPage() {
       bankActive: bundle.bankActive,
     })
     const timeMs = bundle.attempts.reduce((sum, a) => sum + (a.time_spent_ms ?? 0), 0)
+    const timesChanged = bundle.attempts.reduce((sum, a) => {
+      const payload = (a.response_payload ?? {}) as { answerChanges?: unknown }
+      const n = payload.answerChanges
+      return sum + (typeof n === 'number' && n > 0 ? n : 0)
+    }, 0)
     const incorrect = headlines.gradedCount - headlines.correctCount
     const wpmSeries = computeReadingSpeedSeries(bundle.attempts)
     const autoWpm = computeOverallReadingWpm(bundle.attempts)
-    return { headlines, timeMs, incorrect, wpmSeries, autoWpm }
+    return { headlines, timeMs, timesChanged, incorrect, wpmSeries, autoWpm }
   }, [bundle])
 
   // Auto-update stored reading speed from timed attempts when it drifts.
@@ -239,6 +244,11 @@ export function AccountPage() {
               hint={`${stats.headlines.uniqueAttempted}/${stats.headlines.bankActive} active questions`}
             />
             <Stat label="Pace" value={`${stats.headlines.qpm}`} hint="Questions per minute (avg)" />
+            <Stat
+              label="Times Changed"
+              value={String(stats.timesChanged)}
+              hint="Answer switches before submit"
+            />
             <Stat
               label="Active days (30d)"
               value={String(stats.headlines.activeDays30)}

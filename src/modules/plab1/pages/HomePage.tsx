@@ -5,6 +5,7 @@ import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { countdownTo, nextExamDate } from '@/lib/examCountdown'
+import { computeStudyStreak } from '@/lib/streak'
 import { supabase } from '@/lib/supabase'
 import { sortTopicsByName } from '@/lib/topics'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
@@ -26,6 +27,7 @@ export function HomePage() {
   const [bankCount, setBankCount] = useState<number | null>(null)
   const [topicStacks, setTopicStacks] = useState<Record<string, TopicStack>>({})
   const [timeSpentMs, setTimeSpentMs] = useState(0)
+  const [studyStreak, setStudyStreak] = useState(0)
 
   const examDay = useMemo(() => nextExamDate(new Date()), [])
   const daysLeft = useMemo(() => countdownTo(examDay, new Date()).days, [examDay])
@@ -45,12 +47,16 @@ export function HomePage() {
   useEffect(() => {
     if (!exam || !user) {
       setTimeSpentMs(0)
+      setStudyStreak(0)
       return
     }
     void (async () => {
       const { rows } = await fetchAttemptLog({ userId: user.id, examId: exam.id, limit: 5000 })
       const ms = rows.reduce((sum, r) => sum + (r.time_spent_ms ?? 0), 0)
       setTimeSpentMs(ms)
+      setStudyStreak(
+        computeStudyStreak(rows.map((r) => r.answered_at).filter(Boolean) as string[]),
+      )
     })()
   }, [exam, user])
 
@@ -139,7 +145,7 @@ export function HomePage() {
               day: 'numeric',
             })}
           </p>
-          <div className="mx-auto grid max-w-lg gap-3 sm:grid-cols-2">
+          <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-3">
             <div className="rounded-md border border-accent/30 bg-accent-subtle px-4 py-5">
               <p className="font-display text-4xl font-bold text-accent sm:text-5xl">{daysLeft}</p>
               <p className="mt-1 text-xs uppercase tracking-wide text-muted">
@@ -151,6 +157,12 @@ export function HomePage() {
                 {user ? formatDurationHours(timeSpentMs) : '—'}
               </p>
               <p className="mt-1 text-xs uppercase tracking-wide text-muted">Time Spent</p>
+            </div>
+            <div className="rounded-md border border-border bg-surface px-4 py-5">
+              <p className="font-display text-4xl font-bold text-fg sm:text-5xl">
+                {user ? studyStreak : '—'}
+              </p>
+              <p className="mt-1 text-xs uppercase tracking-wide text-muted">Study streak</p>
             </div>
           </div>
         </section>

@@ -19,6 +19,10 @@ export type SessionSetupConfig = {
   rapidFireSeconds?: number
   /** Untimed open quiz — track time per question; Finish ends early. */
   openEnded?: boolean
+  /** Only questions the user previously flagged. */
+  flaggedOnly?: boolean
+  /** Daily Questions queue: due SR reviews + recent mistakes (missed days roll forward). */
+  dailyQueue?: boolean
   /** Stage f filters */
   ukPracticeOnly?: boolean
   patientCentredOnly?: boolean
@@ -34,7 +38,7 @@ export type QuizAnswerPayload = {
   coverRevealed?: boolean
   mistakeTags?: string[]
   mistakeNote?: string | null
-  /** Flashcard / study flag for later review (no mistake tags on flashcards). */
+  /** Flag for later review (Practice SBA/flashcard + Tests). */
   flagged?: boolean
   /** How many times the selected option changed before Submit. */
   answerChanges?: number

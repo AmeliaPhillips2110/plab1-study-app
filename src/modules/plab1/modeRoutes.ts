@@ -10,6 +10,8 @@ export type StudyModeDef = {
   weaknessVariant?: WeaknessVariant
   unseenOnly?: boolean
   openEnded?: boolean
+  flaggedOnly?: boolean
+  dailyQueue?: boolean
   autostart?: boolean
   questionLimit?: number
   longStemOnly?: boolean
@@ -62,6 +64,27 @@ export const STUDY_MODES: StudyModeDef[] = [
     openEnded: true,
     autostart: true,
     questionLimit: 10_000,
+  },
+  {
+    slug: 'daily-questions',
+    title: 'Daily Questions',
+    description:
+      'Spaced queue — due reviews first (missed days roll forward), mixed with recent mistakes.',
+    sessionType: 'spaced_repetition',
+    presentationFormat: 'sba',
+    dailyQueue: true,
+    autostart: true,
+    questionLimit: 30,
+  },
+  {
+    slug: 'revise-flagged',
+    title: 'Revise Flagged Questions',
+    description: 'Revisit only items you flagged for review in Practice or Tests.',
+    sessionType: 'random',
+    presentationFormat: 'sba',
+    flaggedOnly: true,
+    autostart: true,
+    questionLimit: 40,
   },
   {
     slug: 'timed-drill',

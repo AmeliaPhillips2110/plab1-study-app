@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { collectGuidelineRefs } from '@/features/guidelines/guidelineRefs'
 import { MistakeTagPicker } from '@/features/mistakes'
 import { suggestMistakeTags, type MistakeTagCode } from '@/features/mistakes/tags'
 import type { AttemptResult, PresentationFormat, QuestionWithOptions } from '@/types/database'
@@ -70,6 +71,14 @@ export function FeedbackPanel({
   const [localTags, setLocalTags] = useState<string[]>(initialTags ?? [])
   const [localNote, setLocalNote] = useState(initialNote ?? '')
   const [showExplanation, setShowExplanation] = useState(false)
+  const guidelineRefs = useMemo(
+    () =>
+      collectGuidelineRefs({
+        explanation: question.explanation,
+        payload: question.payload,
+      }),
+    [question.explanation, question.payload],
+  )
 
   const title =
     result === 'skipped'
@@ -126,6 +135,24 @@ export function FeedbackPanel({
       ) : (
         <p className="text-sm text-muted">No explanation stored for this item yet.</p>
       )}
+
+      {guidelineRefs.length > 0 ? (
+        <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+          {guidelineRefs.map((ref) => (
+            <li key={ref.url}>
+              <a
+                href={ref.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded border border-accent/40 bg-accent-subtle px-2 py-1 text-accent hover:underline"
+              >
+                {ref.label}
+                <span className="sr-only"> (opens in new tab)</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {showTags ? (
         <MistakeTagPicker

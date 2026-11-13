@@ -28,6 +28,10 @@ export async function selectQuestionsForSession(
   const maxLimit = config.openEnded || config.unseenOnly ? 10_000 : 50
   const limit = Math.min(Math.max(config.questionLimit ?? 10, 1), maxLimit)
 
+  if (config.dailyQueue) {
+    return selectDailyQueue(config.examId, userId, limit)
+  }
+
   if (config.sessionType === 'spaced_repetition') {
     return selectSpacedRepetition(config.examId, userId, limit)
   }
@@ -40,6 +44,10 @@ export async function selectQuestionsForSession(
       limit,
       config.presentationFormat,
     )
+  }
+
+  if (config.flaggedOnly) {
+    return selectFlaggedQuestions(config.examId, userId, limit)
   }
 
   let query = supabase
@@ -118,6 +126,128 @@ export async function selectQuestionsForSession(
   }
 
   return { questions: shuffleInPlace(pool).slice(0, limit), error: null }
+}
+
+/** Questions the user flagged in Practice or Tests (latest flag wins). */
+async function selectFlaggedQuestions(examId: string, userId: string, limit: number) {
+  const { data: attempts, error } = await supabase
+    .from('attempts')
+    .select('question_id, response_payload, answered_at')
+    .eq('exam_id', examId)
+    .eq('user_id', userId)
+    .order('answered_at', { ascending: false })
+    .limit(3000)
+
+  if (error) return { questions: [], error: error.message }
+
+  const flaggedIds: string[] = []
+  const seen = new Set<string>()
+  for (const row of (attempts as Array<{
+    question_id: string
+    response_payload: Record<string, unknown> | null
+  }> | null) ?? []) {
+    if (seen.has(row.question_id)) continue
+    seen.add(row.question_id)
+    if (row.response_payload?.flagged === true) flaggedIds.push(row.question_id)
+  }
+
+  if (flaggedIds.length === 0) {
+    return {
+      questions: [],
+      error: 'No flagged questions yet — flag items during Practice or Tests first.',
+    }
+  }
+
+  const take = shuffleInPlace([...flaggedIds]).slice(0, limit)
+  const { data, error: qErr } = await supabase
+    .from('questions')
+    .select('*, question_options(*)')
+    .in('id', take)
+    .eq('is_active', true)
+
+  if (qErr) return { questions: [], error: qErr.message }
+  return { questions: shuffleInPlace(asQuestions(data)).slice(0, limit), error: null }
+}
+
+/**
+ * Daily Questions: due SR cards (overdue from missed days included) + recent mistakes.
+ * Target mix ≈ 70% due reviews / 30% fresh mistakes.
+ */
+async function selectDailyQueue(examId: string, userId: string, limit: number) {
+  const nowIso = new Date().toISOString()
+  const dueTarget = Math.max(1, Math.round(limit * 0.7))
+  const mistakeTarget = Math.max(0, limit - dueTarget)
+
+  const { data: dueRows, error: dueErr } = await supabase
+    .from('spaced_repetition_state')
+    .select('question_id, due_at')
+    .eq('exam_id', examId)
+    .eq('user_id', userId)
+    .lte('due_at', nowIso)
+    .order('due_at', { ascending: true })
+    .limit(Math.max(dueTarget * 2, 40))
+
+  if (dueErr) return { questions: [], error: dueErr.message }
+
+  const dueIds = ((dueRows as Array<{ question_id: string }> | null) ?? []).map((r) => r.question_id)
+  const selectedDue = dueIds.slice(0, dueTarget)
+  const selectedSet = new Set(selectedDue)
+
+  // Recent mistakes not already in the due set
+  const { data: attempts, error: attErr } = await supabase
+    .from('attempts')
+    .select('question_id, result, answered_at')
+    .eq('exam_id', examId)
+    .eq('user_id', userId)
+    .in('result', ['incorrect', 'partial'])
+    .order('answered_at', { ascending: false })
+    .limit(200)
+
+  if (attErr) return { questions: [], error: attErr.message }
+
+  const mistakeIds: string[] = []
+  for (const row of (attempts as AttemptRow[] | null) ?? []) {
+    if (selectedSet.has(row.question_id) || mistakeIds.includes(row.question_id)) continue
+    mistakeIds.push(row.question_id)
+    if (mistakeIds.length >= mistakeTarget) break
+  }
+
+  // If due queue is short, fill remaining with more mistakes / older due leftovers
+  const combined = [...selectedDue, ...mistakeIds]
+  if (combined.length < limit) {
+    for (const id of dueIds) {
+      if (combined.includes(id)) continue
+      combined.push(id)
+      if (combined.length >= limit) break
+    }
+  }
+  if (combined.length < limit) {
+    for (const row of (attempts as AttemptRow[] | null) ?? []) {
+      if (combined.includes(row.question_id)) continue
+      combined.push(row.question_id)
+      if (combined.length >= limit) break
+    }
+  }
+
+  if (combined.length === 0) {
+    // Bootstrap: fall back to classic spaced-review eligibility
+    return selectSpacedRepetition(examId, userId, limit)
+  }
+
+  const take = combined.slice(0, limit)
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*, question_options(*)')
+    .in('id', take)
+    .eq('is_active', true)
+    .eq('question_type', 'sba')
+
+  if (error) return { questions: [], error: error.message }
+  const loaded = asQuestions(data)
+  // Preserve due-first order roughly
+  const byId = new Map(loaded.map((q) => [q.id, q]))
+  const ordered = take.map((id) => byId.get(id)).filter(Boolean) as QuestionWithOptions[]
+  return { questions: ordered.slice(0, limit), error: null }
 }
 
 /**
