@@ -61,7 +61,7 @@ where id between 'a4000000-0000-4000-8000-000000000042'
 
 ### Expand / rename topics (`seed_topics_expand.sql`)
 
-Use this when Home topics are missing specialties (e.g. Ophthalmology, Haematology, Paediatrics, Breast Surgery) or still show old spellings.
+Use this when Home topics are missing MLA-aligned specialties (e.g. ENT, Acute and Emergency Medicine, Human Factors and Quality Improvement) or still show old spellings. Topics display alphabetically.
 
 | Step | What to do |
 | --- | --- |

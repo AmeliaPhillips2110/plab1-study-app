@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isMissingSchemaError } from '@/lib/schemaErrors'
 import { supabase, supabaseConfigured } from '@/lib/supabase'
+import { sortTopicsByName } from '@/lib/topics'
 import type { Exam, ExamSettings, Topic } from '@/types/database'
 import { PLAB1_SLUG } from '@/modules/plab1/config'
 
@@ -70,12 +71,12 @@ export function useExam(slug: string = PLAB1_SLUG): ExamState {
         .select('*')
         .eq('exam_id', examData.id)
         .eq('is_active', true)
-        .order('sort_order', { ascending: true }),
+        .order('name', { ascending: true }),
     ])
 
     setExam(examData)
     setSettings((settingsRow as ExamSettings | null) ?? null)
-    setTopics((topicRows as Topic[]) ?? [])
+    setTopics(sortTopicsByName((topicRows as Topic[]) ?? []))
     setSchemaMissing(false)
     setLoading(false)
   }, [slug])

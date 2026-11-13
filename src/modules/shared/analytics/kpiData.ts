@@ -1,3 +1,4 @@
+import { sortTopicsByName } from '@/lib/topics'
 import { supabase } from '@/lib/supabase'
 import { fetchAttemptLog, type AttemptLogRow } from '@/modules/shared/analytics/attemptQueries'
 import type { StudySession, Topic } from '@/types/database'
@@ -26,7 +27,7 @@ export async function fetchKpiBundle(params: {
       .select('*')
       .eq('exam_id', params.examId)
       .eq('is_active', true)
-      .order('sort_order', { ascending: true }),
+      .order('name', { ascending: true }),
     supabase
       .from('questions')
       .select('id', { count: 'exact', head: true })
@@ -56,7 +57,7 @@ export async function fetchKpiBundle(params: {
   return {
     attempts: attemptsRes.rows,
     sessions: (sessionsRes.data as StudySession[] | null) ?? [],
-    topics: (topicsRes.data as Topic[] | null) ?? [],
+    topics: sortTopicsByName((topicsRes.data as Topic[] | null) ?? []),
     bankActive: bankRes.count ?? 0,
     error: topicsRes.error?.message ?? bankRes.error?.message ?? null,
   }
