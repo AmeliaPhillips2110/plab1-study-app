@@ -147,7 +147,7 @@ export function Nav({ onBanner = false }: Props) {
 
   return (
     <nav aria-label="Main" className="flex flex-wrap items-center justify-center gap-1">
-      <HubHoverMenu hubTo="/study" label="Study" onBanner={onBanner} active={studyActive}>
+      <HubHoverMenu hubTo="/study" label="Practice" onBanner={onBanner} active={studyActive}>
         {STUDY_MODES.map((m) => (
           <MenuLink key={m.slug} to={`/study/${m.slug}`} onBanner={onBanner}>
             {m.title}

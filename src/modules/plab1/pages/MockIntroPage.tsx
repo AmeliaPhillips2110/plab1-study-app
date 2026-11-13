@@ -12,6 +12,7 @@ import {
   countActiveSba,
   createMockSession,
   defaultMockLimits,
+  finalizeMockSession,
   findOpenTimedSessions,
   loadQuestionsByIds,
   loadSbaBank,
@@ -151,6 +152,39 @@ export function MockIntroPage() {
     setBusy(false)
   }
 
+  async function terminate(session: StudySession) {
+    if (!user || !exam) return
+    setBusy(true)
+    setLocalError(null)
+    const progress = progressFromSession(session)
+    if (!progress) {
+      setLocalError('Could not restore saved progress for that session.')
+      setBusy(false)
+      return
+    }
+    const questions = await loadQuestionsByIds(progress.questionIds)
+    if (questions.length === 0) {
+      setLocalError('Saved questions are missing from the bank.')
+      setBusy(false)
+      return
+    }
+    const finished = await finalizeMockSession({
+      sessionId: session.id,
+      examId: exam.id,
+      userId: user.id,
+      questions,
+      progress,
+      passMarkPercent: Number(settings?.pass_mark_percent ?? 65),
+    })
+    if (finished.error) {
+      setLocalError(finished.error)
+      setBusy(false)
+      return
+    }
+    setOpenSessions((prev) => prev.filter((s) => s.id !== session.id))
+    setBusy(false)
+  }
+
   if (run && exam && user) {
     return (
       <AppShell title={run.mode === 'full_mock' ? 'Full Test' : 'Unlimited'}>
@@ -219,9 +253,18 @@ export function MockIntroPage() {
                       {new Date(s.started_at).toLocaleString()}
                       {p ? ` · ${Object.keys(p.answers).length}/${p.questionIds.length} answered` : ''}
                     </span>
-                    <Button disabled={busy} onClick={() => void resume(s)}>
-                      Resume
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button disabled={busy} onClick={() => void resume(s)}>
+                        Resume
+                      </Button>
+                      <Button
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => void terminate(s)}
+                      >
+                        Terminate
+                      </Button>
+                    </div>
                   </li>
                 )
               })}
@@ -302,7 +345,7 @@ export function MockIntroPage() {
         <p className="text-sm">
           Prefer tutor feedback after each item?{' '}
           <Link className="text-accent hover:underline" to="/study">
-            Open study setup →
+            Open Practice hub →
           </Link>
         </p>
       </div>

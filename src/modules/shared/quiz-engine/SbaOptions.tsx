@@ -27,7 +27,7 @@ export function SbaOptions({ options, selectedId, revealed, disabled, onSelect }
               className={cn(
                 'flex w-full items-start gap-3 rounded-md border px-3 py-3 text-left text-sm transition',
                 'border-border bg-surface hover:border-accent disabled:cursor-default',
-                selected && !revealed && 'border-accent bg-accent-subtle',
+                selected && !revealed && 'border-grey-300 bg-grey-100 text-fg',
                 showCorrect && 'border-correct bg-correct/10',
                 showWrong && 'border-incorrect bg-incorrect/10',
               )}

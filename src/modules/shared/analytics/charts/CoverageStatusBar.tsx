@@ -19,8 +19,8 @@ export function CoverageStatusBar({ counts }: Props) {
   const total = ORDER.reduce((sum, k) => sum + counts[k], 0)
 
   return (
-    <div className="flex flex-col gap-2 py-1">
-      <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-[#d7ebee]">
+    <div className="flex flex-col gap-3 py-1 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex h-3.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[#ece7df]">
         {total === 0
           ? null
           : ORDER.map((status) => {
@@ -36,7 +36,7 @@ export function CoverageStatusBar({ counts }: Props) {
               )
             })}
       </div>
-      <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted">
+      <ul className="flex shrink-0 flex-col gap-1.5 text-xs text-muted sm:min-w-[9.5rem]">
         {ORDER.map((status) => (
           <li key={status} className="inline-flex items-center gap-1.5">
             <span

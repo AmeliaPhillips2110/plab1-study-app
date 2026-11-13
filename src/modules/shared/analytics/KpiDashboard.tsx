@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge'
+import { Select } from '@/components/ui/Select'
 import { isMissingSchemaError } from '@/lib/schemaErrors'
+import {
+  isMockSessionType,
+  isStudySessionType,
+} from '@/modules/shared/analytics/attemptQueries'
 import { AccuracyOverTimeChart } from '@/modules/shared/analytics/charts/AccuracyOverTimeChart'
 import { ActivityHeatmap } from '@/modules/shared/analytics/charts/ActivityHeatmap'
 import { ActivityOverTimeChart } from '@/modules/shared/analytics/charts/ActivityOverTimeChart'
@@ -66,6 +71,25 @@ const EMPTY_COVERAGE: CoverageStatusCounts = {
   forgotten: 0,
 }
 
+type TimeScope = 'all' | 'practice' | 'tests'
+
+const TIME_SCOPE_OPTIONS: Array<{ value: TimeScope; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'practice', label: 'Practice' },
+  { value: 'tests', label: 'Tests' },
+]
+
+function filterAttemptsByTimeScope<T extends { study_sessions?: { session_type?: string | null } | null }>(
+  attempts: T[],
+  scope: TimeScope,
+): T[] {
+  if (scope === 'all') return attempts
+  if (scope === 'tests') {
+    return attempts.filter((a) => isMockSessionType(a.study_sessions?.session_type))
+  }
+  return attempts.filter((a) => isStudySessionType(a.study_sessions?.session_type))
+}
+
 export function KpiDashboard({
   userId,
   examId,
@@ -76,6 +100,7 @@ export function KpiDashboard({
   const [loading, setLoading] = useState(Boolean(userId && examId && !forceEmpty))
   const [error, setError] = useState<string | null>(null)
   const [bundle, setBundle] = useState<Awaited<ReturnType<typeof fetchKpiBundle>> | null>(null)
+  const [timeScope, setTimeScope] = useState<TimeScope>('all')
 
   useEffect(() => {
     if (!userId || !examId || forceEmpty) {
@@ -109,30 +134,38 @@ export function KpiDashboard({
         activityOverTime: { points: [], topicKeys: [] as string[] },
         timeOfDay: computeTimeOfDayActivity([]),
         dayOfWeek: computeDayOfWeekActivity([]),
+        timedHeadlines: EMPTY_HEADLINES,
       }
     }
+    const timeAttempts = filterAttemptsByTimeScope(bundle.attempts, timeScope)
     const headlines = computeHeadlineKpis({
       attempts: bundle.attempts,
+      sessions: bundle.sessions,
+      bankActive: bundle.bankActive,
+    })
+    const timedHeadlines = computeHeadlineKpis({
+      attempts: timeAttempts,
       sessions: bundle.sessions,
       bankActive: bundle.bankActive,
     })
     const topicAccuracy = computeTopicAccuracy(bundle.attempts, bundle.topics)
     return {
       headlines,
+      timedHeadlines,
       scoreTrend: computeScoreTrend(bundle.sessions),
       topicAccuracy,
       mistakes: computeMistakeBreakdown(bundle.attempts),
-      qpm: computeQpmSeries(bundle.attempts),
-      paceStem: computePaceVsStem(bundle.attempts),
+      qpm: computeQpmSeries(timeAttempts),
+      paceStem: computePaceVsStem(timeAttempts),
       calendar: computeCalendarHeatmap(bundle.attempts),
       topicHeat: computeTopicWeekdayHeatmap(bundle.attempts),
       weaknesses: computeWeaknesses(topicAccuracy),
       coverageStatuses: computeCoverageStatuses(bundle.attempts, bundle.bankActive),
       activityOverTime: computeActivityOverTime(bundle.attempts, bundle.topics),
-      timeOfDay: computeTimeOfDayActivity(bundle.attempts),
-      dayOfWeek: computeDayOfWeekActivity(bundle.attempts),
+      timeOfDay: computeTimeOfDayActivity(timeAttempts),
+      dayOfWeek: computeDayOfWeekActivity(timeAttempts),
     }
-  }, [bundle])
+  }, [bundle, timeScope])
 
   const h = derived.headlines
   const softError = error && isMissingSchemaError(error) ? null : error
@@ -167,10 +200,20 @@ export function KpiDashboard({
         />
         <Tile
           label="Pace"
-          value={`${h.qpm}`}
-          hint={`Q/Min Avg · ${h.activeDays30} Active Days (30d)`}
+          value={`${derived.timedHeadlines.qpm}`}
+          hint={`Q/Min Avg · ${derived.timedHeadlines.activeDays30} Active Days (30d)`}
         />
       </section>
+
+      <div className="mx-auto w-full max-w-xs">
+        <Select
+          label="Time KPIs scope"
+          name="time-kpi-scope"
+          value={timeScope}
+          onChange={(e) => setTimeScope(e.target.value as TimeScope)}
+          options={TIME_SCOPE_OPTIONS}
+        />
+      </div>
 
       {h.latestMockPercent != null ? (
         <p className="text-center text-sm text-muted">

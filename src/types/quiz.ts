@@ -34,6 +34,8 @@ export type QuizAnswerPayload = {
   coverRevealed?: boolean
   mistakeTags?: string[]
   mistakeNote?: string | null
+  /** Flashcard / study flag for later review (no mistake tags on flashcards). */
+  flagged?: boolean
   /** How many times the selected option changed before Submit. */
   answerChanges?: number
 }
