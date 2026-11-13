@@ -11,11 +11,7 @@ export function AttemptsPage() {
 
   return (
     <AppShell title="Attempt Log">
-      <p className="mb-4 max-w-2xl text-sm text-muted">
-        Filter and sort every saved attempt, open a per-question timeline, and export CSV for
-        attempts or sessions. Mistake tags come from tutor feedback and post-mock review.
-      </p>
-      {loading ? <p className="text-sm text-muted">Loading exam…</p> : null}
+      {loading ? <p className="text-sm text-muted">Loading Exam…</p> : null}
       {error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
       {exam ? <AttemptLog userId={user.id} examId={exam.id} /> : null}
     </AppShell>

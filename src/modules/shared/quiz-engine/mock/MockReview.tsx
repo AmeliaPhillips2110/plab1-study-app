@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { MistakeTagPicker, loadMistakeTagsForAttempts, saveMistakeTags } from '@/features/mistakes'
 import { suggestMistakeTags, type MistakeTagCode } from '@/features/mistakes/tags'
+import { FatigueChart } from '@/modules/shared/quiz-engine/mock/FatigueChart'
 import { PaceWidget } from '@/modules/shared/quiz-engine/mock/PaceWidget'
 import { formatDuration } from '@/modules/shared/quiz-engine/pace'
 import type { QuestionWithOptions } from '@/types/database'
@@ -24,6 +25,7 @@ type Props = {
 
 const FILTERS = [
   { id: 'all', label: 'All' },
+  { id: 'correct', label: 'Correct' },
   { id: 'incorrect', label: 'Incorrect' },
   { id: 'flagged', label: 'Flagged' },
   { id: 'skipped', label: 'New' },
@@ -43,6 +45,7 @@ export function MockReview({
 }: Props) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
   const [tagMap, setTagMap] = useState<Record<string, string[]>>({})
+  const [noteMap, setNoteMap] = useState<Record<string, string>>({})
   const [openExplain, setOpenExplain] = useState<Record<string, boolean>>({})
 
   const incorrect = Math.max(0, answered - correct)
@@ -51,11 +54,15 @@ export function MockReview({
   useEffect(() => {
     const ids = Object.values(attemptIdByQuestionId)
     void loadMistakeTagsForAttempts(ids).then((map) => {
-      const next: Record<string, string[]> = {}
+      const nextTags: Record<string, string[]> = {}
+      const nextNotes: Record<string, string> = {}
       for (const [attemptId, rows] of Object.entries(map)) {
-        next[attemptId] = rows.map((r) => r.tag)
+        nextTags[attemptId] = rows.map((r) => r.tag)
+        const withNote = rows.find((r) => r.note)
+        if (withNote?.note) nextNotes[attemptId] = withNote.note
       }
-      setTagMap(next)
+      setTagMap(nextTags)
+      setNoteMap(nextNotes)
     })
   }, [attemptIdByQuestionId])
 
@@ -75,11 +82,21 @@ export function MockReview({
       })
       .filter((item) => {
         if (filter === 'all') return true
+        if (filter === 'correct') return item.result === 'correct'
         if (filter === 'incorrect') return item.result === 'incorrect'
         if (filter === 'flagged') return item.isFlagged
         return item.result === 'skipped'
       })
   }, [questions, progress, filter, attemptIdByQuestionId])
+
+  const unansweredIndices = useMemo(
+    () =>
+      questions
+        .map((q, i) => ({ q, i }))
+        .filter(({ q }) => !progress.answers[q.id])
+        .map(({ i }) => i),
+    [questions, progress.answers],
+  )
 
   const totalForBar = Math.max(questions.length, 1)
   const correctPct = (correct / totalForBar) * 100
@@ -99,6 +116,13 @@ export function MockReview({
           <Badge tone="accent">{percent}%</Badge>
           <Badge>Time Used {formatDuration(elapsedSec)}</Badge>
         </div>
+
+        <FatigueChart
+          totalQuestions={questions.length}
+          elapsedSec={elapsedSec}
+          paceSamples={progress.paceSamples}
+          unansweredIndices={unansweredIndices}
+        />
 
         <div className="mt-4">
           <div className="mb-1 flex flex-wrap justify-between gap-2 text-sm">
@@ -187,7 +211,7 @@ export function MockReview({
                     >
                       {result === 'skipped' ? 'New' : result === 'correct' ? 'Correct' : 'Incorrect'}
                     </Badge>
-                    {isFlagged ? <Badge tone="accent">Flagged</Badge> : null}
+                    {isFlagged ? <Badge tone="incorrect">Flagged</Badge> : null}
                   </div>
                   <p className="mb-3 whitespace-pre-wrap text-sm">{q.stem}</p>
                   <ul className="mb-3 flex flex-col gap-1 text-sm">
@@ -238,13 +262,15 @@ export function MockReview({
                   {result === 'incorrect' && attemptId ? (
                     <MistakeTagPicker
                       suggested={suggested}
-                      initialSelected={tagMap[attemptId] ?? suggested}
+                      initialSelected={tagMap[attemptId] ?? []}
+                      initialNote={noteMap[attemptId] ?? ''}
                       onSave={async (tags, note) => {
                         await saveMistakeTags({
                           attemptId,
                           tags: tags.map((tag) => ({ tag, note: note || null, source: 'manual' })),
                         })
                         setTagMap((prev) => ({ ...prev, [attemptId]: tags }))
+                        setNoteMap((prev) => ({ ...prev, [attemptId]: note }))
                       }}
                     />
                   ) : null}

@@ -25,6 +25,11 @@ export type TopicAccuracy = {
   correct: number
   total: number
   accuracy: number
+  incorrect: number
+  skipped: number
+  correctPct: number
+  incorrectPct: number
+  skippedPct: number
 }
 export type MistakeSlice = { tag: string; label: string; count: number }
 export type QpmPoint = { date: string; label: string; qpm: number; attempts: number }
@@ -103,37 +108,72 @@ export function computeScoreTrend(sessions: StudySession[]): ScorePoint[] {
     }))
 }
 
+/** Stacked specialty stats from all quiz + mock attempts (correct / incorrect / skipped). */
 export function computeTopicAccuracy(
   attempts: AttemptLogRow[],
   topics: Topic[],
 ): TopicAccuracy[] {
-  const byTopic = new Map<string, { correct: number; total: number; name: string }>()
+  const byTopic = new Map<
+    string,
+    { correct: number; incorrect: number; skipped: number; name: string }
+  >()
   for (const t of topics) {
-    byTopic.set(t.id, { correct: 0, total: 0, name: t.name })
+    byTopic.set(t.id, { correct: 0, incorrect: 0, skipped: 0, name: t.name })
   }
   for (const a of attempts) {
-    if (a.result !== 'correct' && a.result !== 'incorrect') continue
+    // Include graded + skipped from study and mocks (exclude flashcards).
+    const st = a.study_sessions?.session_type
+    const fmt = a.study_sessions?.presentation_format
+    if (st === 'flashcard' || fmt === 'flashcard' || a.questions?.question_type === 'flashcard') {
+      continue
+    }
+    if (
+      a.result !== 'correct' &&
+      a.result !== 'incorrect' &&
+      a.result !== 'skipped' &&
+      a.result !== 'partial'
+    ) {
+      continue
+    }
     const tid = a.questions?.topic_id ?? a.topics?.id
     if (!tid) continue
     const row = byTopic.get(tid) ?? {
       correct: 0,
-      total: 0,
+      incorrect: 0,
+      skipped: 0,
       name: a.topics?.name ?? 'Unknown',
     }
-    row.total += 1
     if (a.result === 'correct') row.correct += 1
+    else if (a.result === 'incorrect' || a.result === 'partial') row.incorrect += 1
+    else row.skipped += 1
     byTopic.set(tid, row)
   }
   return [...byTopic.entries()]
-    .map(([topicId, v]) => ({
-      topicId,
-      topic: v.name,
-      correct: v.correct,
-      total: v.total,
-      accuracy: v.total ? Math.round((v.correct / v.total) * 1000) / 10 : 0,
-    }))
+    .map(([topicId, v]) => {
+      const total = v.correct + v.incorrect + v.skipped
+      const graded = v.correct + v.incorrect
+      return {
+        topicId,
+        topic: v.name,
+        correct: v.correct,
+        incorrect: v.incorrect,
+        skipped: v.skipped,
+        total,
+        accuracy: graded ? Math.round((v.correct / graded) * 1000) / 10 : 0,
+        correctPct: total ? Math.round((v.correct / total) * 1000) / 10 : 0,
+        incorrectPct: total ? Math.round((v.incorrect / total) * 1000) / 10 : 0,
+        skippedPct: total ? Math.round((v.skipped / total) * 1000) / 10 : 0,
+      }
+    })
     .filter((r) => r.total > 0)
     .sort((a, b) => a.accuracy - b.accuracy)
+}
+
+/** Format ISO date as DD/MM for chart axes. */
+export function formatDdMm(isoDate: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate)
+  if (!m) return isoDate
+  return `${m[3]}/${m[2]}`
 }
 
 export function computeMistakeBreakdown(attempts: AttemptLogRow[]): MistakeSlice[] {
@@ -310,7 +350,7 @@ function isQuizAttempt(a: AttemptLogRow): boolean {
   return true
 }
 
-/** Status from last ≤3 quiz answers per question; New = never answered in quiz. */
+/** Status from last ≤3 answers per question across quizzes and mocks. */
 export function computeCoverageStatuses(
   attempts: AttemptLogRow[],
   bankActive: number,
@@ -397,7 +437,7 @@ export function computeActivityOverTime(
     .map(([date, v]) => {
       const point: ActivitySeriesPoint = {
         date,
-        label: date.slice(5),
+        label: formatDdMm(date),
         total: v.total,
         errors: v.errors,
         percentCorrect: v.graded ? Math.round((v.correct / v.graded) * 1000) / 10 : null,

@@ -13,6 +13,7 @@ import { TestHubPage } from '@/modules/plab1/pages/TestHubPage'
 import { TestModePage } from '@/modules/plab1/pages/TestModePage'
 import { AttemptsPage } from '@/routes/attempts/AttemptsPage'
 import { QuestionTimelinePage } from '@/routes/attempts/QuestionTimelinePage'
+import { SessionTimelinePage } from '@/routes/attempts/SessionTimelinePage'
 import { DashboardPage } from '@/routes/dashboard/DashboardPage'
 import { AdminComparisonPage } from '@/routes/admin/AdminComparisonPage'
 import { AdminGlossaryPage } from '@/routes/admin/AdminGlossaryPage'
@@ -36,6 +37,7 @@ export function AppRoutes() {
         <Route path="/tests/:modeSlug" element={<TestModePage />} />
         <Route path="/mock" element={<Navigate to="/tests/full-test" replace />} />
         <Route path="/attempts" element={<AttemptsPage />} />
+        <Route path="/attempts/session/:sessionId" element={<SessionTimelinePage />} />
         <Route path="/attempts/question/:questionId" element={<QuestionTimelinePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/kpis" element={<DashboardPage />} />
