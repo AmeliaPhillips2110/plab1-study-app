@@ -55,16 +55,16 @@ where id between 'a4000000-0000-4000-8000-000000000042'
             >
               APPLY_ALL.sql
             </a>{' '}
-            once, then optionally{' '}
+            once. To become admin after Create account, paste{' '}
             <a
               className="text-accent hover:underline"
-              href="https://github.com/AmeliaPhillips2110/plab1-study-app/blob/main/supabase/PROMOTE_AMELIA.sql"
+              href="https://github.com/AmeliaPhillips2110/plab1-study-app/blob/main/supabase/DIAGNOSE_AND_PROMOTE.sql"
               target="_blank"
               rel="noreferrer"
             >
-              PROMOTE_AMELIA.sql
-            </a>
-            . Full notes: <code className="text-fg">SETUP.md</code>.
+              DIAGNOSE_AND_PROMOTE.sql
+            </a>{' '}
+            (repairs missing profiles; no username column). Full notes: <code className="text-fg">SETUP.md</code>.
           </p>
         </section>
 
