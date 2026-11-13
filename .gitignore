@@ -19,7 +19,6 @@ dist-ssr
 # Local question-bank workbook (generate SQL via scripts/xlsx_to_seed_sql.py)
 data/*.xlsx
 !data/.gitkeep
-supabase/seed_question_bank.sql
 
 # Editor directories and files
 .vscode/*
