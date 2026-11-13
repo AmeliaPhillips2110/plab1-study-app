@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { LabValuesButton } from '@/features/lab-values'
 import { fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
+import { QuestionImage, questionImageUrl } from '@/components/ui/QuestionImage'
 import { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
 import { SbaOptions } from '@/modules/shared/quiz-engine/SbaOptions'
 import { MockReview } from '@/modules/shared/quiz-engine/mock/MockReview'
@@ -269,10 +270,16 @@ export function MockRunner({
       ) : null}
 
       <div className="rounded-md border border-border bg-surface p-4">
-        <div className="mb-4">
+        <div className="mb-4 flex flex-col gap-3">
           <StemWithGlossary text={current.stem} terms={glossaryTerms} />
+          {questionImageUrl(current.payload) ? (
+            <QuestionImage
+              src={questionImageUrl(current.payload)!}
+              alt="Clinical figure for this question"
+            />
+          ) : null}
           {current.is_uk_practice ? (
-            <p className="mt-2 text-xs font-medium text-accent">UK practice item</p>
+            <p className="text-xs font-medium text-accent">UK practice item</p>
           ) : null}
         </div>
         <SbaOptions

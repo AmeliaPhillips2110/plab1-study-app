@@ -39,3 +39,9 @@ Expect **1008** rows with `payload.source = plab1-xlsx`.
 ## 5. Hard-refresh PLABoratory
 
 Home topics + Practice should show the new bank.
+
+---
+
+## Bank v2 (images) — optional additive
+
+See [`IMPORT_BANK_V2_RUN_ORDER.md`](./IMPORT_BANK_V2_RUN_ORDER.md) for `PLAB_1_Question_Bank_2.xlsx` (234 SBAs + figures).
