@@ -7,8 +7,8 @@
 -- Do not set updated_at here — that caused ERROR 42703.
 -- Existing topic IDs kept (question FKs stay valid).
 -- New rows for Excel bank: Biomedical Sciences, Clinical Pharmacology,
--- Critical Care, Genetics and Genomics (IDs 033–036). Urology/Vascular kept.
--- All seeded topics stay is_active = true so Home shows every specialty.
+-- Critical Care, Genetics and Genomics (IDs 033–036), Maxillofacial Surgery (037).
+-- Urology/Vascular kept. All seeded topics stay is_active = true so Home shows every specialty.
 
 insert into public.topics (id, exam_id, slug, name, sort_order, is_active) values
   ('a2000000-0000-4000-8000-000000000023', 'a1000000-0000-4000-8000-000000000001', 'acute-emergency-medicine', 'Acute and Emergency Medicine', 10, true),
@@ -29,6 +29,7 @@ insert into public.topics (id, exam_id, slug, name, sort_order, is_active) value
   ('a2000000-0000-4000-8000-000000000014', 'a1000000-0000-4000-8000-000000000001', 'haematology', 'Haematology', 120, true),
   ('a2000000-0000-4000-8000-000000000028', 'a1000000-0000-4000-8000-000000000001', 'human-factors-quality-improvement', 'Human Factors and Quality Improvement', 130, true),
   ('a2000000-0000-4000-8000-000000000010', 'a1000000-0000-4000-8000-000000000001', 'infectious-disease', 'Infectious Disease', 140, true),
+  ('a2000000-0000-4000-8000-000000000037', 'a1000000-0000-4000-8000-000000000001', 'maxillofacial-surgery', 'Maxillofacial Surgery', 145, true),
   ('a2000000-0000-4000-8000-000000000029', 'a1000000-0000-4000-8000-000000000001', 'medicine-older-adult', 'Medicine of the Older Adult', 150, true),
   ('a2000000-0000-4000-8000-000000000007', 'a1000000-0000-4000-8000-000000000001', 'psychiatry', 'Mental Health', 160, true),
   ('a2000000-0000-4000-8000-000000000011', 'a1000000-0000-4000-8000-000000000001', 'musculoskeletal', 'Musculoskeletal', 170, true),
@@ -62,11 +63,12 @@ where exam_id = 'a1000000-0000-4000-8000-000000000001'
     'cardiology', 'clinical-imaging', 'clinical-pharmacology', 'critical-care',
     'dermatology', 'ent', 'endocrine', 'ethics-uk-practice', 'gastroenterology',
     'general-practice-primary-healthcare', 'genetics-genomics', 'haematology',
-    'human-factors-quality-improvement', 'infectious-disease', 'medicine-older-adult',
-    'psychiatry', 'musculoskeletal', 'neurology', 'obstetrics-gynaecology',
-    'ophthalmology', 'orthopaedics', 'paediatrics', 'palliative-end-of-life-care',
-    'perioperative-anaesthesia', 'renal', 'respiratory', 'rheumatology',
-    'sexual-health', 'social-population-health', 'surgery', 'urology', 'vascular'
+    'human-factors-quality-improvement', 'infectious-disease', 'maxillofacial-surgery',
+    'medicine-older-adult', 'psychiatry', 'musculoskeletal', 'neurology',
+    'obstetrics-gynaecology', 'ophthalmology', 'orthopaedics', 'paediatrics',
+    'palliative-end-of-life-care', 'perioperative-anaesthesia', 'renal', 'respiratory',
+    'rheumatology', 'sexual-health', 'social-population-health', 'surgery', 'urology',
+    'vascular'
   );
 
 -- Alphabetical sort_order from name
