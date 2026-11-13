@@ -81,7 +81,7 @@ export function QuestionView({
   const [startedAt] = useState(() => Date.now())
   const [mistakeTags, setMistakeTags] = useState<string[]>([])
   const [mistakeNote, setMistakeNote] = useState('')
-  const [flashcardFlagged, setFlashcardFlagged] = useState(false)
+  const [flagged, setFlagged] = useState(false)
   const [answerChanges, setAnswerChanges] = useState(0)
   const [advanced, setAdvanced] = useState(false)
 
@@ -95,7 +95,7 @@ export function QuestionView({
     setTimedOut(false)
     setMistakeTags([])
     setMistakeNote('')
-    setFlashcardFlagged(false)
+    setFlagged(false)
     setAnswerChanges(0)
     setAdvanced(false)
     // Only reset when the question (or lock state) changes — not on every draft keystroke.
@@ -131,9 +131,26 @@ export function QuestionView({
       mistakeTags: mistakeTags.length > 0 ? mistakeTags : undefined,
       mistakeNote: mistakeNote || null,
       answerChanges,
+      flagged,
       ...extra,
     }
   }
+
+  const flagToggle = (
+    <button
+      type="button"
+      className={
+        flagged
+          ? 'inline-flex items-center gap-1 text-incorrect'
+          : 'inline-flex items-center gap-1 text-muted hover:text-incorrect'
+      }
+      aria-pressed={flagged}
+      onClick={() => setFlagged((v) => !v)}
+    >
+      <span aria-hidden>⚑</span>
+      {flagged ? 'Flagged' : 'Flag for Review'}
+    </button>
+  )
 
   function onSubmitClick() {
     if (!selectedId || revealed || lockedResult) return
@@ -229,19 +246,7 @@ export function QuestionView({
             <span className="font-medium text-muted">
               Self-grade: <span className="text-fg capitalize">{grade ?? '—'}</span>
             </span>
-            <button
-              type="button"
-              className={
-                flashcardFlagged
-                  ? 'inline-flex items-center gap-1 text-incorrect'
-                  : 'inline-flex items-center gap-1 text-muted hover:text-incorrect'
-              }
-              aria-pressed={flashcardFlagged}
-              onClick={() => setFlashcardFlagged((v) => !v)}
-            >
-              <span aria-hidden>⚑</span>
-              {flashcardFlagged ? 'Flagged' : 'Flag for Review'}
-            </button>
+            {flagToggle}
           </div>
         ) : null}
         {navRow}
@@ -256,7 +261,6 @@ export function QuestionView({
                   selectedOptionId: null,
                   payload: {
                     ...buildPayload({ grade }),
-                    flagged: flashcardFlagged,
                     mistakeTags: undefined,
                     mistakeNote: null,
                   },
@@ -354,6 +358,9 @@ export function QuestionView({
                 setMistakeNote(note)
               }}
             />
+          ) : null}
+          {result && !lockedResult ? (
+            <div className="flex flex-wrap items-center gap-3 text-sm">{flagToggle}</div>
           ) : null}
           {navRow}
         </>
