@@ -69,7 +69,15 @@ Use this when Home topics are missing specialties (e.g. ENT, Urology, Vascular, 
 | 2 | Supabase → **SQL** → **New query** → paste → **Run** |
 | 3 | Hard-refresh the live site |
 
-Safe to re-run. Also embedded in `APPLY_ALL.sql` / `seed.sql` for fresh projects.
+Safe to re-run. **Do not** set `updated_at` on `topics` — that column does not exist (`ERROR 42703`). The fixed file only updates `slug` / `name` / `sort_order` / `is_active`.
+
+### Full Excel bank import (run order)
+
+See [`supabase/IMPORT_BANK_RUN_ORDER.md`](./supabase/IMPORT_BANK_RUN_ORDER.md):
+
+1. `seed_topics_expand.sql` (topics)  
+2. `clear_sample_questions.sql` (remove SAMPLE/example SBAs)  
+3. Generate + paste `seed_question_bank.sql` from `PLAB_1_Question_Bank.xlsx` via `python3 scripts/xlsx_to_seed_sql.py`
 
 ### A. Same pack (short checklist)
 

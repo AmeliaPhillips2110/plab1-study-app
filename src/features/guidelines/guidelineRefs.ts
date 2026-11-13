@@ -6,6 +6,8 @@ export type GuidelineRef = {
 type PayloadShape = {
   guidelines?: GuidelineRef[]
   guideline_refs?: GuidelineRef[]
+  /** Free-text refs from Excel import (also scanned like explanation). */
+  guidelines_text?: string
 }
 
 /** Known UK guidance hubs for auto-linking from explanation text. */
@@ -58,7 +60,7 @@ export function collectGuidelineRefs(params: {
     ...(Array.isArray(payload.guideline_refs) ? payload.guideline_refs : []),
   ].filter((r) => r && typeof r.label === 'string' && typeof r.url === 'string')
 
-  const text = params.explanation ?? ''
+  const text = [params.explanation ?? '', payload.guidelines_text ?? ''].filter(Boolean).join('\n')
   const fromText: GuidelineRef[] = []
   for (const pattern of AUTO_PATTERNS) {
     pattern.re.lastIndex = 0

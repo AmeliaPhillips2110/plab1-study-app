@@ -3,6 +3,8 @@
 -- Amelia: paste this in Supabase SQL → Run → hard-refresh the site
 -- Display order is alphabetical by name (sort_order + UI order by name).
 -- =============================================================================
+-- IMPORTANT: public.topics has NO updated_at column (only created_at).
+-- Do not set updated_at here — that caused ERROR 42703.
 -- Existing topic IDs kept (question FKs stay valid). Slugs for remapped rows
 -- stay stable. New rows: Urology, Vascular (IDs 031–032).
 -- Renal renamed from “Renal and Urology”. ENT kept. All seeded topics stay
@@ -45,13 +47,11 @@ on conflict (id) do update
   set slug = excluded.slug,
       name = excluded.name,
       sort_order = excluded.sort_order,
-      is_active = true,
-      updated_at = now();
+      is_active = true;
 
 -- Ensure every seeded specialty is visible (do not hide empty banks)
 update public.topics
-set is_active = true,
-    updated_at = now()
+set is_active = true
 where exam_id = 'a1000000-0000-4000-8000-000000000001'
   and slug in (
     'acute-emergency-medicine', 'breast-surgery', 'cancer', 'cardiology',
@@ -72,8 +72,7 @@ with ranked as (
     and is_active = true
 )
 update public.topics t
-set sort_order = ranked.sort_order,
-    updated_at = now()
+set sort_order = ranked.sort_order
 from ranked
 where t.id = ranked.id;
 
