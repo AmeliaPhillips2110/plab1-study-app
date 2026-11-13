@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { countWords, fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
 import { saveMistakeTags } from '@/features/mistakes'
+import { LabValuesButton } from '@/features/lab-values'
 import { useExam } from '@/hooks/useExam'
 import { QuestionView } from '@/modules/shared/quiz-engine/QuestionView'
 import {
@@ -373,9 +374,12 @@ export function SessionRunner({ userId, config, onExit }: Props) {
           {config.openEnded ? 'Open Quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
           {FORMAT_LABELS[config.openEnded ? 'sba' : config.presentationFormat]}
         </span>
-        <span className="tabular-nums font-medium text-fg" aria-live="polite">
-          This question: {formatDuration(questionElapsedSec)}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <LabValuesButton />
+          <span className="tabular-nums font-medium text-fg" aria-live="polite">
+            This question: {formatDuration(questionElapsedSec)}
+          </span>
+        </div>
       </div>
       {saving ? <p className="text-xs text-muted">Saving…</p> : null}
       {error ? <p className="text-sm text-incorrect">{error}</p> : null}

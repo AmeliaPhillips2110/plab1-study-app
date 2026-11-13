@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { LabValuesButton } from '@/features/lab-values'
 import { fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
 import { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
 import { SbaOptions } from '@/modules/shared/quiz-engine/SbaOptions'
@@ -230,28 +231,31 @@ export function MockRunner({
             {unlimited ? ' · Finish when done' : ''}
           </p>
         </div>
-        {unlimited ? (
-          <div className="text-right">
-            <p className="text-lg font-semibold text-fg" aria-label="Elapsed time">
-              {formatDuration(elapsedSec)}
-            </p>
-            <p className="text-xs text-muted">Elapsed</p>
-          </div>
-        ) : (
-          <div className="text-right">
-            <p
-              className={
-                remainingSec <= 300
-                  ? 'text-lg font-semibold text-incorrect'
-                  : 'text-lg font-semibold text-fg'
-              }
-              aria-label="Time remaining"
-            >
-              {formatDuration(remainingSec)}
-            </p>
-            <p className="text-xs text-muted">Countdown</p>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <LabValuesButton />
+          {unlimited ? (
+            <div className="text-right">
+              <p className="text-lg font-semibold text-fg" aria-label="Elapsed time">
+                {formatDuration(elapsedSec)}
+              </p>
+              <p className="text-xs text-muted">Elapsed</p>
+            </div>
+          ) : (
+            <div className="text-right">
+              <p
+                className={
+                  remainingSec <= 300
+                    ? 'text-lg font-semibold text-incorrect'
+                    : 'text-lg font-semibold text-fg'
+                }
+                aria-label="Time remaining"
+              >
+                {formatDuration(remainingSec)}
+              </p>
+              <p className="text-xs text-muted">Countdown</p>
+            </div>
+          )}
+        </div>
       </header>
 
       {!unlimited ? (

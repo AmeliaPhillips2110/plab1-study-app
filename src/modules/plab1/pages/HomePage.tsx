@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { countdownTo, nextExamDate } from '@/lib/examCountdown'
 import { supabase } from '@/lib/supabase'
+import { sortTopicsByName } from '@/lib/topics'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
 import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
 
@@ -26,6 +27,8 @@ export function HomePage() {
 
   const examDay = useMemo(() => nextExamDate(new Date()), [])
   const daysLeft = useMemo(() => countdownTo(examDay, new Date()).days, [examDay])
+  /** Always show every seeded topic (including 0-question banks), A→Z. */
+  const topicsAz = useMemo(() => sortTopicsByName(topics), [topics])
 
   useEffect(() => {
     if (!exam) {
@@ -81,13 +84,14 @@ export function HomePage() {
           else if (v.result === 'skipped') skipped += 1
         }
         const answered = correct + incorrect + skipped
-        const unanswered = Math.max(0, bank - answered)
+        // Empty banks still render as fully unanswered (grey) — never hide the topic.
+        const unanswered = bank > 0 ? Math.max(0, bank - answered) : 1
         const graded = correct + incorrect
         stacks[t.id] = {
           correct,
           incorrect,
           skipped,
-          unanswered: bank > 0 ? unanswered : answered === 0 ? 1 : 0,
+          unanswered,
           bank,
           pctCorrect: graded > 0 ? Math.round((correct / graded) * 100) : null,
         }
@@ -158,52 +162,60 @@ export function HomePage() {
           </div>
           {loading ? (
             <p className="text-sm text-muted">Loading topics…</p>
-          ) : topics.length === 0 ? (
-            <p className="text-sm text-muted">No topics yet.</p>
+          ) : topicsAz.length === 0 ? (
+            <p className="text-sm text-muted">
+              No topics yet. Run <code className="text-xs">seed_topics_expand.sql</code> in
+              Supabase, then hard-refresh.
+            </p>
           ) : (
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {topics.map((t) => {
-                const s = topicStacks[t.id]
-                const total =
-                  (s?.correct ?? 0) +
-                  (s?.incorrect ?? 0) +
-                  (s?.skipped ?? 0) +
-                  (s?.unanswered ?? 1)
-                const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0)
-                return (
-                  <li key={t.id} className="rounded border border-border px-3 py-2">
-                    <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
-                      <span className="font-medium">{t.name}</span>
-                      <span className="tabular-nums text-muted">
-                        {s?.pctCorrect == null ? '—' : `${s.pctCorrect}%`}
-                      </span>
-                    </div>
-                    <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-[#ece7df]">
-                      <div
-                        className="h-full"
-                        style={{ width: `${pct(s?.correct ?? 0)}%`, backgroundColor: '#3d8b5a' }}
-                        title="Correct"
-                      />
-                      <div
-                        className="h-full"
-                        style={{ width: `${pct(s?.incorrect ?? 0)}%`, backgroundColor: '#b54a4a' }}
-                        title="Incorrect"
-                      />
-                      <div
-                        className="h-full"
-                        style={{ width: `${pct(s?.skipped ?? 0)}%`, backgroundColor: '#c47a3a' }}
-                        title="Skipped"
-                      />
-                      <div
-                        className="h-full"
-                        style={{ width: `${pct(s?.unanswered ?? 1)}%`, backgroundColor: '#737373' }}
-                        title="Unanswered"
-                      />
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+            <>
+              <p className="mb-3 text-xs text-muted">
+                {topicsAz.length} specialties · A–Z · empty topics still listed
+              </p>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {topicsAz.map((t) => {
+                  const s = topicStacks[t.id]
+                  const total =
+                    (s?.correct ?? 0) +
+                    (s?.incorrect ?? 0) +
+                    (s?.skipped ?? 0) +
+                    (s?.unanswered ?? 1)
+                  const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0)
+                  return (
+                    <li key={t.id} className="rounded border border-border px-3 py-2">
+                      <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
+                        <span className="font-medium">{t.name}</span>
+                        <span className="tabular-nums text-muted">
+                          {s?.pctCorrect == null ? '—' : `${s.pctCorrect}%`}
+                        </span>
+                      </div>
+                      <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-[#ece7df]">
+                        <div
+                          className="h-full"
+                          style={{ width: `${pct(s?.correct ?? 0)}%`, backgroundColor: '#3d8b5a' }}
+                          title="Correct"
+                        />
+                        <div
+                          className="h-full"
+                          style={{ width: `${pct(s?.incorrect ?? 0)}%`, backgroundColor: '#b54a4a' }}
+                          title="Incorrect"
+                        />
+                        <div
+                          className="h-full"
+                          style={{ width: `${pct(s?.skipped ?? 0)}%`, backgroundColor: '#c47a3a' }}
+                          title="Skipped"
+                        />
+                        <div
+                          className="h-full"
+                          style={{ width: `${pct(s?.unanswered ?? 1)}%`, backgroundColor: '#737373' }}
+                          title="Unanswered"
+                        />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
           )}
         </section>
       </div>
