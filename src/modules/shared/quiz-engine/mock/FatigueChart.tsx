@@ -16,6 +16,8 @@ import type { PaceSample } from '@/types/quiz'
 type Props = {
   totalQuestions: number
   elapsedSec: number
+  /** Chosen session timer (seconds). X-axis spans this duration. */
+  timeLimitSec?: number | null
   paceSamples: PaceSample[]
   /** 0-based indices of unanswered questions (black dots). */
   unansweredIndices: number[]
@@ -39,22 +41,28 @@ function interpolateRemaining(
   return samples[samples.length - 1]!.remaining
 }
 
-/** Questions remaining over time (fatigue) — blue line; black dots for unanswered. */
+/** Questions remaining over time — brand teal line; X = chosen session duration. */
 export function FatigueChart({
   totalQuestions,
   elapsedSec,
+  timeLimitSec,
   paceSamples,
   unansweredIndices,
 }: Props) {
+  const xMax = Math.max(timeLimitSec && timeLimitSec > 0 ? timeLimitSec : 0, elapsedSec, 1)
+
   const { lineData, dots } = useMemo(() => {
     const samples =
       paceSamples.length > 0
         ? paceSamples
-        : [{ elapsedSec: 0, answeredCount: 0 }, { elapsedSec: elapsedSec, answeredCount: 0 }]
+        : [
+            { elapsedSec: 0, answeredCount: 0 },
+            { elapsedSec: Math.min(elapsedSec, xMax), answeredCount: 0 },
+          ]
     const last = samples[samples.length - 1]!
     const withEnd =
-      last.elapsedSec < elapsedSec
-        ? [...samples, { elapsedSec, answeredCount: last.answeredCount }]
+      last.elapsedSec < Math.min(elapsedSec, xMax)
+        ? [...samples, { elapsedSec: Math.min(elapsedSec, xMax), answeredCount: last.answeredCount }]
         : samples
 
     const line = withEnd.map((s) => ({
@@ -63,10 +71,9 @@ export function FatigueChart({
       label: formatDuration(s.elapsedSec),
     }))
 
-    const endT = Math.max(elapsedSec, line[line.length - 1]?.elapsedSec ?? 0, 1)
     const black = unansweredIndices.map((idx) => {
       const t =
-        totalQuestions <= 1 ? endT : Math.min(endT, (idx / Math.max(totalQuestions - 1, 1)) * endT)
+        totalQuestions <= 1 ? Math.min(elapsedSec, xMax) : Math.min(xMax, (idx / Math.max(totalQuestions - 1, 1)) * Math.min(elapsedSec, xMax))
       return {
         elapsedSec: Math.round(t),
         unansweredAt: interpolateRemaining(line, t),
@@ -75,7 +82,7 @@ export function FatigueChart({
     })
 
     return { lineData: line, dots: black }
-  }, [paceSamples, elapsedSec, totalQuestions, unansweredIndices])
+  }, [paceSamples, elapsedSec, totalQuestions, unansweredIndices, xMax])
 
   if (totalQuestions <= 0) return null
 
@@ -93,7 +100,7 @@ export function FatigueChart({
               dataKey="elapsedSec"
               tick={{ fill: CHART.muted, fontSize: 11 }}
               tickFormatter={(v) => formatDuration(Number(v))}
-              domain={[0, 'dataMax']}
+              domain={[0, xMax]}
             />
             <YAxis
               type="number"
@@ -110,7 +117,7 @@ export function FatigueChart({
               type="monotone"
               dataKey="remaining"
               name="Remaining"
-              stroke="#2563eb"
+              stroke={CHART.accent}
               strokeWidth={2}
               dot={false}
               isAnimationActive={false}
@@ -126,7 +133,10 @@ export function FatigueChart({
         </ResponsiveContainer>
       </div>
       <p className="mt-1 text-center text-xs text-muted">
-        Blue = remaining · Black dots = unanswered
+        Teal = remaining · Black dots = unanswered
+        {timeLimitSec && timeLimitSec > 0
+          ? ` · X-axis ${formatDuration(timeLimitSec)} session timer`
+          : ''}
       </p>
     </div>
   )

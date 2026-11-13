@@ -31,7 +31,10 @@ type Props = { data: TopicDayCell[] }
 /** Topic × weekday activity as stacked bars. */
 export function TopicHeatmap({ data }: Props) {
   const { chartData, topics } = useMemo(() => {
-    const topicSet = [...new Set(data.map((d) => d.topic))].sort().slice(0, 8)
+    // Reverse A→Z so later names (e.g. Musculoskeletal) sit at the top of the legend.
+    const topicSet = [...new Set(data.map((d) => d.topic))]
+      .sort((a, b) => b.localeCompare(a, undefined, { sensitivity: 'base' }))
+      .slice(0, 8)
     const map = new Map(data.map((d) => [`${d.topic}||${d.day}`, d.count]))
     const rows = DAYS.map((day) => {
       const row: Record<string, string | number> = { day }

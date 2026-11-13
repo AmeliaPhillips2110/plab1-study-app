@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { countWords, fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
 import { saveMistakeTags } from '@/features/mistakes'
 import { LabValuesButton } from '@/features/lab-values'
+import { saveReadingSpeedWpm } from '@/features/preferences/readingSpeed'
 import { useExam } from '@/hooks/useExam'
 import { QuestionView } from '@/modules/shared/quiz-engine/QuestionView'
 import {
@@ -168,6 +169,18 @@ export function SessionRunner({ userId, config, onExit }: Props) {
     const finished = await finishStudySession({ sessionId, attempts: list })
     setFinalPercent(finished.percent)
     setPhase('summary')
+    // Auto-update reading speed from this session's timed stems.
+    const totalMs = list.reduce((s, a) => s + (a.timeSpentMs ?? 0), 0)
+    const totalWords = list.reduce((s, a) => {
+      const q = questions.find((x) => x.id === a.questionId)
+      return s + (q ? countWords(q.stem) : 0)
+    }, 0)
+    if (totalMs > 0 && totalWords > 0) {
+      const wpm = Math.round(totalWords / (totalMs / 60_000))
+      if (wpm >= 80 && wpm <= 600) {
+        void saveReadingSpeedWpm(userId, wpm)
+      }
+    }
   }
 
   async function handleSubmit(args: {

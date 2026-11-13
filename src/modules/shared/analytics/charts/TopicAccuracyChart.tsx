@@ -14,11 +14,11 @@ import type { TopicAccuracy } from '@/modules/shared/analytics/kpiMetrics'
 
 type Props = { data: TopicAccuracy[]; passMark: number }
 
-/** Distinct non-teal stack colours (bottom → top matches legend order). */
+/** Distinct stack colours (bottom → top matches legend order). Skipped = grey. */
 const STACK = {
   correct: '#3d8b5a',
   incorrect: '#b54a4a',
-  skipped: '#c47a3a',
+  skipped: '#a3a3a3',
 } as const
 
 export function TopicAccuracyChart({ data }: Props) {
