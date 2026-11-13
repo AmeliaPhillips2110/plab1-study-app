@@ -1,85 +1,78 @@
-import { useMemo, useState } from 'react'
-import { Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { studyModeBySlug } from '@/modules/plab1/modeRoutes'
 import { SessionRunner } from '@/modules/shared/quiz-engine/SessionRunner'
-import {
-  SessionSetup,
-  type SessionSetupInitial,
-} from '@/modules/shared/quiz-engine/SessionSetup'
 import type { SessionSetupConfig } from '@/types/quiz'
+import { TopicsPracticePage } from '@/routes/study/TopicsPracticePage'
 
 export function StudyModePage() {
   const { modeSlug = '' } = useParams()
-  const [params] = useSearchParams()
+
+  if (modeSlug === 'topics') {
+    return <TopicsPracticePage />
+  }
+
+  return <AutostartStudyMode modeSlug={modeSlug} />
+}
+
+function AutostartStudyMode({ modeSlug }: { modeSlug: string }) {
   const mode = studyModeBySlug(modeSlug)
   const { user } = useAuth()
-  const { loading, exam, topics, error, schemaMissing } = useExam()
-  const [run, setRun] = useState<{ id: string; config: SessionSetupConfig } | null>(null)
+  const { loading, exam, error, schemaMissing } = useExam()
+  const [runId, setRunId] = useState(() => crypto.randomUUID())
 
-  const initial = useMemo<SessionSetupInitial>(() => {
-    if (!mode) return {}
-    const topicId = params.get('topicId')
-    const autostartParam = params.get('autostart') === '1'
+  const config = useMemo<SessionSetupConfig | null>(() => {
+    if (!mode || !exam || mode.hubOnly) return null
     return {
+      examId: exam.id,
       sessionType: mode.sessionType,
-      presentationFormat: mode.presentationFormat,
-      weaknessVariant: mode.weaknessVariant,
-      unseenOnly: mode.unseenOnly,
-      openEnded: mode.openEnded,
-      questionLimit: mode.questionLimit,
-      topicId: topicId || undefined,
-      autostart: mode.autostart || autostartParam,
+      presentationFormat: mode.presentationFormat ?? 'sba',
+      weaknessVariant: mode.weaknessVariant ?? null,
+      unseenOnly: Boolean(mode.unseenOnly),
+      openEnded: Boolean(mode.openEnded),
+      questionLimit: mode.questionLimit ?? 20,
+      longStemOnly: Boolean(mode.longStemOnly),
+      topicId: null,
     }
-  }, [mode, params])
+  }, [mode, exam])
+
+  useEffect(() => {
+    setRunId(crypto.randomUUID())
+  }, [modeSlug])
 
   if (!user) return <Navigate to="/login" replace />
-  if (!mode) return <Navigate to="/study/practice-questions" replace />
+  if (!mode || mode.hubOnly) return <Navigate to="/study" replace />
 
-  if (run && exam) {
+  if (loading) {
     return (
       <AppShell title={mode.title}>
-        <SessionRunner
-          key={run.id}
-          userId={user.id}
-          config={run.config}
-          onExit={() => setRun(null)}
-        />
+        <p className="text-sm text-muted">Loading exam…</p>
+      </AppShell>
+    )
+  }
+
+  if (!exam || !config) {
+    return (
+      <AppShell title={mode.title}>
+        {!schemaMissing && error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
+        <EmptyBankHint examMissing={!loading && (!exam || schemaMissing)} />
+        <p className="mt-2 text-sm text-muted">No exam loaded yet.</p>
       </AppShell>
     )
   }
 
   return (
     <AppShell title={mode.title}>
-      {loading ? <p className="text-sm text-muted">Loading exam…</p> : null}
-      {!schemaMissing && error ? <p className="mb-4 text-sm text-incorrect">{error}</p> : null}
-      <div className="mb-4">
-        <EmptyBankHint examMissing={!loading && (!exam || schemaMissing)} />
-      </div>
-      {exam ? (
-        <SessionSetup
-          examId={exam.id}
-          topics={topics}
-          initial={initial}
-          onStart={(config) => {
-            const next: SessionSetupConfig = {
-              ...config,
-              unseenOnly: config.unseenOnly || Boolean(mode.unseenOnly),
-              openEnded: Boolean(mode.openEnded) || config.openEnded,
-              presentationFormat:
-                mode.presentationFormat ?? config.presentationFormat,
-              sessionType: mode.sessionType || config.sessionType,
-              weaknessVariant: mode.weaknessVariant ?? config.weaknessVariant,
-            }
-            setRun({ id: crypto.randomUUID(), config: next })
-          }}
-        />
-      ) : !loading ? (
-        <p className="text-sm text-muted">No exam loaded yet.</p>
-      ) : null}
+      <SessionRunner
+        key={runId}
+        userId={user.id}
+        config={config}
+        onExit={() => setRunId(crypto.randomUUID())}
+      />
     </AppShell>
   )
 }

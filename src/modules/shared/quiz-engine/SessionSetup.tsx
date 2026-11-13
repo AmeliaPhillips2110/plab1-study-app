@@ -86,7 +86,7 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
   }, [initial?.autostart, topicId, topics.length, sessionType])
 
   return (
-    <form onSubmit={onSubmit} className="flex max-w-xl flex-col gap-4 rounded-md border border-border bg-surface p-4">
+    <form onSubmit={onSubmit} className="flex w-full flex-col gap-4 rounded-md border border-border bg-surface p-4">
       <Select
         label="Session type"
         name="sessionType"
@@ -201,12 +201,6 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
           Long-stem practice (≥80 words)
         </label>
       </fieldset>
-
-      <p className="text-xs text-muted">
-        Tutor mode: you get immediate feedback and an explanation after each item. For exam
-        conditions (no mid-test feedback), use <span className="text-fg">Mocks</span> instead.
-        Long stems show a reading tip based on your glossary WPM preference.
-      </p>
 
       <Button type="submit" disabled={sessionType === 'topic' && !topicId}>
         Start session

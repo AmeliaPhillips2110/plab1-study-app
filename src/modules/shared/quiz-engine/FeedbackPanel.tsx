@@ -107,7 +107,7 @@ export function FeedbackPanel({
       ) : null}
       {question.explanation ? (
         <div className="text-sm">
-          <p className="mb-1 font-medium">Tutor explanation</p>
+          <p className="mb-1 font-medium">Explanation</p>
           <p className="whitespace-pre-wrap text-muted">{question.explanation}</p>
         </div>
       ) : (

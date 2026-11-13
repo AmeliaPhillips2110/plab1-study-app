@@ -277,19 +277,19 @@ export function MockRunner({
             disabled={progress.currentIndex <= 0}
             onClick={() => void goTo(progress.currentIndex - 1)}
           >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={progress.currentIndex >= questions.length - 1}
-            onClick={() => void goTo(progress.currentIndex + 1)}
-          >
-            Next
+            Back
           </Button>
           <Button variant={flaggedSet.has(current.id) ? 'primary' : 'ghost'} onClick={() => void toggleFlag()}>
             {flaggedSet.has(current.id) ? 'Flagged' : 'Flag for review'}
           </Button>
-          <div className="ml-auto">
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              disabled={progress.currentIndex >= questions.length - 1}
+              onClick={() => void goTo(progress.currentIndex + 1)}
+            >
+              Next
+            </Button>
             <Button
               variant="danger"
               disabled={phase === 'submitting'}
@@ -306,6 +306,12 @@ export function MockRunner({
             </Button>
           </div>
         </div>
+
+        <p className="text-center text-sm font-medium text-muted" aria-live="polite">
+          {unlimited
+            ? `${answeredCount} Questions Completed`
+            : `${answeredCount}/${questions.length} Questions`}
+        </p>
 
         {saveHint ? <p className="text-xs text-muted">Auto-save: {saveHint}</p> : null}
         {error ? <p className="text-sm text-incorrect">{error}</p> : null}

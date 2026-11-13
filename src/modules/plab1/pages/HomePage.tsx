@@ -1,25 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
-import {
-  accuracyGradient,
-  countdownTo,
-  nextExamDate,
-} from '@/lib/examCountdown'
+import { countdownTo, nextExamDate } from '@/lib/examCountdown'
+import { supabase } from '@/lib/supabase'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
-import { computeTopicAccuracy } from '@/modules/shared/analytics/kpiMetrics'
 import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
+
+type TopicStack = {
+  correct: number
+  incorrect: number
+  skipped: number
+  unanswered: number
+  bank: number
+  pctCorrect: number | null
+}
 
 export function HomePage() {
   const { user } = useAuth()
   const { loading, exam, settings, topics, error, schemaMissing } = useExam()
   const [bankCount, setBankCount] = useState<number | null>(null)
-  const [topicAccuracy, setTopicAccuracy] = useState<
-    Record<string, { accuracy: number; total: number }>
-  >({})
+  const [topicStacks, setTopicStacks] = useState<Record<string, TopicStack>>({})
 
   const examDay = useMemo(() => nextExamDate(new Date()), [])
   const daysLeft = useMemo(() => countdownTo(examDay, new Date()).days, [examDay])
@@ -35,18 +39,62 @@ export function HomePage() {
   }, [exam])
 
   useEffect(() => {
-    if (!user || !exam) {
-      setTopicAccuracy({})
+    if (!exam) {
+      setTopicStacks({})
       return
     }
     void (async () => {
-      const { rows } = await fetchAttemptLog({ userId: user.id, examId: exam.id, limit: 1000 })
-      const rowsWithTopics = computeTopicAccuracy(rows, topics)
-      const map: Record<string, { accuracy: number; total: number }> = {}
-      for (const t of rowsWithTopics) {
-        map[t.topicId] = { accuracy: t.accuracy, total: t.total }
+      const { data: qRows } = await supabase
+        .from('questions')
+        .select('id, topic_id')
+        .eq('exam_id', exam.id)
+        .eq('is_active', true)
+        .eq('question_type', 'sba')
+
+      const bankByTopic: Record<string, number> = {}
+      for (const q of qRows ?? []) {
+        const tid = (q as { topic_id: string | null }).topic_id
+        if (!tid) continue
+        bankByTopic[tid] = (bankByTopic[tid] ?? 0) + 1
       }
-      setTopicAccuracy(map)
+
+      const latestByQuestion = new Map<string, { topicId: string; result: string }>()
+      if (user) {
+        const { rows } = await fetchAttemptLog({ userId: user.id, examId: exam.id, limit: 2000 })
+        // rows are newest-first typically — keep first seen as latest
+        for (const row of rows) {
+          const qid = row.question_id
+          const tid = row.questions?.topic_id
+          if (!qid || !tid || latestByQuestion.has(qid)) continue
+          latestByQuestion.set(qid, { topicId: tid, result: row.result })
+        }
+      }
+
+      const stacks: Record<string, TopicStack> = {}
+      for (const t of topics) {
+        const bank = bankByTopic[t.id] ?? 0
+        let correct = 0
+        let incorrect = 0
+        let skipped = 0
+        for (const v of latestByQuestion.values()) {
+          if (v.topicId !== t.id) continue
+          if (v.result === 'correct') correct += 1
+          else if (v.result === 'incorrect' || v.result === 'partial') incorrect += 1
+          else if (v.result === 'skipped') skipped += 1
+        }
+        const answered = correct + incorrect + skipped
+        const unanswered = Math.max(0, bank - answered)
+        const graded = correct + incorrect
+        stacks[t.id] = {
+          correct,
+          incorrect,
+          skipped,
+          unanswered: bank > 0 ? unanswered : answered === 0 ? 1 : 0,
+          bank,
+          pctCorrect: graded > 0 ? Math.round((correct / graded) * 100) : null,
+        }
+      }
+      setTopicStacks(stacks)
     })()
   }, [user, exam, topics])
 
@@ -115,9 +163,14 @@ export function HomePage() {
         </section>
 
         <section className="w-full max-w-3xl rounded-md border border-border bg-surface p-4 text-center">
-          <h2 className="mb-2 font-display text-lg font-semibold">Topics</h2>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold">Topics</h2>
+            <Link to="/study/topics" className="text-sm text-accent hover:underline">
+              Practise by topic →
+            </Link>
+          </div>
           <p className="mb-3 text-xs text-muted">
-            % Correct bands: &gt;65% green · 50–65% yellow · 40–50% orange · &lt;40% red
+            Grey unanswered · green correct · red incorrect · white skipped
           </p>
           {loading ? (
             <p className="text-sm text-muted">Loading topics…</p>
@@ -126,26 +179,41 @@ export function HomePage() {
           ) : (
             <ul className="flex flex-col gap-2 text-left">
               {topics.map((t) => {
-                const stats = topicAccuracy[t.id]
-                const pct = stats && stats.total > 0 ? stats.accuracy : null
+                const s = topicStacks[t.id]
+                const total =
+                  (s?.correct ?? 0) +
+                  (s?.incorrect ?? 0) +
+                  (s?.skipped ?? 0) +
+                  (s?.unanswered ?? 1)
+                const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0)
                 return (
                   <li key={t.id} className="rounded border border-border px-3 py-2">
                     <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
                       <span className="font-medium">{t.name}</span>
                       <span className="tabular-nums text-muted">
-                        {pct == null ? '—' : `${pct}%`}
-                        {stats && stats.total > 0 ? (
-                          <span className="ml-1 text-xs">({stats.total})</span>
-                        ) : null}
+                        {s?.pctCorrect == null ? '—' : `${s.pctCorrect}%`}
                       </span>
                     </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-border/40">
+                    <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-neutral-400/40">
                       <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${pct == null ? 0 : Math.min(100, Math.max(8, pct))}%`,
-                          background: accuracyGradient(pct),
-                        }}
+                        className="h-full bg-correct"
+                        style={{ width: `${pct(s?.correct ?? 0)}%` }}
+                        title="Correct"
+                      />
+                      <div
+                        className="h-full bg-incorrect"
+                        style={{ width: `${pct(s?.incorrect ?? 0)}%` }}
+                        title="Incorrect"
+                      />
+                      <div
+                        className="h-full bg-white"
+                        style={{ width: `${pct(s?.skipped ?? 0)}%` }}
+                        title="Skipped"
+                      />
+                      <div
+                        className="h-full bg-neutral-400/70"
+                        style={{ width: `${pct(s?.unanswered ?? 1)}%` }}
+                        title="Unanswered"
                       />
                     </div>
                   </li>

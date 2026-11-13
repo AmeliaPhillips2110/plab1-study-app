@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
-import { fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
+import { countWords, fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
 import { saveMistakeTags } from '@/features/mistakes'
-import { useAuth } from '@/hooks/useAuth'
 import { QuestionView } from '@/modules/shared/quiz-engine/QuestionView'
 import {
   createStudySession,
@@ -25,25 +24,30 @@ type Props = {
 
 type Phase = 'loading' | 'running' | 'summary' | 'error'
 
+type AttemptMap = Record<
+  string,
+  LocalAttempt & { answerChanges: number }
+>
+
 export function SessionRunner({ userId, config, onExit }: Props) {
-  const { preferences } = useAuth()
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([])
   const [glossaryTerms, setGlossaryTerms] = useState<GlossaryTerm[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
-  const [attempts, setAttempts] = useState<LocalAttempt[]>([])
+  const [attemptMap, setAttemptMap] = useState<AttemptMap>({})
   const [saving, setSaving] = useState(false)
   const [finalPercent, setFinalPercent] = useState<number | null>(null)
-  const [questionElapsedSec, setQuestionElapsedSec] = useState(0)
-  const startedAt = useRef<number>(Date.now())
   const bootstrapped = useRef(false)
-  const attemptsRef = useRef<LocalAttempt[]>([])
+  const attemptMapRef = useRef<AttemptMap>({})
 
   useEffect(() => {
-    attemptsRef.current = attempts
-  }, [attempts])
+    attemptMapRef.current = attemptMap
+  }, [attemptMap])
+
+  const attempts = useMemo(() => Object.values(attemptMap), [attemptMap])
+  const openProgress = Boolean(config.openEnded)
 
   useEffect(() => {
     if (bootstrapped.current) return
@@ -74,23 +78,14 @@ export function SessionRunner({ userId, config, onExit }: Props) {
       setGlossaryTerms(glossary.terms)
       setQuestions(selected.questions)
       setSessionId(created.sessionId)
-      startedAt.current = Date.now()
       setPhase('running')
     })()
   }, [config, userId])
 
-  useEffect(() => {
-    if (phase !== 'running') return
-    setQuestionElapsedSec(0)
-    const id = window.setInterval(() => {
-      setQuestionElapsedSec(Math.floor((Date.now() - startedAt.current) / 1000))
-    }, 500)
-    return () => window.clearInterval(id)
-  }, [phase, index])
-
-  async function endSession(nextAttempts: LocalAttempt[]) {
+  async function endSession(nextMap: AttemptMap) {
     if (!sessionId) return
-    const finished = await finishStudySession({ sessionId, attempts: nextAttempts })
+    const list = Object.values(nextMap)
+    const finished = await finishStudySession({ sessionId, attempts: list })
     setFinalPercent(finished.percent)
     setPhase('summary')
   }
@@ -100,18 +95,26 @@ export function SessionRunner({ userId, config, onExit }: Props) {
     selectedOptionId: string | null
     payload: LocalAttempt['responsePayload']
     timeSpentMs?: number | null
+    answerChanges: number
   }) {
     if (!sessionId) return
     const q = questions[index]
     if (!q) return
+    if (attemptMapRef.current[q.id]) {
+      // Already saved — just advance
+      if (index + 1 >= questions.length) await endSession(attemptMapRef.current)
+      else setIndex((i) => i + 1)
+      return
+    }
     setSaving(true)
-    const timeSpentMs = args.timeSpentMs ?? Date.now() - startedAt.current
-    const attempt: LocalAttempt = {
+    const timeSpentMs = args.timeSpentMs ?? null
+    const attempt: AttemptMap[string] = {
       questionId: q.id,
       selectedOptionId: args.selectedOptionId,
       result: args.result,
       responsePayload: args.payload,
       timeSpentMs,
+      answerChanges: args.answerChanges,
     }
 
     const save = await saveAttempt({
@@ -158,32 +161,29 @@ export function SessionRunner({ userId, config, onExit }: Props) {
       result: args.result,
     })
 
-    const nextAttempts = [...attempts, attempt]
-    setAttempts(nextAttempts)
+    const nextMap = { ...attemptMapRef.current, [q.id]: attempt }
+    setAttemptMap(nextMap)
     setSaving(false)
 
     if (index + 1 >= questions.length) {
-      await endSession(nextAttempts)
+      await endSession(nextMap)
       return
     }
-
     setIndex((i) => i + 1)
-    startedAt.current = Date.now()
   }
 
   async function handleFinishEarly() {
     if (!sessionId || phase !== 'running') return
+    const n = Object.keys(attemptMapRef.current).length
     if (
       !window.confirm(
-        attemptsRef.current.length === 0
-          ? 'Finish without answering any questions?'
-          : `Finish now with ${attemptsRef.current.length} answered?`,
+        n === 0 ? 'Finish without answering any questions?' : `Finish now with ${n} answered?`,
       )
     ) {
       return
     }
     setSaving(true)
-    await endSession(attemptsRef.current)
+    await endSession(attemptMapRef.current)
     setSaving(false)
   }
 
@@ -196,8 +196,8 @@ export function SessionRunner({ userId, config, onExit }: Props) {
       <div className="flex flex-col gap-3">
         <p className="text-sm text-incorrect">{error}</p>
         <div className="flex gap-2">
-          <Link className="text-sm text-accent hover:underline" to="/study/practice-questions">
-            Back to study setup
+          <Link className="text-sm text-accent hover:underline" to="/study">
+            Back to Study
           </Link>
           {onExit ? (
             <Button variant="ghost" onClick={onExit}>
@@ -211,25 +211,41 @@ export function SessionRunner({ userId, config, onExit }: Props) {
 
   if (phase === 'summary') {
     const stats = summariseAttempts(attempts)
+    const totalMs = attempts.reduce((s, a) => s + (a.timeSpentMs ?? 0), 0)
+    const answered = attempts.length || 1
+    const avgTimeSec = Math.round(totalMs / answered / 1000)
+    const totalWords = attempts.reduce((s, a) => {
+      const q = questions.find((x) => x.id === a.questionId)
+      return s + (q ? countWords(q.stem) : 0)
+    }, 0)
+    const minutes = totalMs / 60000
+    const avgWpm = minutes > 0 ? Math.round(totalWords / minutes) : 0
+    const timesChanged = attempts.reduce(
+      (s, a) => s + (a.answerChanges || a.responsePayload.answerChanges || 0),
+      0,
+    )
+
     return (
-      <div className="flex max-w-xl flex-col gap-4 rounded-md border border-border bg-surface p-4">
+      <div className="flex w-full flex-col gap-4 rounded-md border border-border bg-surface p-4">
         <h2 className="font-display text-xl font-semibold">Session complete</h2>
         <p className="text-sm text-muted">
           {config.openEnded ? 'Open quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
           {FORMAT_LABELS[config.presentationFormat]}
         </p>
-        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Score" value={`${finalPercent ?? stats.percent}%`} />
           <Stat label="Correct" value={String(stats.correct)} />
           <Stat label="Incorrect" value={String(stats.incorrect)} />
-          <Stat label="Skipped" value={String(stats.skipped)} />
+          <Stat label="Average WPM" value={String(avgWpm)} />
+          <Stat label="Time per Question" value={`${avgTimeSec}s`} />
+          <Stat label="Times Changed" value={String(timesChanged)} />
         </dl>
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/study/practice-questions"
+            to="/study"
             className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
           >
-            New Session
+            Study hub
           </Link>
           <Link
             to="/attempts"
@@ -241,7 +257,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
             to="/"
             className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
           >
-            Study home
+            Home
           </Link>
         </div>
       </div>
@@ -250,49 +266,44 @@ export function SessionRunner({ userId, config, onExit }: Props) {
 
   const current = questions[index]
   if (!current) return null
-
-  const format =
-    config.openEnded || config.presentationFormat !== 'rapid_fire'
-      ? config.presentationFormat
-      : config.presentationFormat
+  const locked = attemptMap[current.id] ?? null
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
         <span>
-          {config.openEnded ? 'Open quiz (no time limit)' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
-          {FORMAT_LABELS[format]}
-        </span>
-        <span className="font-medium text-fg" aria-live="polite">
-          This question: {questionElapsedSec}s
+          {config.openEnded ? 'Open quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
+          {FORMAT_LABELS[config.openEnded ? 'sba' : config.presentationFormat]}
         </span>
       </div>
       {saving ? <p className="text-xs text-muted">Saving…</p> : null}
       {error ? <p className="text-sm text-incorrect">{error}</p> : null}
       <QuestionView
-        key={current.id}
+        key={`${current.id}-${locked ? 'locked' : 'live'}`}
         question={current}
         format={config.openEnded ? 'sba' : config.presentationFormat}
         rapidFireSeconds={config.openEnded ? undefined : config.rapidFireSeconds ?? 15}
         index={index}
         total={questions.length}
+        openProgress={openProgress}
+        completedCount={attempts.length}
         glossaryTerms={glossaryTerms}
-        readingSpeedWpm={preferences?.reading_speed_wpm}
-        showReadingTip
+        lockedResult={locked?.result ?? null}
+        lockedSelectedId={locked?.selectedOptionId ?? null}
+        canGoBack={index > 0}
+        onBack={() => setIndex((i) => Math.max(0, i - 1))}
+        onFinish={() => void handleFinishEarly()}
+        finishDisabled={saving}
         onSubmit={(args) =>
           void handleSubmit({
             result: args.result,
             selectedOptionId: args.selectedOptionId,
             payload: args.payload,
             timeSpentMs: args.timeSpentMs,
+            answerChanges: args.answerChanges,
           })
         }
       />
-      <div className="flex justify-end">
-        <Button variant="secondary" disabled={saving} onClick={() => void handleFinishEarly()}>
-          Finish
-        </Button>
-      </div>
     </div>
   )
 }
