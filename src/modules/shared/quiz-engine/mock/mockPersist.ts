@@ -163,6 +163,68 @@ export async function findOpenTimedSessions(params: {
   return (data as StudySession[] | null) ?? []
 }
 
+/**
+ * Close an unfinished mock without scoring — used when saved question IDs
+ * were deleted from the bank (e.g. SAMPLE rows cleared after Excel import).
+ */
+export async function abandonMockSession(sessionId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase
+    .from('study_sessions')
+    .update({
+      ended_at: new Date().toISOString(),
+      settings: {
+        orphaned: true,
+        orphanReason: 'questions_missing_from_bank',
+        finished: true,
+      } as unknown as Record<string, unknown>,
+    })
+    .eq('id', sessionId)
+    .is('ended_at', null)
+
+  clearLocalProgress(sessionId)
+  return { error: error?.message ?? null }
+}
+
+/** True when every saved question id still exists in the bank. */
+export async function mockSessionQuestionsIntact(
+  progress: MockProgressState | null,
+): Promise<{ intact: boolean; questions: QuestionWithOptions[] }> {
+  if (!progress || progress.questionIds.length === 0) {
+    return { intact: false, questions: [] }
+  }
+  const questions = await loadQuestionsByIds(progress.questionIds)
+  return {
+    intact: questions.length === progress.questionIds.length,
+    questions,
+  }
+}
+
+/**
+ * Open timed sessions that still have a complete question set.
+ * Auto-abandons orphans (missing bank ids) so Resume Unfinished stays clean.
+ */
+export async function findValidOpenTimedSessions(params: {
+  userId: string
+  examId: string
+}): Promise<{ sessions: StudySession[]; purged: number }> {
+  const open = await findOpenTimedSessions(params)
+  const valid: StudySession[] = []
+  let purged = 0
+
+  for (const session of open) {
+    const progress = progressFromSession(session)
+    const { intact } = await mockSessionQuestionsIntact(progress)
+    if (intact) {
+      valid.push(session)
+      continue
+    }
+    await abandonMockSession(session.id)
+    purged += 1
+  }
+
+  return { sessions: valid, purged }
+}
+
 export function progressFromSession(session: StudySession): MockProgressState | null {
   const local = loadLocalProgress(session.id)
   const remote = session.settings as unknown as MockProgressState | null

@@ -11,14 +11,15 @@ import { useExam } from '@/hooks/useExam'
 import { testModeBySlug } from '@/modules/plab1/modeRoutes'
 import { MockRunner } from '@/modules/shared/quiz-engine/mock/MockRunner'
 import {
+  abandonMockSession,
   countActiveSba,
   createMockSession,
   defaultMockLimits,
   finalizeMockSession,
-  findOpenTimedSessions,
-  loadQuestionsByIds,
+  findValidOpenTimedSessions,
   loadSbaBank,
   loadSbaByTopic,
+  mockSessionQuestionsIntact,
   progressFromSession,
 } from '@/modules/shared/quiz-engine/mock/mockPersist'
 import { selectQuestionsForSession } from '@/modules/shared/quiz-engine/selectQuestions'
@@ -79,7 +80,16 @@ export function TestModePage() {
     if (!exam || !user) return
     void (async () => {
       setBankCount(await countActiveSba(exam.id))
-      setOpenSessions(await findOpenTimedSessions({ userId: user.id, examId: exam.id }))
+      const { sessions, purged } = await findValidOpenTimedSessions({
+        userId: user.id,
+        examId: exam.id,
+      })
+      setOpenSessions(sessions)
+      if (purged > 0) {
+        setLocalError(
+          `Cleared ${purged} unfinished test${purged === 1 ? '' : 's'} whose questions are no longer in the bank (e.g. after SAMPLE import cleanup). You can start a new test.`,
+        )
+      }
     })()
   }, [exam, user])
 
@@ -195,9 +205,13 @@ export function TestModePage() {
       setBusy(false)
       return
     }
-    const questions = await loadQuestionsByIds(progress.questionIds)
-    if (questions.length === 0) {
-      setLocalError('Saved questions are missing from the bank.')
+    const { intact, questions } = await mockSessionQuestionsIntact(progress)
+    if (!intact) {
+      await abandonMockSession(session.id)
+      setOpenSessions((prev) => prev.filter((s) => s.id !== session.id))
+      setLocalError(
+        'That unfinished test pointed at questions no longer in the bank, so it was cleared. Start a new test.',
+      )
       setBusy(false)
       return
     }
@@ -216,13 +230,15 @@ export function TestModePage() {
     setLocalError(null)
     const progress = progressFromSession(session)
     if (!progress) {
-      setLocalError('Could not restore saved progress for that session.')
+      await abandonMockSession(session.id)
+      setOpenSessions((prev) => prev.filter((s) => s.id !== session.id))
       setBusy(false)
       return
     }
-    const questions = await loadQuestionsByIds(progress.questionIds)
-    if (questions.length === 0) {
-      setLocalError('Saved questions are missing from the bank.')
+    const { intact, questions } = await mockSessionQuestionsIntact(progress)
+    if (!intact) {
+      await abandonMockSession(session.id)
+      setOpenSessions((prev) => prev.filter((s) => s.id !== session.id))
       setBusy(false)
       return
     }
