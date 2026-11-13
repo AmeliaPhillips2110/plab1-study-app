@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { Avatar } from '@/components/ui/Avatar'
@@ -6,17 +6,19 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { saveAvatarUrl } from '@/features/preferences/avatar'
+import { ReadingSpeedChart } from '@/features/preferences/ReadingSpeedChart'
+import {
+  computeOverallReadingWpm,
+  computeReadingSpeedSeries,
+} from '@/features/preferences/readingSpeedMetrics'
 import { DEFAULT_READING_WPM, saveReadingSpeedWpm } from '@/features/preferences/readingSpeed'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { fetchKpiBundle } from '@/modules/shared/analytics/kpiData'
-import { computeHeadlineKpis } from '@/modules/shared/analytics/kpiMetrics'
-
-function formatHours(ms: number): string {
-  const hours = ms / 3_600_000
-  if (hours < 0.1) return `${Math.round(ms / 60_000)} min`
-  return `${Math.round(hours * 10) / 10} h`
-}
+import {
+  computeHeadlineKpis,
+  formatDurationHours,
+} from '@/modules/shared/analytics/kpiMetrics'
 
 export function AccountPage() {
   const { user, profile, preferences, refreshProfile, isAdmin } = useAuth()
@@ -31,6 +33,7 @@ export function AccountPage() {
   const [avatarBusy, setAvatarBusy] = useState(false)
   const [wpm, setWpm] = useState(String(preferences?.reading_speed_wpm ?? DEFAULT_READING_WPM))
   const [wpmMsg, setWpmMsg] = useState<string | null>(null)
+  const autoWpmSaved = useRef(false)
 
   useEffect(() => {
     setAvatarUrl(
@@ -65,8 +68,26 @@ export function AccountPage() {
     })
     const timeMs = bundle.attempts.reduce((sum, a) => sum + (a.time_spent_ms ?? 0), 0)
     const incorrect = headlines.gradedCount - headlines.correctCount
-    return { headlines, timeMs, incorrect }
+    const wpmSeries = computeReadingSpeedSeries(bundle.attempts)
+    const autoWpm = computeOverallReadingWpm(bundle.attempts)
+    return { headlines, timeMs, incorrect, wpmSeries, autoWpm }
   }, [bundle])
+
+  // Auto-update stored reading speed from timed attempts when it drifts.
+  useEffect(() => {
+    if (!user || !stats?.autoWpm || autoWpmSaved.current) return
+    const current = preferences?.reading_speed_wpm ?? DEFAULT_READING_WPM
+    if (Math.abs(current - stats.autoWpm) < 15) return
+    autoWpmSaved.current = true
+    void (async () => {
+      const { error: err } = await saveReadingSpeedWpm(user.id, stats.autoWpm!)
+      if (!err) {
+        setWpm(String(stats.autoWpm))
+        setWpmMsg(`Auto-updated from answered questions → ${stats.autoWpm} WPM`)
+        await refreshProfile()
+      }
+    })()
+  }, [user, stats?.autoWpm, preferences?.reading_speed_wpm, refreshProfile])
 
   if (!user) return <Navigate to="/login" replace />
 
@@ -93,7 +114,7 @@ export function AccountPage() {
     const { error: err } = await saveReadingSpeedWpm(user!.id, Number(wpm) || DEFAULT_READING_WPM)
     if (err) setWpmMsg(err)
     else {
-      setWpmMsg('Saved reading speed.')
+      setWpmMsg('Saved reading speed override.')
       await refreshProfile()
     }
   }
@@ -146,18 +167,26 @@ export function AccountPage() {
           {avatarMsg ? <p className="mt-2 text-center text-xs text-muted">{avatarMsg}</p> : null}
         </form>
 
-        <form
-          onSubmit={(e) => void onSaveWpm(e)}
-          className="rounded-md border border-border bg-surface p-4"
-        >
-          <h2 className="mb-2 text-center font-display text-sm font-semibold">Reading speed (WPM)</h2>
+        <section className="rounded-md border border-border bg-surface p-4">
+          <h2 className="mb-1 text-center font-display text-sm font-semibold">Reading speed</h2>
           <p className="mb-3 text-center text-xs text-muted">
-            Used for long-stem reading tips and pace-vs-length analytics. Typical study reading is
-            150–250 WPM.
+            Auto-calculated from answered question stems ÷ time spent. Line shows daily average WPM.
+            {stats?.autoWpm != null ? (
+              <>
+                {' '}
+                Current estimate: <strong className="text-fg">{stats.autoWpm} WPM</strong>.
+              </>
+            ) : (
+              ' Answer timed questions to build a trend.'
+            )}
           </p>
-          <div className="flex flex-wrap items-end justify-center gap-2">
+          <ReadingSpeedChart data={stats?.wpmSeries ?? []} />
+          <form
+            onSubmit={(e) => void onSaveWpm(e)}
+            className="mt-4 flex flex-wrap items-end justify-center gap-2"
+          >
             <Input
-              label="Words per minute"
+              label="Override WPM"
               name="wpm"
               type="number"
               min={80}
@@ -167,11 +196,11 @@ export function AccountPage() {
               className="max-w-[10rem]"
             />
             <Button type="submit" variant="secondary">
-              Save
+              Save override
             </Button>
-          </div>
+          </form>
           {wpmMsg ? <p className="mt-2 text-center text-xs text-muted">{wpmMsg}</p> : null}
-        </form>
+        </section>
 
         {examLoading || loading ? (
           <p className="text-center text-sm text-muted">Loading stats…</p>
@@ -182,7 +211,11 @@ export function AccountPage() {
 
         {stats ? (
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Stat label="Hours spent" value={formatHours(stats.timeMs)} hint="From timed attempts" />
+            <Stat
+              label="Time Spent"
+              value={formatDurationHours(stats.timeMs)}
+              hint="Total from timed attempts"
+            />
             <Stat
               label="Accuracy"
               value={`${stats.headlines.accuracyPercent}%`}

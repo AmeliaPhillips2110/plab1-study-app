@@ -120,6 +120,7 @@ export function MockReview({
         <FatigueChart
           totalQuestions={questions.length}
           elapsedSec={elapsedSec}
+          timeLimitSec={progress.timeLimitSec}
           paceSamples={progress.paceSamples}
           unansweredIndices={unansweredIndices}
         />

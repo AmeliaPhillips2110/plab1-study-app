@@ -31,11 +31,14 @@ import {
   computeQpmSeries,
   computeScoreTrend,
   computeTimeOfDayActivity,
+  computeTimeSpentBreakdown,
   computeTopicAccuracy,
   computeTopicWeekdayHeatmap,
   computeWeaknesses,
+  formatDurationHours,
   type CoverageStatusCounts,
   type HeadlineKpis,
+  type TimeSpentBreakdown,
 } from '@/modules/shared/analytics/kpiMetrics'
 import { WeaknessChart } from '@/modules/shared/analytics/WeaknessChart'
 
@@ -69,6 +72,14 @@ const EMPTY_COVERAGE: CoverageStatusCounts = {
   correct: 0,
   repeated_correct: 0,
   forgotten: 0,
+}
+
+const EMPTY_TIME: TimeSpentBreakdown = {
+  totalMs: 0,
+  practiceMs: 0,
+  testingMs: 0,
+  avgMsPerActiveDay: 0,
+  activeDays: 0,
 }
 
 type TimeScope = 'all' | 'practice' | 'tests'
@@ -135,6 +146,7 @@ export function KpiDashboard({
         timeOfDay: computeTimeOfDayActivity([]),
         dayOfWeek: computeDayOfWeekActivity([]),
         timedHeadlines: EMPTY_HEADLINES,
+        timeSpent: EMPTY_TIME,
       }
     }
     const timeAttempts = filterAttemptsByTimeScope(bundle.attempts, timeScope)
@@ -149,9 +161,15 @@ export function KpiDashboard({
       bankActive: bundle.bankActive,
     })
     const topicAccuracy = computeTopicAccuracy(bundle.attempts, bundle.topics)
+    const timeSpent = computeTimeSpentBreakdown(
+      bundle.attempts,
+      isStudySessionType,
+      isMockSessionType,
+    )
     return {
       headlines,
       timedHeadlines,
+      timeSpent,
       scoreTrend: computeScoreTrend(bundle.sessions),
       topicAccuracy,
       mistakes: computeMistakeBreakdown(bundle.attempts),
@@ -205,6 +223,28 @@ export function KpiDashboard({
         />
       </section>
 
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Tile
+          label="Time Spent (Practice)"
+          value={formatDurationHours(derived.timeSpent.practiceMs)}
+          hint="Study / practice sessions"
+        />
+        <Tile
+          label="Time Spent (Testing)"
+          value={formatDurationHours(derived.timeSpent.testingMs)}
+          hint="Full Test / Unlimited"
+        />
+        <Tile
+          label="Average Time per Day"
+          value={formatDurationHours(derived.timeSpent.avgMsPerActiveDay)}
+          hint={
+            derived.timeSpent.activeDays > 0
+              ? `Across ${derived.timeSpent.activeDays} active days`
+              : 'No timed attempts yet'
+          }
+        />
+      </section>
+
       <div className="mx-auto w-full max-w-xs">
         <Select
           label="Time KPIs scope"
@@ -225,7 +265,7 @@ export function KpiDashboard({
         </p>
       ) : null}
 
-      <Panel title="Score Over Time" subtitle={`Pass Mark Line At ${passMarkPercent}%`}>
+      <Panel title="Score Over Time" subtitle={`Daily mean · Pass Mark Line At ${passMarkPercent}%`}>
         <ScoreTrendChart data={derived.scoreTrend} passMark={passMarkPercent} />
       </Panel>
 
@@ -239,7 +279,7 @@ export function KpiDashboard({
       </div>
 
       <div className="grid items-stretch gap-6 lg:grid-cols-2">
-        <Panel title="Questions Per Minute">
+        <Panel title="Questions Per Minute" subtitle="By Date">
           <QpmChart data={derived.qpm} />
         </Panel>
         <Panel title="Coverage Status">

@@ -13,14 +13,15 @@ import type { QpmPoint } from '@/modules/shared/analytics/kpiMetrics'
 
 type Props = { data: QpmPoint[] }
 
+/** Questions per minute aggregated by calendar date (DD/MM axis). */
 export function QpmChart({ data }: Props) {
   if (data.length === 0) {
-    return <EmptyChartShell yDomain={[0, 2]} heightClass="h-28" />
+    return <EmptyChartShell yDomain={[0, 2]} heightClass="h-36" />
   }
   const max = Math.max(...data.map((d) => d.qpm), 0.5)
   const yMax = Math.ceil(max * 1.15 * 10) / 10
   return (
-    <div className="h-28 w-full">
+    <div className="h-36 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />

@@ -8,6 +8,7 @@ import { countdownTo, nextExamDate } from '@/lib/examCountdown'
 import { supabase } from '@/lib/supabase'
 import { sortTopicsByName } from '@/lib/topics'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
+import { formatDurationHours } from '@/modules/shared/analytics/kpiMetrics'
 import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
 
 type TopicStack = {
@@ -24,6 +25,7 @@ export function HomePage() {
   const { loading, exam, topics, error, schemaMissing } = useExam()
   const [bankCount, setBankCount] = useState<number | null>(null)
   const [topicStacks, setTopicStacks] = useState<Record<string, TopicStack>>({})
+  const [timeSpentMs, setTimeSpentMs] = useState(0)
 
   const examDay = useMemo(() => nextExamDate(new Date()), [])
   const daysLeft = useMemo(() => countdownTo(examDay, new Date()).days, [examDay])
@@ -39,6 +41,18 @@ export function HomePage() {
       setBankCount(await countActiveSba(exam.id))
     })()
   }, [exam])
+
+  useEffect(() => {
+    if (!exam || !user) {
+      setTimeSpentMs(0)
+      return
+    }
+    void (async () => {
+      const { rows } = await fetchAttemptLog({ userId: user.id, examId: exam.id, limit: 5000 })
+      const ms = rows.reduce((sum, r) => sum + (r.time_spent_ms ?? 0), 0)
+      setTimeSpentMs(ms)
+    })()
+  }, [exam, user])
 
   useEffect(() => {
     if (!exam) {
@@ -125,11 +139,19 @@ export function HomePage() {
               day: 'numeric',
             })}
           </p>
-          <div className="mx-auto max-w-xs rounded-md border border-accent/30 bg-accent-subtle px-4 py-5">
-            <p className="font-display text-4xl font-bold text-accent sm:text-5xl">{daysLeft}</p>
-            <p className="mt-1 text-xs uppercase tracking-wide text-muted">
-              {daysLeft === 1 ? 'Day' : 'Days'} remaining
-            </p>
+          <div className="mx-auto grid max-w-lg gap-3 sm:grid-cols-2">
+            <div className="rounded-md border border-accent/30 bg-accent-subtle px-4 py-5">
+              <p className="font-display text-4xl font-bold text-accent sm:text-5xl">{daysLeft}</p>
+              <p className="mt-1 text-xs uppercase tracking-wide text-muted">
+                {daysLeft === 1 ? 'Day' : 'Days'} remaining
+              </p>
+            </div>
+            <div className="rounded-md border border-border bg-surface px-4 py-5">
+              <p className="font-display text-4xl font-bold text-fg sm:text-5xl">
+                {user ? formatDurationHours(timeSpentMs) : '—'}
+              </p>
+              <p className="mt-1 text-xs uppercase tracking-wide text-muted">Time Spent</p>
+            </div>
           </div>
         </section>
 

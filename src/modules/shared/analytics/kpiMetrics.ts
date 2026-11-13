@@ -18,7 +18,22 @@ export type HeadlineKpis = {
   latestMockPercent: number | null
 }
 
-export type ScorePoint = { date: string; label: string; score: number; sessionType: string }
+export type ScorePoint = {
+  date: string
+  label: string
+  score: number
+  sessionType: string
+  /** Number of finished sessions averaged into this day point. */
+  sessions?: number
+}
+
+export type TimeSpentBreakdown = {
+  totalMs: number
+  practiceMs: number
+  testingMs: number
+  avgMsPerActiveDay: number
+  activeDays: number
+}
 export type TopicAccuracy = {
   topicId: string
   topic: string
@@ -96,16 +111,63 @@ export function computeHeadlineKpis(params: {
   }
 }
 
+/** One score point per calendar day (mean of finished session scores that day). */
 export function computeScoreTrend(sessions: StudySession[]): ScorePoint[] {
-  return sessions
-    .filter((s) => s.ended_at && s.score_percent != null)
-    .sort((a, b) => new Date(a.ended_at!).getTime() - new Date(b.ended_at!).getTime())
-    .map((s) => ({
-      date: s.ended_at!,
-      label: dayKey(s.ended_at!),
-      score: Number(s.score_percent),
-      sessionType: s.session_type,
+  const byDay = new Map<string, { sum: number; n: number; lastType: string }>()
+  for (const s of sessions) {
+    if (!s.ended_at || s.score_percent == null) continue
+    const d = dayKey(s.ended_at)
+    const row = byDay.get(d) ?? { sum: 0, n: 0, lastType: s.session_type }
+    row.sum += Number(s.score_percent)
+    row.n += 1
+    row.lastType = s.session_type
+    byDay.set(d, row)
+  }
+  return [...byDay.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, v]) => ({
+      date,
+      label: formatDdMm(date),
+      score: Math.round((v.sum / v.n) * 10) / 10,
+      sessionType: v.lastType,
+      sessions: v.n,
     }))
+}
+
+export function computeTimeSpentBreakdown(
+  attempts: AttemptLogRow[],
+  isPractice: (sessionType: string | null | undefined) => boolean,
+  isTesting: (sessionType: string | null | undefined) => boolean,
+): TimeSpentBreakdown {
+  let totalMs = 0
+  let practiceMs = 0
+  let testingMs = 0
+  const days = new Set<string>()
+  for (const a of attempts) {
+    const ms = a.time_spent_ms ?? 0
+    if (ms <= 0) continue
+    totalMs += ms
+    days.add(dayKey(a.answered_at))
+    const st = a.study_sessions?.session_type
+    if (isTesting(st)) testingMs += ms
+    else if (isPractice(st)) practiceMs += ms
+  }
+  const activeDays = days.size
+  return {
+    totalMs,
+    practiceMs,
+    testingMs,
+    activeDays,
+    avgMsPerActiveDay: activeDays > 0 ? Math.round(totalMs / activeDays) : 0,
+  }
+}
+
+export function formatDurationHours(ms: number): string {
+  if (ms <= 0) return '0 min'
+  const hours = ms / 3_600_000
+  if (hours < 0.1) return `${Math.max(1, Math.round(ms / 60_000))} min`
+  if (hours < 10) return `${Math.round(hours * 10) / 10} h`
+  return `${Math.round(hours)} h`
 }
 
 /** Stacked specialty stats from all quiz + mock attempts (correct / incorrect / skipped). */
@@ -205,7 +267,7 @@ export function computeQpmSeries(attempts: AttemptLogRow[]): QpmPoint[] {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => ({
       date,
-      label: date.slice(5),
+      label: formatDdMm(date),
       attempts: v.n,
       qpm: v.ms > 0 ? Math.round((v.n / v.ms) * 60_000 * 100) / 100 : 0,
     }))
