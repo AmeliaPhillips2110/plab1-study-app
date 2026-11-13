@@ -158,19 +158,11 @@ Example: User `Amelia` → Auth email `amelia@plaboratory.app`, profile display 
 
 1. Confirm §1: **Confirm email = Off**. Then in the app, **Create account** with Amelia’s user name + password. You should land signed in with **no** email sent.
 2. If you still see `email rate limit exceeded`: Confirm email is still On, or the free quota is exhausted — turn it Off, wait ~1 hour (or add custom SMTP), retry.
-3. Promote Amelia to **Administrator** — paste [`supabase/PROMOTE_AMELIA.sql`](./supabase/PROMOTE_AMELIA.sql) into the SQL editor and Run (or run this):
+3. Promote Amelia to **Administrator** — preferred one-paste: open [`supabase/DIAGNOSE_AND_PROMOTE.sql`](./supabase/DIAGNOSE_AND_PROMOTE.sql) → Raw → copy all → Supabase SQL → Run.  
+   Shorter path: [`supabase/PROMOTE_AMELIA.sql`](./supabase/PROMOTE_AMELIA.sql).  
+   Both scripts use real `profiles` columns only (`id`, `email`, `display_name`, `role` — **no** `username` column), create a missing profile from `auth.users` if needed, then set `role = admin` for `amelia*` emails/display names (or the sole user). Expect a result row with `email` / `display_name` / `role = admin`.
 
-```sql
-update public.profiles
-set role = 'admin',
-    display_name = coalesce(nullif(trim(display_name), ''), 'amelia'),
-    updated_at = now()
-where lower(coalesce(display_name, '')) = 'amelia'
-   or lower(email) in ('amelia@plaboratory.app', 'ameliaphillips1324@gmail.com')
-   or lower(email) like 'amelia%@plaboratory.app';
-```
-
-4. Sign out and sign back in (or refresh) so the app reloads the profile role. Account should show **Administrator**.
+4. Sign out and sign back in (or hard-refresh) so the app reloads the profile role. Account should show **Administrator**.
 5. Create Hlib (or any student) the same way with **Create account** — they stay `student` by default.
 6. New students are **opted in** to peer comparison (`comparison_opt_out = false`) via `user_preferences`.
 

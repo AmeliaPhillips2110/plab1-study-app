@@ -3,7 +3,8 @@
 -- Paste this entire file into Supabase → SQL → New query → Run
 -- Creates schema, RLS, PLAB 1 seed (~51 SBA + flashcards + glossary).
 -- Prefer a project where these tables do not already exist (or drop them first).
--- AFTER this succeeds and Amelia has signed up, also run: supabase/PROMOTE_AMELIA.sql
+-- AFTER this succeeds and Amelia has signed up, run: supabase/DIAGNOSE_AND_PROMOTE.sql
+-- (or the shorter supabase/PROMOTE_AMELIA.sql). Both repair missing profiles first.
 -- Individual files remain under supabase/migrations/ and supabase/seed*.sql
 -- =============================================================================
 
