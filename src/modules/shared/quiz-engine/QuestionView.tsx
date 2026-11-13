@@ -34,13 +34,19 @@ type Props = {
   completedCount?: number
   glossaryTerms?: GlossaryTerm[]
   readingSpeedWpm?: number | null
+  /** Topic theme label shown top-right under This Question. */
+  topicName?: string | null
   /** Locked review of an already-answered item. */
   lockedResult?: AttemptResult | null
   lockedSelectedId?: string | null
+  /** Pre-selected draft (not yet submitted). */
+  initialSelectedId?: string | null
   onBack?: () => void
   canGoBack?: boolean
   onFinish?: () => void
   finishDisabled?: boolean
+  /** Draft selection change (for leave-autosave before Submit). */
+  onDraftSelect?: (optionId: string | null) => void
   onSubmit: (args: SubmitArgs) => void
 }
 
@@ -53,15 +59,20 @@ export function QuestionView({
   openProgress = false,
   completedCount = 0,
   glossaryTerms = [],
+  topicName = null,
   lockedResult = null,
   lockedSelectedId = null,
+  initialSelectedId = null,
   onBack,
   canGoBack = false,
   onFinish,
   finishDisabled = false,
+  onDraftSelect,
   onSubmit,
 }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(lockedSelectedId)
+  const [selectedId, setSelectedId] = useState<string | null>(
+    lockedSelectedId ?? initialSelectedId,
+  )
   const [revealed, setRevealed] = useState(Boolean(lockedResult))
   const [coverOpen, setCoverOpen] = useState(format !== 'cover_the_options')
   const [result, setResult] = useState<AttemptResult | null>(lockedResult)
@@ -75,7 +86,7 @@ export function QuestionView({
   const [advanced, setAdvanced] = useState(false)
 
   useEffect(() => {
-    setSelectedId(lockedSelectedId)
+    setSelectedId(lockedSelectedId ?? initialSelectedId)
     setRevealed(Boolean(lockedResult))
     setCoverOpen(format !== 'cover_the_options')
     setResult(lockedResult)
@@ -86,7 +97,8 @@ export function QuestionView({
     setMistakeNote('')
     setAnswerChanges(0)
     setAdvanced(false)
-  }, [question.id, format, rapidFireSeconds, lockedResult, lockedSelectedId])
+    // Only reset when the question (or lock state) changes — not on every draft keystroke.
+  }, [question.id, format, rapidFireSeconds, lockedResult, lockedSelectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (format !== 'rapid_fire' || revealed || lockedResult) return
@@ -120,6 +132,7 @@ export function QuestionView({
       setAnswerChanges((n) => n + 1)
     }
     setSelectedId(optionId)
+    onDraftSelect?.(optionId)
   }
 
   function buildPayload(extra: Partial<QuizAnswerPayload> = {}): QuizAnswerPayload {
@@ -262,17 +275,27 @@ export function QuestionView({
 
   return (
     <div className="flex w-full flex-col gap-4">
-      {format === 'rapid_fire' && !revealed ? (
-        <p
-          className={
-            secondsLeft <= 5
-              ? 'text-right text-sm font-semibold text-incorrect'
-              : 'text-right text-sm font-medium text-muted'
-          }
-        >
-          {secondsLeft}s
-        </p>
-      ) : null}
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium text-fg">This Question:</p>
+          {format === 'rapid_fire' && !revealed ? (
+            <p
+              className={
+                secondsLeft <= 5
+                  ? 'text-sm font-semibold text-incorrect'
+                  : 'text-sm font-medium text-muted'
+              }
+            >
+              {secondsLeft}s
+            </p>
+          ) : null}
+        </div>
+        {topicName ? (
+          <span className="rounded-md border border-accent/40 bg-accent-subtle px-2.5 py-1 text-xs font-semibold text-accent">
+            {topicName}
+          </span>
+        ) : null}
+      </div>
 
       <StemWithGlossary text={question.stem} terms={glossaryTerms} />
 

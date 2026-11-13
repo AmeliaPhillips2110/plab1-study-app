@@ -59,7 +59,9 @@ export const STUDY_MODES: StudyModeDef[] = [
     sessionType: 'random',
     presentationFormat: 'sba',
     unseenOnly: true,
+    openEnded: true,
     autostart: true,
+    questionLimit: 10_000,
   },
   {
     slug: 'timed-drill',
@@ -72,7 +74,7 @@ export const STUDY_MODES: StudyModeDef[] = [
   {
     slug: 'spaced-review',
     title: 'Spaced Review',
-    description: 'Due cards and items scheduled by spaced repetition.',
+    description: 'Previously wrong items, or wrong then correct fewer than 3 times since.',
     sessionType: 'spaced_repetition',
     presentationFormat: 'sba',
     autostart: true,
@@ -110,7 +112,7 @@ export const TEST_MODES: TestModeDef[] = [
   {
     slug: 'full-test',
     title: 'Full Test',
-    description: 'Timed mock with a question target — no feedback until you finish.',
+    description: 'Timed mock with a question target under exam conditions.',
     uiMode: 'full_mock',
   },
   {

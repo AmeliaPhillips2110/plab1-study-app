@@ -112,16 +112,25 @@ export function MockRunner({
     return () => window.clearInterval(id)
   }, [phase, persist])
 
-  // Warn on refresh/close while running
+  // Autosave progress (+ last selected answers) when navigating away / closing
   useEffect(() => {
     if (phase !== 'running') return
+    const flush = () => {
+      void autosaveMockProgress({ sessionId, progress: progressRef.current })
+    }
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      flush()
       e.preventDefault()
       e.returnValue = ''
     }
     window.addEventListener('beforeunload', onBeforeUnload)
-    return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [phase])
+    window.addEventListener('pagehide', flush)
+    return () => {
+      flush()
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('pagehide', flush)
+    }
+  }, [phase, sessionId])
 
   async function submitTest(_reason: 'manual' | 'time' | 'cap') {
     if (phase !== 'running') return
@@ -210,127 +219,134 @@ export function MockRunner({
   }
 
   return (
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-      <div className="flex flex-col gap-4">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold">
-              {mode === 'full_mock' ? 'Full Test' : 'Unlimited'}
-            </p>
-            <p className="text-xs text-muted">
-              Question {progress.currentIndex + 1} of {questions.length}
-              {unlimited ? ' · Finish when done' : ' · no feedback until you end'}
-            </p>
-          </div>
-          {unlimited ? (
-            <div className="text-right">
-              <p className="text-lg font-semibold text-fg" aria-label="Elapsed time">
-                {formatDuration(elapsedSec)}
-              </p>
-              <p className="text-xs text-muted">elapsed</p>
-            </div>
-          ) : (
-            <div className="text-right">
-              <p
-                className={
-                  remainingSec <= 300
-                    ? 'text-lg font-semibold text-incorrect'
-                    : 'text-lg font-semibold text-fg'
-                }
-                aria-label="Time remaining"
-              >
-                {formatDuration(remainingSec)}
-              </p>
-              <p className="text-xs text-muted">countdown</p>
-            </div>
-          )}
-        </header>
-
-        {!unlimited ? (
-          <PaceWidget
-            compact
-            elapsedSec={elapsedSec}
-            timeLimitSec={progress.timeLimitSec}
-            answeredCount={answeredCount}
-            totalQuestions={questions.length}
-          />
-        ) : null}
-
-        <div className="rounded-md border border-border bg-surface p-4">
-          <div className="mb-4">
-            <StemWithGlossary text={current.stem} terms={glossaryTerms} />
-            {current.is_uk_practice ? (
-              <p className="mt-2 text-xs font-medium text-accent">UK practice item</p>
-            ) : null}
-          </div>
-          <SbaOptions
-            options={current.question_options}
-            selectedId={progress.answers[current.id] ?? null}
-            revealed={false}
-            onSelect={(id) => void selectOption(id)}
-          />
+    <div className="flex w-full flex-col gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold">
+            {mode === 'full_mock' ? 'Full Test' : 'Unlimited'}
+          </p>
+          <p className="text-xs text-muted">
+            Question {progress.currentIndex + 1} of {questions.length}
+            {unlimited ? ' · Finish when done' : ''}
+          </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            disabled={progress.currentIndex <= 0}
-            onClick={() => void goTo(progress.currentIndex - 1)}
-          >
-            Back
-          </Button>
-          <Button variant={flaggedSet.has(current.id) ? 'primary' : 'ghost'} onClick={() => void toggleFlag()}>
-            {flaggedSet.has(current.id) ? 'Flagged' : 'Flag for review'}
-          </Button>
-          <div className="ml-auto flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              disabled={progress.currentIndex >= questions.length - 1}
-              onClick={() => void goTo(progress.currentIndex + 1)}
-            >
-              Next
-            </Button>
-            <Button
-              variant="danger"
-              disabled={phase === 'submitting'}
-              onClick={() => {
-                const unanswered = questions.length - answeredCount
-                const msg =
-                  mode === 'full_mock'
-                    ? `Finish test now? ${unanswered} unanswered will be marked skipped.`
-                    : `Finish now? You have answered ${answeredCount} of ${questions.length}.`
-                if (window.confirm(msg)) void submitTest('manual')
-              }}
-            >
-              {phase === 'submitting' ? 'Submitting…' : 'Finish'}
-            </Button>
+        {unlimited ? (
+          <div className="text-right">
+            <p className="text-lg font-semibold text-fg" aria-label="Elapsed time">
+              {formatDuration(elapsedSec)}
+            </p>
+            <p className="text-xs text-muted">Elapsed</p>
           </div>
+        ) : (
+          <div className="text-right">
+            <p
+              className={
+                remainingSec <= 300
+                  ? 'text-lg font-semibold text-incorrect'
+                  : 'text-lg font-semibold text-fg'
+              }
+              aria-label="Time remaining"
+            >
+              {formatDuration(remainingSec)}
+            </p>
+            <p className="text-xs text-muted">Countdown</p>
+          </div>
+        )}
+      </header>
+
+      {!unlimited ? (
+        <PaceWidget
+          compact
+          elapsedSec={elapsedSec}
+          timeLimitSec={progress.timeLimitSec}
+          answeredCount={answeredCount}
+          totalQuestions={questions.length}
+        />
+      ) : null}
+
+      <div className="rounded-md border border-border bg-surface p-4">
+        <div className="mb-4">
+          <StemWithGlossary text={current.stem} terms={glossaryTerms} />
+          {current.is_uk_practice ? (
+            <p className="mt-2 text-xs font-medium text-accent">UK practice item</p>
+          ) : null}
         </div>
-
-        <p className="text-center text-sm font-medium text-muted" aria-live="polite">
-          {unlimited
-            ? `${answeredCount} Questions Completed`
-            : `${answeredCount}/${questions.length} Questions`}
-        </p>
-
-        {saveHint ? <p className="text-xs text-muted">Auto-save: {saveHint}</p> : null}
-        {error ? <p className="text-sm text-incorrect">{error}</p> : null}
+        <SbaOptions
+          options={current.question_options}
+          selectedId={progress.answers[current.id] ?? null}
+          revealed={false}
+          onSelect={(id) => void selectOption(id)}
+        />
       </div>
 
-      <aside className="flex flex-col gap-3">
-        <QuestionNavigator
-          total={questions.length}
-          currentIndex={progress.currentIndex}
-          answers={progress.answers}
-          flagged={flaggedSet}
-          questionIds={progress.questionIds}
-          onJump={(i) => void goTo(i)}
-        />
-        <p className="text-xs text-muted">
-          Progress auto-saves to Supabase and this browser. You can resume an unfinished timed test
-          from the Tests page.
-        </p>
-      </aside>
+      <QuestionNavigator
+        total={questions.length}
+        currentIndex={progress.currentIndex}
+        answers={progress.answers}
+        flagged={flaggedSet}
+        questionIds={progress.questionIds}
+        onJump={(i) => void goTo(i)}
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className={
+            flaggedSet.has(current.id)
+              ? 'inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-sky-600'
+              : 'inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted hover:text-sky-600'
+          }
+          aria-pressed={flaggedSet.has(current.id)}
+          aria-label={flaggedSet.has(current.id) ? 'Remove flag' : 'Flag for review'}
+          onClick={() => void toggleFlag()}
+        >
+          <span aria-hidden className="text-lg leading-none text-sky-600">
+            ⚑
+          </span>
+          <span className="sr-only sm:not-sr-only sm:inline">
+            {flaggedSet.has(current.id) ? 'Flagged' : 'Flag for Review'}
+          </span>
+        </button>
+        <Button
+          variant="secondary"
+          disabled={progress.currentIndex <= 0}
+          onClick={() => void goTo(progress.currentIndex - 1)}
+        >
+          Back
+        </Button>
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            disabled={progress.currentIndex >= questions.length - 1}
+            onClick={() => void goTo(progress.currentIndex + 1)}
+          >
+            Next
+          </Button>
+          <Button
+            variant="danger"
+            disabled={phase === 'submitting'}
+            onClick={() => {
+              const unanswered = questions.length - answeredCount
+              const msg =
+                mode === 'full_mock'
+                  ? `Finish test now? ${unanswered} unanswered stay New (not marked missed).`
+                  : `Finish now? You have answered ${answeredCount} of ${questions.length}.`
+              if (window.confirm(msg)) void submitTest('manual')
+            }}
+          >
+            {phase === 'submitting' ? 'Submitting…' : 'Finish'}
+          </Button>
+        </div>
+      </div>
+
+      <p className="text-center text-sm font-medium text-muted" aria-live="polite">
+        {unlimited
+          ? `${answeredCount} Questions Completed`
+          : `${answeredCount}/${questions.length} Questions`}
+      </p>
+
+      {saveHint ? <p className="text-xs text-muted">Auto-save: {saveHint}</p> : null}
+      {error ? <p className="text-sm text-incorrect">{error}</p> : null}
     </div>
   )
 }

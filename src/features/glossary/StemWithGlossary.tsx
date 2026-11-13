@@ -9,6 +9,7 @@ type Props = {
   className?: string
 }
 
+/** Glossary terms use dotted underline; definition popup opens on click only (not hover). */
 export function StemWithGlossary({ text, terms, className }: Props) {
   const matches = useMemo(() => findGlossaryMatches(text, terms), [text, terms])
   const [active, setActive] = useState<GlossaryMatch | null>(null)
@@ -37,11 +38,7 @@ export function StemWithGlossary({ text, terms, className }: Props) {
               key={i}
               type="button"
               className="rounded px-0.5 font-medium text-accent underline decoration-dotted underline-offset-2 hover:bg-accent-subtle"
-              title={part.match!.term.definition}
-              onMouseEnter={() => setActive(part.match!)}
-              onMouseLeave={() => setActive(null)}
-              onFocus={() => setActive(part.match!)}
-              onBlur={() => setActive(null)}
+              aria-expanded={active === part.match}
               onClick={() => setActive((cur) => (cur === part.match ? null : part.match!))}
             >
               {part.value}
@@ -51,17 +48,24 @@ export function StemWithGlossary({ text, terms, className }: Props) {
       </p>
       {active ? (
         <div
-          role="tooltip"
-          className="mt-2 rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm"
+          role="dialog"
+          className="mt-2 rounded-md border border-dashed border-accent/50 bg-surface px-3 py-2 text-sm shadow-sm"
         >
           <p className="font-semibold text-fg">{active.term.term}</p>
           <p className="mt-1 text-muted">{active.term.definition}</p>
           {active.term.aliases?.length ? (
             <p className="mt-1 text-xs text-muted">Also: {active.term.aliases.join(', ')}</p>
           ) : null}
+          <button
+            type="button"
+            className="mt-2 text-xs text-accent hover:underline"
+            onClick={() => setActive(null)}
+          >
+            Close
+          </button>
         </div>
       ) : matches.length > 0 ? (
-        <p className="mt-1 text-xs text-muted">Tap or hover underlined terms for definitions.</p>
+        <p className="mt-1 text-xs text-muted">Tap underlined terms for definitions.</p>
       ) : null}
     </div>
   )

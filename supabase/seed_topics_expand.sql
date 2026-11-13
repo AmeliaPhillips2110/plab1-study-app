@@ -1,7 +1,6 @@
 -- =============================================================================
 -- Expand / rename PLAB 1 topics (safe to re-run)
--- profiles/questions unchanged. Amelia: paste this in Supabase SQL → Run
--- (or re-run APPLY_ALL / seed.sql which embeds the same list).
+-- Amelia: paste this in Supabase SQL → Run
 -- =============================================================================
 
 -- Rename existing specialties to requested spellings
@@ -16,6 +15,18 @@ where id = 'a2000000-0000-4000-8000-000000000005';
 update public.topics
 set name = 'Respiratory', updated_at = now()
 where id = 'a2000000-0000-4000-8000-000000000002';
+
+update public.topics
+set name = 'Paediatrics', updated_at = now()
+where id = 'a2000000-0000-4000-8000-000000000009';
+
+update public.topics
+set name = 'Haematology', updated_at = now()
+where id = 'a2000000-0000-4000-8000-000000000014';
+
+update public.topics
+set name = 'Ophthalmology', updated_at = now()
+where id = 'a2000000-0000-4000-8000-000000000015';
 
 -- Upsert full required set (existing IDs kept; new IDs 015+)
 insert into public.topics (id, exam_id, slug, name, sort_order, is_active) values
@@ -39,7 +50,8 @@ insert into public.topics (id, exam_id, slug, name, sort_order, is_active) value
   ('a2000000-0000-4000-8000-000000000018', 'a1000000-0000-4000-8000-000000000001', 'perioperative-anaesthesia', 'Perioperative Medicine and Anaesthesia', 180, true),
   ('a2000000-0000-4000-8000-000000000019', 'a1000000-0000-4000-8000-000000000001', 'rheumatology', 'Rheumatology', 190, true),
   ('a2000000-0000-4000-8000-000000000020', 'a1000000-0000-4000-8000-000000000001', 'sexual-health', 'Sexual Health', 200, true),
-  ('a2000000-0000-4000-8000-000000000021', 'a1000000-0000-4000-8000-000000000001', 'social-population-health', 'Social and Population Health', 210, true)
+  ('a2000000-0000-4000-8000-000000000021', 'a1000000-0000-4000-8000-000000000001', 'social-population-health', 'Social and Population Health', 210, true),
+  ('a2000000-0000-4000-8000-000000000022', 'a1000000-0000-4000-8000-000000000001', 'breast-surgery', 'Breast Surgery', 220, true)
 on conflict (id) do update
   set slug = excluded.slug,
       name = excluded.name,

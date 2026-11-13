@@ -209,27 +209,38 @@ export async function finalizeMockSession(params: {
   passed: boolean
   attemptIdByQuestionId: Record<string, string>
 }> {
-  const rows = params.questions.map((q) => {
-    const selected = params.progress.answers[q.id] ?? null
-    const correctOpt = q.question_options.find((o) => o.is_correct)
-    let result: 'correct' | 'incorrect' | 'skipped' = 'skipped'
-    if (selected) {
-      result = selected === correctOpt?.id ? 'correct' : 'incorrect'
-    }
-    return {
-      session_id: params.sessionId,
-      exam_id: params.examId,
-      user_id: params.userId,
-      question_id: q.id,
-      selected_option_id: selected,
-      response_payload: {
-        flagged: params.progress.flagged.includes(q.id),
-        mode: params.progress.mode,
-      },
-      result,
-      time_spent_ms: null,
-    }
-  })
+  // Only persist questions the user actually selected an answer for.
+  // Unanswered (no selection) stay "New" — no attempt row / not marked missed.
+  const rows = params.questions
+    .map((q) => {
+      const selected = params.progress.answers[q.id] ?? null
+      if (!selected) return null
+      const correctOpt = q.question_options.find((o) => o.is_correct)
+      const result: 'correct' | 'incorrect' = selected === correctOpt?.id ? 'correct' : 'incorrect'
+      return {
+        session_id: params.sessionId,
+        exam_id: params.examId,
+        user_id: params.userId,
+        question_id: q.id,
+        selected_option_id: selected,
+        response_payload: {
+          flagged: params.progress.flagged.includes(q.id),
+          mode: params.progress.mode,
+        },
+        result,
+        time_spent_ms: null,
+      }
+    })
+    .filter(Boolean) as Array<{
+    session_id: string
+    exam_id: string
+    user_id: string
+    question_id: string
+    selected_option_id: string
+    response_payload: Record<string, unknown>
+    result: 'correct' | 'incorrect'
+    time_spent_ms: null
+  }>
 
   // Replace any prior draft attempts for this session.
   await supabase.from('attempts').delete().eq('session_id', params.sessionId)
@@ -254,14 +265,14 @@ export async function finalizeMockSession(params: {
     }
   }
 
-  const answered = rows.filter((r) => r.result !== 'skipped').length
+  const answered = rows.length
   const correct = rows.filter((r) => r.result === 'correct').length
   // Full mock: score vs whole paper (unanswered count as not correct).
   // AMAYC: score vs answered items so early stop is fair.
   const denom =
     params.progress.mode === 'as_many_as_you_can'
       ? Math.max(answered, 1)
-      : Math.max(rows.length, 1)
+      : Math.max(params.questions.length, 1)
   const percent = scorePercent(correct, denom)
   const passed = percent >= params.passMarkPercent
 

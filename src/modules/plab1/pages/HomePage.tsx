@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { EmptyBankHint } from '@/components/EmptyBankHint'
-import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { countdownTo, nextExamDate } from '@/lib/examCountdown'
@@ -21,7 +20,7 @@ type TopicStack = {
 
 export function HomePage() {
   const { user } = useAuth()
-  const { loading, exam, settings, topics, error, schemaMissing } = useExam()
+  const { loading, exam, topics, error, schemaMissing } = useExam()
   const [bankCount, setBankCount] = useState<number | null>(null)
   const [topicStacks, setTopicStacks] = useState<Record<string, TopicStack>>({})
 
@@ -61,7 +60,6 @@ export function HomePage() {
       const latestByQuestion = new Map<string, { topicId: string; result: string }>()
       if (user) {
         const { rows } = await fetchAttemptLog({ userId: user.id, examId: exam.id, limit: 2000 })
-        // rows are newest-first typically — keep first seen as latest
         for (const row of rows) {
           const qid = row.question_id
           const tid = row.questions?.topic_id
@@ -102,17 +100,17 @@ export function HomePage() {
   const bankEmpty = Boolean(exam) && bankCount === 0
 
   return (
-    <AppShell title="Start a Study Session">
+    <AppShell title="Home">
       <div className="flex flex-col items-center gap-8">
         {!schemaMissing && error ? (
-          <p className="w-full max-w-3xl rounded-md border border-incorrect/40 bg-incorrect/10 px-3 py-2 text-center text-sm text-incorrect">
+          <p className="w-full max-w-5xl rounded-md border border-incorrect/40 bg-incorrect/10 px-3 py-2 text-center text-sm text-incorrect">
             {error}
           </p>
         ) : null}
 
         <EmptyBankHint examMissing={examMissing} bankEmpty={bankEmpty} />
 
-        <section className="w-full max-w-3xl rounded-md border border-border bg-surface p-5 text-center">
+        <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-5 text-center">
           <h2 className="mb-1 font-display text-lg font-semibold">Exam Countdown</h2>
           <p className="mb-4 text-sm text-muted">
             Next exam date:{' '}
@@ -131,38 +129,7 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="w-full max-w-3xl rounded-md border border-border bg-surface p-4 text-center">
-          <h2 className="mb-2 font-display text-lg font-semibold">Exam</h2>
-          {loading ? (
-            <p className="text-sm text-muted">Loading exam…</p>
-          ) : exam ? (
-            <div className="flex flex-col items-center gap-2 text-sm">
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="font-medium">{exam.name}</span>
-                <Badge tone="accent">{exam.slug}</Badge>
-                {exam.is_active ? <Badge tone="correct">Active</Badge> : <Badge>Inactive</Badge>}
-              </div>
-              {exam.description ? <p className="text-muted">{exam.description}</p> : null}
-              <p className="text-muted">
-                Pass mark:{' '}
-                <span className="font-medium text-fg">{settings?.pass_mark_percent ?? 65}%</span>
-                {' · '}
-                Mock default {settings?.default_mock_question_count ?? 180} Q /{' '}
-                {settings?.default_mock_minutes ?? 180} min
-              </p>
-              {bankCount != null ? (
-                <p className="text-muted">
-                  Active SBA bank:{' '}
-                  <span className="font-medium text-fg">{bankCount}</span>
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-sm text-muted">Exam not loaded yet.</p>
-          )}
-        </section>
-
-        <section className="w-full max-w-3xl rounded-md border border-border bg-surface p-4 text-center">
+        <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-lg font-semibold">Topics</h2>
             <Link to="/study/topics" className="text-sm text-accent hover:underline">
@@ -177,7 +144,7 @@ export function HomePage() {
           ) : topics.length === 0 ? (
             <p className="text-sm text-muted">No topics yet.</p>
           ) : (
-            <ul className="flex flex-col gap-2 text-left">
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {topics.map((t) => {
                 const s = topicStacks[t.id]
                 const total =

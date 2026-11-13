@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { countWords, fetchGlossaryTerms } from '@/features/glossary/glossaryApi'
 import { saveMistakeTags } from '@/features/mistakes'
+import { useExam } from '@/hooks/useExam'
 import { QuestionView } from '@/modules/shared/quiz-engine/QuestionView'
 import {
   createStudySession,
@@ -30,6 +31,7 @@ type AttemptMap = Record<
 >
 
 export function SessionRunner({ userId, config, onExit }: Props) {
+  const { topics } = useExam()
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([])
@@ -37,14 +39,71 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [attemptMap, setAttemptMap] = useState<AttemptMap>({})
+  const [draftByQuestion, setDraftByQuestion] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [finalPercent, setFinalPercent] = useState<number | null>(null)
   const bootstrapped = useRef(false)
   const attemptMapRef = useRef<AttemptMap>({})
+  const draftRef = useRef<Record<string, string>>({})
+  const sessionIdRef = useRef<string | null>(null)
+  const questionsRef = useRef<QuestionWithOptions[]>([])
+  const indexRef = useRef(0)
+  const phaseRef = useRef<Phase>('loading')
 
   useEffect(() => {
     attemptMapRef.current = attemptMap
   }, [attemptMap])
+  useEffect(() => {
+    draftRef.current = draftByQuestion
+  }, [draftByQuestion])
+  useEffect(() => {
+    sessionIdRef.current = sessionId
+  }, [sessionId])
+  useEffect(() => {
+    questionsRef.current = questions
+  }, [questions])
+  useEffect(() => {
+    indexRef.current = index
+  }, [index])
+  useEffect(() => {
+    phaseRef.current = phase
+  }, [phase])
+
+  const topicNameById = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const t of topics) m[t.id] = t.name
+    return m
+  }, [topics])
+
+  // Persist draft selection + answered progress when leaving the page
+  useEffect(() => {
+    function persistDraft() {
+      const sid = sessionIdRef.current
+      if (!sid || phaseRef.current !== 'running') return
+      const q = questionsRef.current[indexRef.current]
+      const draft = q ? draftRef.current[q.id] : undefined
+      const payload = {
+        version: 1,
+        index: indexRef.current,
+        drafts: draftRef.current,
+        answeredIds: Object.keys(attemptMapRef.current),
+        lastSelected: draft ?? null,
+        savedAt: new Date().toISOString(),
+      }
+      try {
+        localStorage.setItem(`plaboratory-study-draft:${sid}`, JSON.stringify(payload))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('beforeunload', persistDraft)
+    window.addEventListener('pagehide', persistDraft)
+    return () => {
+      persistDraft()
+      window.removeEventListener('beforeunload', persistDraft)
+      window.removeEventListener('pagehide', persistDraft)
+    }
+  }, [])
 
   const attempts = useMemo(() => Object.values(attemptMap), [attemptMap])
   const openProgress = Boolean(config.openEnded)
@@ -227,9 +286,9 @@ export function SessionRunner({ userId, config, onExit }: Props) {
 
     return (
       <div className="flex w-full flex-col gap-4 rounded-md border border-border bg-surface p-4">
-        <h2 className="font-display text-xl font-semibold">Session complete</h2>
+        <h2 className="font-display text-xl font-semibold">Session Complete</h2>
         <p className="text-sm text-muted">
-          {config.openEnded ? 'Open quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
+          {config.openEnded ? 'Open Quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
           {FORMAT_LABELS[config.presentationFormat]}
         </p>
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
@@ -237,7 +296,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
           <Stat label="Correct" value={String(stats.correct)} />
           <Stat label="Incorrect" value={String(stats.incorrect)} />
           <Stat label="Average WPM" value={String(avgWpm)} />
-          <Stat label="Time per Question" value={`${avgTimeSec}s`} />
+          <Stat label="Time Per Question" value={`${avgTimeSec}s`} />
           <Stat label="Times Changed" value={String(timesChanged)} />
         </dl>
         <div className="flex flex-wrap gap-2">
@@ -245,19 +304,37 @@ export function SessionRunner({ userId, config, onExit }: Props) {
             to="/study"
             className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
           >
-            Study hub
+            Study Hub
+          </Link>
+          <Link
+            to="/tests"
+            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+          >
+            Tests Hub
           </Link>
           <Link
             to="/attempts"
             className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
           >
-            Attempt log
+            Attempt Log
+          </Link>
+          <Link
+            to="/kpis"
+            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+          >
+            KPIs
           </Link>
           <Link
             to="/"
             className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
           >
             Home
+          </Link>
+          <Link
+            to="/glossary"
+            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
+          >
+            Glossary
           </Link>
         </div>
       </div>
@@ -267,6 +344,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const current = questions[index]
   if (!current) return null
   const locked = attemptMap[current.id] ?? null
+  const topicName = current.topic_id ? topicNameById[current.topic_id] ?? null : null
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -288,12 +366,18 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         openProgress={openProgress}
         completedCount={attempts.length}
         glossaryTerms={glossaryTerms}
+        topicName={topicName}
         lockedResult={locked?.result ?? null}
         lockedSelectedId={locked?.selectedOptionId ?? null}
+        initialSelectedId={draftByQuestion[current.id] ?? null}
         canGoBack={index > 0}
         onBack={() => setIndex((i) => Math.max(0, i - 1))}
         onFinish={() => void handleFinishEarly()}
         finishDisabled={saving}
+        onDraftSelect={(optionId) => {
+          if (!optionId) return
+          setDraftByQuestion((prev) => ({ ...prev, [current.id]: optionId }))
+        }}
         onSubmit={(args) =>
           void handleSubmit({
             result: args.result,
