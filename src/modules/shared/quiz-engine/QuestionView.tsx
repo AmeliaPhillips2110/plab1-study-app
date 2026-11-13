@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
 import { countWords } from '@/features/glossary/glossaryApi'
 import { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
-import { suggestMistakeTags } from '@/features/mistakes/tags'
 import { FeedbackPanel } from '@/modules/shared/quiz-engine/FeedbackPanel'
 import { FlashcardView } from '@/modules/shared/quiz-engine/FlashcardView'
 import { SbaOptions } from '@/modules/shared/quiz-engine/SbaOptions'
@@ -112,20 +111,6 @@ export function QuestionView({
     return () => window.clearTimeout(t)
   }, [format, revealed, secondsLeft, lockedResult])
 
-  function seedSuggestions(nextResult: AttemptResult, nextGrade?: FlashcardGrade, nextTimedOut = false) {
-    const suggestions = suggestMistakeTags({
-      result: nextResult,
-      format,
-      timedOut: nextTimedOut,
-      timeSpentMs: Date.now() - startedAt,
-      grade: nextGrade,
-      coverRevealed: coverOpen,
-      isUkPractice: question.is_uk_practice,
-      stemWordCount: countWords(question.stem),
-    })
-    setMistakeTags(suggestions)
-  }
-
   function selectOption(optionId: string) {
     if (revealed || lockedResult) return
     if (selectedId && selectedId !== optionId) {
@@ -155,11 +140,8 @@ export function QuestionView({
     const nextResult: AttemptResult = isCorrect ? 'correct' : 'incorrect'
     setResult(nextResult)
     setRevealed(true)
-    if (!isCorrect) seedSuggestions(nextResult)
-    else {
-      setMistakeTags([])
-      setMistakeNote('')
-    }
+    setMistakeTags([])
+    setMistakeNote('')
   }
 
   function confirmAndAdvance() {
@@ -179,11 +161,8 @@ export function QuestionView({
     setGrade(g)
     setResult(r)
     setRevealed(true)
-    if (r === 'incorrect' || r === 'partial') seedSuggestions(r, g)
-    else {
-      setMistakeTags([])
-      setMistakeNote('')
-    }
+    setMistakeTags([])
+    setMistakeNote('')
   }
 
   const navRow = (

@@ -293,14 +293,14 @@ export function MockRunner({
           type="button"
           className={
             flaggedSet.has(current.id)
-              ? 'inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-sky-600'
-              : 'inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted hover:text-sky-600'
+              ? 'inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-incorrect'
+              : 'inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-muted hover:text-incorrect'
           }
           aria-pressed={flaggedSet.has(current.id)}
           aria-label={flaggedSet.has(current.id) ? 'Remove flag' : 'Flag for review'}
           onClick={() => void toggleFlag()}
         >
-          <span aria-hidden className="text-lg leading-none text-sky-600">
+          <span aria-hidden className="text-lg leading-none text-incorrect">
             ⚑
           </span>
           <span className="sr-only sm:not-sr-only sm:inline">

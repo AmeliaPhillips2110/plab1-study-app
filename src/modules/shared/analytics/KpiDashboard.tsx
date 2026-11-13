@@ -187,7 +187,7 @@ export function KpiDashboard({
       </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Accuracy By Specialty" subtitle="Topics With Graded Attempts">
+        <Panel title="Accuracy By Specialty">
           <TopicAccuracyChart data={derived.topicAccuracy} passMark={passMarkPercent} />
         </Panel>
         <Panel title="Mistake Breakdown" subtitle="From Tagged Incorrect Attempts">
@@ -195,26 +195,20 @@ export function KpiDashboard({
         </Panel>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Panel title="Questions Per Minute" subtitle="Daily Average From Timed Attempts">
+      <div className="grid items-stretch gap-6 lg:grid-cols-2">
+        <Panel title="Questions Per Minute">
           <QpmChart data={derived.qpm} />
         </Panel>
-        <Panel
-          title="Coverage Status"
-          subtitle="Quiz Answers Only — Last 3 Answers Per Question"
-        >
+        <Panel title="Coverage Status">
           <CoverageStatusBar counts={derived.coverageStatuses} />
         </Panel>
       </div>
 
-      <Panel
-        title="Pace Vs Stem Length"
-        subtitle={`Language Tags: ${derived.paceStem.languageMistakes} · UK-Practice Tags: ${derived.paceStem.ukPracticeMistakes}`}
-      >
+      <Panel title="Pace Vs Stem Length">
         <PaceVsStemChart points={derived.paceStem.points} buckets={derived.paceStem.buckets} />
       </Panel>
 
-      <Panel title="Activity Over Time" subtitle="Total, Topics, And Where Errors Concentrate">
+      <Panel title="Activity Over Time">
         <ActivityOverTimeChart
           points={derived.activityOverTime.points}
           topicKeys={derived.activityOverTime.topicKeys}
@@ -230,17 +224,18 @@ export function KpiDashboard({
         </Panel>
       </div>
 
-      <Panel title="% Correct Over Time" subtitle="Fatigue Tracking Across Days">
+      <Panel title="% Correct Over Time">
         <AccuracyOverTimeChart points={derived.activityOverTime.points} />
       </Panel>
 
-      <Panel title="Activity Calendar" subtitle="Last ~12 Weeks">
-        <ActivityHeatmap data={derived.calendar} />
-      </Panel>
-
-      <Panel title="Topic Activity By Weekday" subtitle="Line Plot — Practice Volume Per Specialty">
-        <TopicHeatmap data={derived.topicHeat} />
-      </Panel>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel title="Activity Calendar" subtitle="Last ~12 Weeks">
+          <ActivityHeatmap data={derived.calendar} />
+        </Panel>
+        <Panel title="Topic Activity By Weekday">
+          <TopicHeatmap data={derived.topicHeat} />
+        </Panel>
+      </div>
 
       <Panel title="Weakness Analysis" subtitle="Focus Next + One-Click Drills">
         <WeaknessChart items={derived.weaknesses} />

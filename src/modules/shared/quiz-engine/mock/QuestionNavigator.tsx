@@ -36,12 +36,15 @@ export function QuestionNavigator({
               className={cn(
                 'relative h-8 rounded text-xs font-medium transition',
                 current && 'ring-2 ring-accent',
-                answered ? 'bg-accent text-white' : 'bg-bg text-muted hover:text-fg',
-                isFlagged && !answered && 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
+                isFlagged
+                  ? 'bg-incorrect text-white'
+                  : answered
+                    ? 'bg-accent text-white'
+                    : 'bg-bg text-muted hover:text-fg',
               )}
             >
               {isFlagged ? (
-                <span className="absolute left-0.5 top-0 text-[10px] leading-none text-sky-600">
+                <span className="absolute left-0.5 top-0 text-[10px] leading-none text-white">
                   ⚑
                 </span>
               ) : null}
@@ -55,7 +58,7 @@ export function QuestionNavigator({
           <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-accent" /> Answered
         </li>
         <li>
-          <span className="mr-1 inline-block text-sky-600">⚑</span> Flagged
+          <span className="mr-1 inline-block text-incorrect">⚑</span> Flagged
         </li>
         <li>
           <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-bg ring-1 ring-border" /> New

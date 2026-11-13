@@ -67,7 +67,7 @@ export function FeedbackPanel({
       stemWordCount,
     ],
   )
-  const [localTags, setLocalTags] = useState<string[]>(initialTags ?? suggested)
+  const [localTags, setLocalTags] = useState<string[]>(initialTags ?? [])
   const [localNote, setLocalNote] = useState(initialNote ?? '')
   const [showExplanation, setShowExplanation] = useState(false)
 
