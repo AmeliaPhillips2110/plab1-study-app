@@ -37,7 +37,7 @@ export function WeaknessChart({ items }: Props) {
               </div>
               <p className="text-xs text-muted">{item.focusReason}</p>
             </div>
-            <Link to={`/study/practice-questions?topicId=${item.topicId}&autostart=1`}>
+            <Link to="/study/topics">
               <Button variant="secondary">Drill This Topic</Button>
             </Link>
           </li>
@@ -51,8 +51,8 @@ export function WeaknessChart({ items }: Props) {
         <Link to="/study/most-missed">
           <Button variant="secondary">Most Missed</Button>
         </Link>
-        <Link to="/study/weak-topics">
-          <Button variant="ghost">Weak Topics</Button>
+        <Link to="/study/topics">
+          <Button variant="ghost">Topics</Button>
         </Link>
       </div>
     </div>

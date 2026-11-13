@@ -86,7 +86,7 @@ where id between 'a4000000-0000-4000-8000-000000000042'
   and 'a4000000-0000-4000-8000-000000000051';
 ```
 
-Expect: exam `plab1`, ~14 topics, **~49** questions (41 SBA + 8 flashcards), glossary practice terms, pass mark **65**, **10** example-pack SBAs (Q42–Q51).
+Expect: exam `plab1`, ~21 topics, **~49** questions (41 SBA + 8 flashcards), glossary practice terms, pass mark **65**, **10** example-pack SBAs (Q42–Q51).
 
 That single paste creates:
 

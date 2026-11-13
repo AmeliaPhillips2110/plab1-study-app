@@ -26,12 +26,14 @@ function navClass(onBanner: boolean, isActive: boolean) {
   )
 }
 
-function HoverMenu({
+function HubHoverMenu({
+  hubTo,
   label,
   onBanner,
   active,
   children,
 }: {
+  hubTo: string
   label: string
   onBanner: boolean
   active?: boolean
@@ -73,26 +75,25 @@ function HoverMenu({
         }
       }}
     >
-      <button
-        type="button"
+      <NavLink
+        to={hubTo}
         className={navClass(onBanner, Boolean(active))}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={panelId}
         onClick={() => {
           clearTimers()
-          setOpen((v) => !v)
+          setOpen(false)
         }}
       >
         {label}
-      </button>
+      </NavLink>
       {open ? (
         <div
           id={panelId}
           role="menu"
           className={cn(
             'absolute left-1/2 z-40 mt-1 min-w-[12rem] -translate-x-1/2 rounded-md border border-border bg-surface py-1 shadow-md',
-            /* bridge so pointer can travel into the menu */
             'before:absolute before:-top-2 before:left-0 before:h-2 before:w-full before:content-[""]',
           )}
           onMouseEnter={() => {
@@ -146,20 +147,20 @@ export function Nav({ onBanner = false }: Props) {
 
   return (
     <nav aria-label="Main" className="flex flex-wrap items-center justify-center gap-1">
-      <HoverMenu label="Study" onBanner={onBanner} active={studyActive}>
+      <HubHoverMenu hubTo="/study" label="Study" onBanner={onBanner} active={studyActive}>
         {STUDY_MODES.map((m) => (
           <MenuLink key={m.slug} to={`/study/${m.slug}`} onBanner={onBanner}>
             {m.title}
           </MenuLink>
         ))}
-      </HoverMenu>
-      <HoverMenu label="Tests" onBanner={onBanner} active={testsActive}>
+      </HubHoverMenu>
+      <HubHoverMenu hubTo="/tests" label="Tests" onBanner={onBanner} active={testsActive}>
         {TEST_MODES.map((m) => (
           <MenuLink key={m.slug} to={`/tests/${m.slug}`} onBanner={onBanner}>
             {m.title}
           </MenuLink>
         ))}
-      </HoverMenu>
+      </HubHoverMenu>
       <NavLink to="/attempts" className={({ isActive }) => navClass(onBanner, isActive)}>
         Attempts
       </NavLink>

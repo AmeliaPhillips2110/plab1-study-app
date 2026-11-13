@@ -228,7 +228,7 @@ export function TestModePage() {
 
   return (
     <AppShell title={mode.title}>
-      <div className="flex max-w-2xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         {loading ? <p className="text-sm text-muted">Loading exam settings…</p> : null}
         {!schemaMissing && error ? <p className="text-sm text-incorrect">{error}</p> : null}
         {localError ? <p className="text-sm text-incorrect">{localError}</p> : null}

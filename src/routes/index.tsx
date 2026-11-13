@@ -7,7 +7,9 @@ import { AdminQuestionsPage } from '@/routes/admin/AdminQuestionsPage'
 import { AdminSettingsPage } from '@/routes/admin/AdminSettingsPage'
 import { AdminUsersPage } from '@/routes/admin/AdminUsersPage'
 import { SetupHintPage } from '@/routes/SetupHintPage'
+import { StudyHubPage } from '@/routes/study/StudyHubPage'
 import { StudyModePage } from '@/routes/study/StudyModePage'
+import { TestHubPage } from '@/modules/plab1/pages/TestHubPage'
 import { TestModePage } from '@/modules/plab1/pages/TestModePage'
 import { AttemptsPage } from '@/routes/attempts/AttemptsPage'
 import { QuestionTimelinePage } from '@/routes/attempts/QuestionTimelinePage'
@@ -28,9 +30,9 @@ export function AppRoutes() {
 
       <Route element={<RequireAuth />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/study" element={<Navigate to="/study/practice-questions" replace />} />
+        <Route path="/study" element={<StudyHubPage />} />
         <Route path="/study/:modeSlug" element={<StudyModePage />} />
-        <Route path="/tests" element={<Navigate to="/tests/full-test" replace />} />
+        <Route path="/tests" element={<TestHubPage />} />
         <Route path="/tests/:modeSlug" element={<TestModePage />} />
         <Route path="/mock" element={<Navigate to="/tests/full-test" replace />} />
         <Route path="/attempts" element={<AttemptsPage />} />

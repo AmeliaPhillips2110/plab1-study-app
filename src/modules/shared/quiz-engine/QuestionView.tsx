@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/Button'
 import { countWords } from '@/features/glossary/glossaryApi'
-import { ReadingTip } from '@/features/glossary/ReadingTip'
 import { StemWithGlossary } from '@/features/glossary/StemWithGlossary'
 import { suggestMistakeTags } from '@/features/mistakes/tags'
 import { FeedbackPanel } from '@/modules/shared/quiz-engine/FeedbackPanel'
@@ -21,6 +20,7 @@ type SubmitArgs = {
   selectedOptionId: string | null
   payload: QuizAnswerPayload
   timeSpentMs: number | null
+  answerChanges: number
 }
 
 type Props = {
@@ -29,9 +29,18 @@ type Props = {
   rapidFireSeconds?: number
   index: number
   total: number
+  /** When true, show "X Questions Completed" instead of "X/N". */
+  openProgress?: boolean
+  completedCount?: number
   glossaryTerms?: GlossaryTerm[]
   readingSpeedWpm?: number | null
-  showReadingTip?: boolean
+  /** Locked review of an already-answered item. */
+  lockedResult?: AttemptResult | null
+  lockedSelectedId?: string | null
+  onBack?: () => void
+  canGoBack?: boolean
+  onFinish?: () => void
+  finishDisabled?: boolean
   onSubmit: (args: SubmitArgs) => void
 }
 
@@ -41,36 +50,46 @@ export function QuestionView({
   rapidFireSeconds = 15,
   index,
   total,
+  openProgress = false,
+  completedCount = 0,
   glossaryTerms = [],
-  readingSpeedWpm,
-  showReadingTip = true,
+  lockedResult = null,
+  lockedSelectedId = null,
+  onBack,
+  canGoBack = false,
+  onFinish,
+  finishDisabled = false,
   onSubmit,
 }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [revealed, setRevealed] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(lockedSelectedId)
+  const [revealed, setRevealed] = useState(Boolean(lockedResult))
   const [coverOpen, setCoverOpen] = useState(format !== 'cover_the_options')
-  const [result, setResult] = useState<AttemptResult | null>(null)
+  const [result, setResult] = useState<AttemptResult | null>(lockedResult)
   const [grade, setGrade] = useState<FlashcardGrade | undefined>()
   const [secondsLeft, setSecondsLeft] = useState(rapidFireSeconds)
   const [timedOut, setTimedOut] = useState(false)
   const [startedAt] = useState(() => Date.now())
   const [mistakeTags, setMistakeTags] = useState<string[]>([])
   const [mistakeNote, setMistakeNote] = useState('')
+  const [answerChanges, setAnswerChanges] = useState(0)
+  const [advanced, setAdvanced] = useState(false)
 
   useEffect(() => {
-    setSelectedId(null)
-    setRevealed(false)
+    setSelectedId(lockedSelectedId)
+    setRevealed(Boolean(lockedResult))
     setCoverOpen(format !== 'cover_the_options')
-    setResult(null)
+    setResult(lockedResult)
     setGrade(undefined)
     setSecondsLeft(rapidFireSeconds)
     setTimedOut(false)
     setMistakeTags([])
     setMistakeNote('')
-  }, [question.id, format, rapidFireSeconds])
+    setAnswerChanges(0)
+    setAdvanced(false)
+  }, [question.id, format, rapidFireSeconds, lockedResult, lockedSelectedId])
 
   useEffect(() => {
-    if (format !== 'rapid_fire' || revealed) return
+    if (format !== 'rapid_fire' || revealed || lockedResult) return
     if (secondsLeft <= 0) {
       setTimedOut(true)
       setRevealed(true)
@@ -79,7 +98,7 @@ export function QuestionView({
     }
     const t = window.setTimeout(() => setSecondsLeft((s) => s - 1), 1000)
     return () => window.clearTimeout(t)
-  }, [format, revealed, secondsLeft])
+  }, [format, revealed, secondsLeft, lockedResult])
 
   function seedSuggestions(nextResult: AttemptResult, nextGrade?: FlashcardGrade, nextTimedOut = false) {
     const suggestions = suggestMistakeTags({
@@ -95,18 +114,12 @@ export function QuestionView({
     setMistakeTags(suggestions)
   }
 
-  function checkAnswer(optionId: string) {
-    const opt = question.question_options.find((o) => o.id === optionId)
-    const isCorrect = Boolean(opt?.is_correct)
-    const nextResult: AttemptResult = isCorrect ? 'correct' : 'incorrect'
-    setSelectedId(optionId)
-    setResult(nextResult)
-    setRevealed(true)
-    if (!isCorrect) seedSuggestions(nextResult)
-    else {
-      setMistakeTags([])
-      setMistakeNote('')
+  function selectOption(optionId: string) {
+    if (revealed || lockedResult) return
+    if (selectedId && selectedId !== optionId) {
+      setAnswerChanges((n) => n + 1)
     }
+    setSelectedId(optionId)
   }
 
   function buildPayload(extra: Partial<QuizAnswerPayload> = {}): QuizAnswerPayload {
@@ -117,17 +130,34 @@ export function QuestionView({
       coverRevealed: coverOpen,
       mistakeTags: mistakeTags.length > 0 ? mistakeTags : undefined,
       mistakeNote: mistakeNote || null,
+      answerChanges,
       ...extra,
     }
   }
 
+  function onSubmitClick() {
+    if (!selectedId || revealed || lockedResult) return
+    const opt = question.question_options.find((o) => o.id === selectedId)
+    const isCorrect = Boolean(opt?.is_correct)
+    const nextResult: AttemptResult = isCorrect ? 'correct' : 'incorrect'
+    setResult(nextResult)
+    setRevealed(true)
+    if (!isCorrect) seedSuggestions(nextResult)
+    else {
+      setMistakeTags([])
+      setMistakeNote('')
+    }
+  }
+
   function confirmAndAdvance() {
-    if (!result) return
+    if (!result || advanced || lockedResult) return
+    setAdvanced(true)
     onSubmit({
       result,
       selectedOptionId: selectedId,
       payload: buildPayload(),
       timeSpentMs: Date.now() - startedAt,
+      answerChanges,
     })
   }
 
@@ -143,60 +173,105 @@ export function QuestionView({
     }
   }
 
+  const navRow = (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button variant="secondary" disabled={!canGoBack} onClick={onBack}>
+        Back
+      </Button>
+      <div className="ml-auto flex flex-wrap gap-2">
+        {revealed && result && !lockedResult && !timedOut ? (
+          <Button disabled={advanced} onClick={confirmAndAdvance}>
+            Next
+          </Button>
+        ) : null}
+        {revealed && result && !lockedResult && timedOut && !selectedId ? (
+          <Button
+            disabled={advanced}
+            onClick={() => {
+              setAdvanced(true)
+              onSubmit({
+                result: 'skipped',
+                selectedOptionId: null,
+                payload: buildPayload({ timedOut: true }),
+                timeSpentMs: Date.now() - startedAt,
+                answerChanges,
+              })
+            }}
+          >
+            Next
+          </Button>
+        ) : null}
+        {onFinish ? (
+          <Button variant="secondary" disabled={finishDisabled} onClick={onFinish}>
+            Finish
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  )
+
+  const progressFooter = (
+    <p className="text-center text-sm font-medium text-muted" aria-live="polite">
+      {openProgress
+        ? `${completedCount} Questions Completed`
+        : `${Math.min(index + (revealed && !lockedResult ? 1 : 0), total)}/${total} Questions`}
+    </p>
+  )
+
   if (format === 'flashcard' || question.question_type === 'flashcard') {
     return (
-      <div className="flex flex-col gap-4">
-        <ProgressHeader index={index} total={total} />
+      <div className="flex w-full flex-col gap-4">
         <FlashcardView question={question} disabled={revealed} onGrade={onFlashGrade} />
         {revealed && result ? (
-          <>
-            <FeedbackPanel
-              question={question}
-              result={result}
-              grade={grade}
-              format={format}
-              timeSpentMs={Date.now() - startedAt}
-              onTagsChange={(tags, note) => {
-                setMistakeTags(tags)
-                setMistakeNote(note)
-              }}
-            />
+          <FeedbackPanel
+            question={question}
+            result={result}
+            grade={grade}
+            format={format}
+            timeSpentMs={Date.now() - startedAt}
+            onTagsChange={(tags, note) => {
+              setMistakeTags(tags)
+              setMistakeNote(note)
+            }}
+          />
+        ) : null}
+        {navRow}
+        {revealed && result && !lockedResult ? (
+          <div className="flex justify-end">
             <Button
-              onClick={() =>
+              disabled={advanced}
+              onClick={() => {
+                setAdvanced(true)
                 onSubmit({
                   result,
                   selectedOptionId: null,
                   payload: buildPayload({ grade }),
                   timeSpentMs: Date.now() - startedAt,
+                  answerChanges,
                 })
-              }
+              }}
             >
               Next
             </Button>
-          </>
+          </div>
         ) : null}
+        {progressFooter}
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <ProgressHeader index={index} total={total}>
-        {format === 'rapid_fire' && !revealed ? (
-          <span
-            className={
-              secondsLeft <= 5
-                ? 'text-sm font-semibold text-incorrect'
-                : 'text-sm font-medium text-muted'
-            }
-          >
-            {secondsLeft}s
-          </span>
-        ) : null}
-      </ProgressHeader>
-
-      {showReadingTip ? (
-        <ReadingTip stem={question.stem} readingSpeedWpm={readingSpeedWpm} />
+    <div className="flex w-full flex-col gap-4">
+      {format === 'rapid_fire' && !revealed ? (
+        <p
+          className={
+            secondsLeft <= 5
+              ? 'text-right text-sm font-semibold text-incorrect'
+              : 'text-right text-sm font-medium text-muted'
+          }
+        >
+          {secondsLeft}s
+        </p>
       ) : null}
 
       <StemWithGlossary text={question.stem} terms={glossaryTerms} />
@@ -217,59 +292,56 @@ export function QuestionView({
           options={question.question_options}
           selectedId={selectedId}
           revealed={revealed}
-          disabled={revealed}
-          onSelect={checkAnswer}
+          disabled={revealed || Boolean(lockedResult)}
+          onSelect={selectOption}
         />
       )}
 
-      {format === 'rapid_fire' && !revealed ? (
-        <p className="text-xs text-muted">
-          Rapid fire: pick quickly. If time runs out the item is marked skipped.
-        </p>
-      ) : null}
-
-      {revealed && result ? (
-        <>
-          <FeedbackPanel
-            question={question}
-            result={result}
-            format={format}
-            timedOut={timedOut}
-            timeSpentMs={Date.now() - startedAt}
-            coverRevealed={coverOpen}
-            isUkPractice={question.is_uk_practice}
-            stemWordCount={countWords(question.stem)}
-            onTagsChange={(tags, note) => {
-              setMistakeTags(tags)
-              setMistakeNote(note)
-            }}
-          />
-          <div className="flex flex-wrap gap-2">
-            {timedOut && !selectedId ? (
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  onSubmit({
-                    result: 'skipped',
-                    selectedOptionId: null,
-                    payload: buildPayload({ timedOut: true }),
-                    timeSpentMs: Date.now() - startedAt,
-                  })
-                }
-              >
-                Continue
+      {!revealed && !lockedResult ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" disabled={!canGoBack} onClick={onBack}>
+            Back
+          </Button>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button disabled={!selectedId} onClick={onSubmitClick}>
+              Submit
+            </Button>
+            {onFinish ? (
+              <Button variant="secondary" disabled={finishDisabled} onClick={onFinish}>
+                Finish
               </Button>
-            ) : (
-              <Button onClick={confirmAndAdvance}>Next</Button>
-            )}
+            ) : null}
           </div>
+        </div>
+      ) : (
+        <>
+          {result ? (
+            <FeedbackPanel
+              question={question}
+              result={result}
+              format={format}
+              timedOut={timedOut}
+              timeSpentMs={Date.now() - startedAt}
+              coverRevealed={coverOpen}
+              isUkPractice={question.is_uk_practice}
+              stemWordCount={countWords(question.stem)}
+              onTagsChange={(tags, note) => {
+                setMistakeTags(tags)
+                setMistakeNote(note)
+              }}
+            />
+          ) : null}
+          {navRow}
         </>
-      ) : null}
+      )}
+
+      {progressFooter}
     </div>
   )
 }
 
-function ProgressHeader({
+/** @deprecated kept for any external ProgressHeader imports */
+export function ProgressHeader({
   index,
   total,
   children,
@@ -278,18 +350,12 @@ function ProgressHeader({
   total: number
   children?: ReactNode
 }) {
-  const pct = total > 0 ? Math.round(((index + 1) / total) * 100) : 0
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2 text-sm text-muted">
-        <span>
-          Question {index + 1} of {total}
-        </span>
-        {children}
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-border" aria-hidden>
-        <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
-      </div>
+    <div className="flex items-center justify-between gap-2 text-sm text-muted">
+      <span>
+        Question {index + 1} of {total}
+      </span>
+      {children}
     </div>
   )
 }

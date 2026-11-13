@@ -34,6 +34,8 @@ export type QuizAnswerPayload = {
   coverRevealed?: boolean
   mistakeTags?: string[]
   mistakeNote?: string | null
+  /** How many times the selected option changed before Submit. */
+  answerChanges?: number
 }
 
 export type LocalAttempt = {
