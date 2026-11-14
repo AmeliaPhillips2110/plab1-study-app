@@ -6,18 +6,30 @@ import type { MockProgressState, MockStartConfig, TimedMode } from '@/types/quiz
 
 const LOCAL_KEY = (sessionId: string) => `plaboratory-mock:${sessionId}`
 
+/** Fill optional fields for progress saved before opened/answer-change tracking. */
+export function normalizeMockProgress(state: MockProgressState): MockProgressState {
+  const firstId = state.questionIds[state.currentIndex]
+  const opened = new Set(state.openedIds ?? [])
+  if (firstId) opened.add(firstId)
+  return {
+    ...state,
+    openedIds: [...opened],
+    answerChanges: state.answerChanges ?? {},
+  }
+}
+
 export function loadLocalProgress(sessionId: string): MockProgressState | null {
   try {
     const raw = localStorage.getItem(LOCAL_KEY(sessionId))
     if (!raw) return null
-    return JSON.parse(raw) as MockProgressState
+    return normalizeMockProgress(JSON.parse(raw) as MockProgressState)
   } catch {
     return null
   }
 }
 
 export function saveLocalProgress(sessionId: string, state: MockProgressState) {
-  localStorage.setItem(LOCAL_KEY(sessionId), JSON.stringify(state))
+  localStorage.setItem(LOCAL_KEY(sessionId), JSON.stringify(normalizeMockProgress(state)))
 }
 
 export function clearLocalProgress(sessionId: string) {
@@ -93,12 +105,15 @@ export async function createMockSession(params: {
   const deadlineMs =
     timeLimitSec > 0 ? now.getTime() + timeLimitSec * 1000 : now.getTime() + 365 * 24 * 60 * 60 * 1000
   const deadline = new Date(deadlineMs)
+  const questionIds = params.questions.map((q) => q.id)
   const progress: MockProgressState = {
     version: 1,
     mode: params.config.mode,
-    questionIds: params.questions.map((q) => q.id),
+    questionIds,
     answers: {},
     flagged: [],
+    openedIds: questionIds[0] ? [questionIds[0]] : [],
+    answerChanges: {},
     currentIndex: 0,
     targetCount: params.config.targetQuestionCount,
     timeLimitSec,
@@ -227,7 +242,9 @@ export async function findValidOpenTimedSessions(params: {
 
 export function progressFromSession(session: StudySession): MockProgressState | null {
   const local = loadLocalProgress(session.id)
-  const remote = session.settings as unknown as MockProgressState | null
+  const remoteRaw = session.settings as unknown as MockProgressState | null
+  const remote =
+    remoteRaw?.version === 1 ? normalizeMockProgress(remoteRaw) : null
   if (local?.version === 1 && remote?.version === 1) {
     // Prefer whichever was autosaved later.
     return new Date(local.autosavedAt) >= new Date(remote.autosavedAt) ? local : remote
@@ -268,39 +285,67 @@ export async function finalizeMockSession(params: {
   percent: number
   correct: number
   answered: number
+  skipped: number
+  timesChanged: number
   passed: boolean
   attemptIdByQuestionId: Record<string, string>
 }> {
-  // Only persist questions the user actually selected an answer for.
-  // Unanswered (no selection) stay "New" — no attempt row / not marked missed.
+  const progress = normalizeMockProgress(params.progress)
+  const opened = new Set(progress.openedIds ?? [])
+  const answerChanges = progress.answerChanges ?? {}
+
+  // Answered → correct/incorrect. Opened but unanswered → skipped.
+  // Never opened → no attempt row (keep last status / stay New).
   const rows = params.questions
     .map((q) => {
-      const selected = params.progress.answers[q.id] ?? null
-      if (!selected) return null
-      const correctOpt = q.question_options.find((o) => o.is_correct)
-      const result: 'correct' | 'incorrect' = selected === correctOpt?.id ? 'correct' : 'incorrect'
-      return {
-        session_id: params.sessionId,
-        exam_id: params.examId,
-        user_id: params.userId,
-        question_id: q.id,
-        selected_option_id: selected,
-        response_payload: {
-          flagged: params.progress.flagged.includes(q.id),
-          mode: params.progress.mode,
-        },
-        result,
-        time_spent_ms: null,
+      const selected = progress.answers[q.id] ?? null
+      const changes = answerChanges[q.id] ?? 0
+      if (selected) {
+        const correctOpt = q.question_options.find((o) => o.is_correct)
+        const result: 'correct' | 'incorrect' =
+          selected === correctOpt?.id ? 'correct' : 'incorrect'
+        return {
+          session_id: params.sessionId,
+          exam_id: params.examId,
+          user_id: params.userId,
+          question_id: q.id,
+          selected_option_id: selected,
+          response_payload: {
+            flagged: progress.flagged.includes(q.id),
+            mode: progress.mode,
+            answerChanges: changes,
+          },
+          result,
+          time_spent_ms: null,
+        }
       }
+      if (opened.has(q.id)) {
+        return {
+          session_id: params.sessionId,
+          exam_id: params.examId,
+          user_id: params.userId,
+          question_id: q.id,
+          selected_option_id: null as string | null,
+          response_payload: {
+            flagged: progress.flagged.includes(q.id),
+            mode: progress.mode,
+            answerChanges: changes,
+            skippedOpened: true,
+          },
+          result: 'skipped' as const,
+          time_spent_ms: null,
+        }
+      }
+      return null
     })
     .filter(Boolean) as Array<{
     session_id: string
     exam_id: string
     user_id: string
     question_id: string
-    selected_option_id: string
+    selected_option_id: string | null
     response_payload: Record<string, unknown>
-    result: 'correct' | 'incorrect'
+    result: 'correct' | 'incorrect' | 'skipped'
     time_spent_ms: null
   }>
 
@@ -318,6 +363,8 @@ export async function finalizeMockSession(params: {
         percent: 0,
         correct: 0,
         answered: 0,
+        skipped: 0,
+        timesChanged: 0,
         passed: false,
         attemptIdByQuestionId: {},
       }
@@ -327,19 +374,22 @@ export async function finalizeMockSession(params: {
     }
   }
 
-  const answered = rows.length
-  const correct = rows.filter((r) => r.result === 'correct').length
+  const graded = rows.filter((r) => r.result === 'correct' || r.result === 'incorrect')
+  const answered = graded.length
+  const skipped = rows.filter((r) => r.result === 'skipped').length
+  const correct = graded.filter((r) => r.result === 'correct').length
+  const timesChanged = Object.values(answerChanges).reduce((s, n) => s + (n || 0), 0)
   // Full mock: score vs whole paper (unanswered count as not correct).
   // AMAYC: score vs answered items so early stop is fair.
   const denom =
-    params.progress.mode === 'as_many_as_you_can'
+    progress.mode === 'as_many_as_you_can'
       ? Math.max(answered, 1)
       : Math.max(params.questions.length, 1)
   const percent = scorePercent(correct, denom)
   const passed = percent >= params.passMarkPercent
 
   const finishedProgress = {
-    ...params.progress,
+    ...progress,
     autosavedAt: new Date().toISOString(),
   }
 
@@ -354,6 +404,8 @@ export async function finalizeMockSession(params: {
         finished: true,
         correct,
         answered,
+        skipped,
+        timesChanged,
         passed,
       } as unknown as Record<string, unknown>,
     })
@@ -365,6 +417,8 @@ export async function finalizeMockSession(params: {
     percent,
     correct,
     answered,
+    skipped,
+    timesChanged,
     passed,
     attemptIdByQuestionId,
   }

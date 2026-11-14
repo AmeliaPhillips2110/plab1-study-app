@@ -292,10 +292,7 @@ export function KpiDashboard({
       </Panel>
 
       <Panel title="Activity Over Time">
-        <ActivityOverTimeChart
-          points={derived.activityOverTime.points}
-          topicKeys={derived.activityOverTime.topicKeys}
-        />
+        <ActivityOverTimeChart points={derived.activityOverTime.points} />
       </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">

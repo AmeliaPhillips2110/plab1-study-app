@@ -46,6 +46,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const [saving, setSaving] = useState(false)
   const [finalPercent, setFinalPercent] = useState<number | null>(null)
   const [questionElapsedSec, setQuestionElapsedSec] = useState(0)
+  const [openedIds, setOpenedIds] = useState<string[]>([])
   const questionStartedAt = useRef(Date.now())
   const bootstrapped = useRef(false)
   const attemptMapRef = useRef<AttemptMap>({})
@@ -54,6 +55,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const questionsRef = useRef<QuestionWithOptions[]>([])
   const indexRef = useRef(0)
   const phaseRef = useRef<Phase>('loading')
+  const openedIdsRef = useRef<string[]>([])
 
   useEffect(() => {
     attemptMapRef.current = attemptMap
@@ -73,6 +75,9 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   useEffect(() => {
     phaseRef.current = phase
   }, [phase])
+  useEffect(() => {
+    openedIdsRef.current = openedIds
+  }, [openedIds])
 
   const topicNameById = useMemo(() => {
     const m: Record<string, string> = {}
@@ -124,6 +129,13 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   }, [phase, index])
 
   useEffect(() => {
+    if (phase !== 'running') return
+    const q = questions[index]
+    if (!q) return
+    setOpenedIds((prev) => (prev.includes(q.id) ? prev : [...prev, q.id]))
+  }, [phase, index, questions])
+
+  useEffect(() => {
     if (bootstrapped.current) return
     bootstrapped.current = true
 
@@ -165,7 +177,38 @@ export function SessionRunner({ userId, config, onExit }: Props) {
 
   async function endSession(nextMap: AttemptMap) {
     if (!sessionId) return
-    const list = Object.values(nextMap)
+    // Opened/read but unanswered → skipped. Never-opened stay without an attempt row.
+    const opened = new Set(openedIdsRef.current)
+    const withSkips: AttemptMap = { ...nextMap }
+    for (const q of questionsRef.current) {
+      if (withSkips[q.id]) continue
+      if (!opened.has(q.id)) continue
+      const skipAttempt: AttemptMap[string] = {
+        questionId: q.id,
+        selectedOptionId: null,
+        result: 'skipped',
+        responsePayload: {
+          selectedOptionId: null,
+          answerChanges: 0,
+          skippedOpened: true,
+        },
+        timeSpentMs: null,
+        answerChanges: 0,
+      }
+      const save = await saveAttempt({
+        sessionId,
+        examId: config.examId,
+        userId,
+        questionId: q.id,
+        selectedOptionId: null,
+        result: 'skipped',
+        responsePayload: skipAttempt.responsePayload,
+        timeSpentMs: null,
+      })
+      if (!save.error) withSkips[q.id] = skipAttempt
+    }
+    setAttemptMap(withSkips)
+    const list = Object.values(withSkips)
     const finished = await finishStudySession({ sessionId, attempts: list })
     setFinalPercent(finished.percent)
     setPhase('summary')

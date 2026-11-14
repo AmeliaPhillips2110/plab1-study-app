@@ -1,11 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import {
-  LAB_VALUE_SECTIONS,
-  LAB_VALUES_CITATION,
-  LAB_VALUES_DISCLAIMER,
-} from '@/features/lab-values/labValuesData'
+import { LAB_VALUE_SECTIONS } from '@/features/lab-values/labValuesData'
 
 type Props = {
   open: boolean
@@ -16,11 +12,21 @@ export function LabValuesModal({ open, onClose }: Props) {
   const titleId = useId()
   const searchRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
+  const wasOpen = useRef(false)
+
+  // Reset search only when the dialog opens (not when onClose identity changes).
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      setQuery('')
+      const t = window.setTimeout(() => searchRef.current?.focus(), 0)
+      wasOpen.current = true
+      return () => window.clearTimeout(t)
+    }
+    if (!open) wasOpen.current = false
+  }, [open])
 
   useEffect(() => {
     if (!open) return
-    setQuery('')
-    const t = window.setTimeout(() => searchRef.current?.focus(), 0)
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
     }
@@ -28,7 +34,6 @@ export function LabValuesModal({ open, onClose }: Props) {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
-      window.clearTimeout(t)
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
     }
@@ -75,9 +80,6 @@ export function LabValuesModal({ open, onClose }: Props) {
         </header>
 
         <div className="space-y-3 border-b border-border px-4 py-3">
-          <p className="rounded-md border border-accent/30 bg-accent-subtle px-3 py-2 text-xs text-fg">
-            {LAB_VALUES_DISCLAIMER}
-          </p>
           <Input
             ref={searchRef}
             label="Search"
@@ -127,10 +129,6 @@ export function LabValuesModal({ open, onClose }: Props) {
             </div>
           )}
         </div>
-
-        <footer className="border-t border-border px-4 py-2 text-[11px] leading-snug text-muted">
-          {LAB_VALUES_CITATION}
-        </footer>
       </div>
     </div>
   )

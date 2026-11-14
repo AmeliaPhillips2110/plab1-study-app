@@ -46,7 +46,13 @@ export function EmptyChartShell({
               tick={{ fill: CHART.muted, fontSize: 11 }}
               unit={yUnit}
             />
-            <Bar dataKey="value" fill={CHART.accent} fillOpacity={0.15} radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="value"
+              fill={CHART.accent}
+              fillOpacity={0.15}
+              radius={[4, 4, 0, 0]}
+              activeBar={false}
+            />
           </BarChart>
         ) : (
           <LineChart data={PLACEHOLDER} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>

@@ -95,7 +95,7 @@ export function FeedbackPanel({
         isGood
           ? 'rounded-md border border-correct/40 bg-correct/10 p-4'
           : result === 'skipped'
-            ? 'rounded-md border border-border bg-surface p-4'
+            ? 'rounded-md border border-[#eab308]/50 bg-[#eab308]/10 p-4'
             : 'rounded-md border border-incorrect/40 bg-incorrect/10 p-4'
       }
       role="status"
@@ -104,7 +104,7 @@ export function FeedbackPanel({
         <span aria-hidden>{isGood ? '✓' : result === 'skipped' ? '→' : '✗'}</span>
         <span
           className={
-            isGood ? 'text-correct' : result === 'skipped' ? 'text-muted' : 'text-incorrect'
+            isGood ? 'text-correct' : result === 'skipped' ? 'text-[#854d0e]' : 'text-incorrect'
           }
         >
           {title}

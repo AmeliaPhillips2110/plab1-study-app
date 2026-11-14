@@ -132,12 +132,6 @@ export function FatigueChart({
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-1 text-center text-xs text-muted">
-        Teal = remaining · Black dots = unanswered
-        {timeLimitSec && timeLimitSec > 0
-          ? ` · X-axis ${formatDuration(timeLimitSec)} session timer`
-          : ''}
-      </p>
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { TEST_MODES } from '@/modules/plab1/modeRoutes'
 export function TestHubPage() {
   return (
     <AppShell title="Tests">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <p className="text-center text-sm text-muted">
           Choose a test format. Each type has its own setup page.
         </p>

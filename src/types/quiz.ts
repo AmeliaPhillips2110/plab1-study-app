@@ -42,6 +42,8 @@ export type QuizAnswerPayload = {
   flagged?: boolean
   /** How many times the selected option changed before Submit. */
   answerChanges?: number
+  /** True when finalize marked an opened-but-unanswered item as skipped. */
+  skippedOpened?: boolean
 }
 
 export type LocalAttempt = {
@@ -123,6 +125,10 @@ export type MockProgressState = {
   questionIds: string[]
   answers: Record<string, string>
   flagged: string[]
+  /** Question IDs the candidate has opened/viewed (for skip-on-submit rules). */
+  openedIds?: string[]
+  /** Per-question count of option switches before leaving the item. */
+  answerChanges?: Record<string, number>
   currentIndex: number
   targetCount: number
   timeLimitSec: number
@@ -131,6 +137,9 @@ export type MockProgressState = {
   paceSamples: PaceSample[]
   autosavedAt: string
 }
+
+/** Shared skipped / yellow token used across home bars, KPI stacks, legends. */
+export const SKIPPED_YELLOW = '#eab308'
 
 export type MockReviewItem = {
   question: QuestionWithOptions
