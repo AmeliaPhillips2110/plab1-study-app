@@ -7,6 +7,7 @@ import { LabValuesButton } from '@/features/lab-values'
 import { saveReadingSpeedWpm } from '@/features/preferences/readingSpeed'
 import { useExam } from '@/hooks/useExam'
 import { QuestionView } from '@/modules/shared/quiz-engine/QuestionView'
+import { SessionDebrief } from '@/modules/shared/quiz-engine/SessionDebrief'
 import {
   createStudySession,
   finishStudySession,
@@ -33,8 +34,10 @@ type AttemptMap = Record<
   LocalAttempt & { answerChanges: number }
 >
 
-export function SessionRunner({ userId, config, onExit }: Props) {
-  const { topics } = useExam()
+export function SessionRunner({ userId, config: initialConfig, onExit }: Props) {
+  const { topics, settings } = useExam()
+  const [config, setConfig] = useState(initialConfig)
+  const [runToken, setRunToken] = useState(0)
   const [phase, setPhase] = useState<Phase>('loading')
   const [error, setError] = useState<string | null>(null)
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([])
@@ -47,13 +50,20 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   const [finalPercent, setFinalPercent] = useState<number | null>(null)
   const [questionElapsedSec, setQuestionElapsedSec] = useState(0)
   const questionStartedAt = useRef(Date.now())
-  const bootstrapped = useRef(false)
   const attemptMapRef = useRef<AttemptMap>({})
   const draftRef = useRef<Record<string, string>>({})
   const sessionIdRef = useRef<string | null>(null)
   const questionsRef = useRef<QuestionWithOptions[]>([])
   const indexRef = useRef(0)
   const phaseRef = useRef<Phase>('loading')
+  const prevInitialConfig = useRef(initialConfig)
+
+  useEffect(() => {
+    if (prevInitialConfig.current === initialConfig) return
+    prevInitialConfig.current = initialConfig
+    setConfig(initialConfig)
+    setRunToken((t) => t + 1)
+  }, [initialConfig])
 
   useEffect(() => {
     attemptMapRef.current = attemptMap
@@ -124,14 +134,28 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   }, [phase, index])
 
   useEffect(() => {
-    if (bootstrapped.current) return
-    bootstrapped.current = true
+    setPhase('loading')
+    setError(null)
+    setQuestions([])
+    setSessionId(null)
+    setIndex(0)
+    setAttemptMap({})
+    setDraftByQuestion({})
+    setFinalPercent(null)
+    setSaving(false)
+    attemptMapRef.current = {}
+    draftRef.current = {}
+    sessionIdRef.current = null
+    questionsRef.current = []
+    indexRef.current = 0
 
+    let cancelled = false
     void (async () => {
       const [selected, glossary] = await Promise.all([
         selectQuestionsForSession(config, userId),
         fetchGlossaryTerms(config.examId),
       ])
+      if (cancelled) return
       if (selected.error || selected.questions.length === 0) {
         const exhausted =
           config.unseenOnly &&
@@ -150,6 +174,7 @@ export function SessionRunner({ userId, config, onExit }: Props) {
         config,
         questionCount: selected.questions.length,
       })
+      if (cancelled) return
       if (created.error || !created.sessionId) {
         setError(created.error ?? 'Could not start session.')
         setPhase('error')
@@ -161,7 +186,26 @@ export function SessionRunner({ userId, config, onExit }: Props) {
       setSessionId(created.sessionId)
       setPhase('running')
     })()
-  }, [config, userId])
+    return () => {
+      cancelled = true
+    }
+  }, [config, userId, runToken])
+
+  function startRedoWrongs(questionIds: string[]) {
+    setConfig({
+      examId: config.examId,
+      sessionType: 'random',
+      presentationFormat: config.presentationFormat === 'flashcard' ? 'sba' : config.presentationFormat,
+      questionIds,
+      questionLimit: questionIds.length,
+      openEnded: false,
+      dailyQueue: false,
+      dueTodayQueue: false,
+      flaggedOnly: false,
+      unseenOnly: false,
+    })
+    setRunToken((t) => t + 1)
+  }
 
   async function endSession(nextMap: AttemptMap) {
     if (!sessionId) return
@@ -304,73 +348,38 @@ export function SessionRunner({ userId, config, onExit }: Props) {
 
   if (phase === 'summary') {
     const stats = summariseAttempts(attempts)
-    const totalMs = attempts.reduce((s, a) => s + (a.timeSpentMs ?? 0), 0)
-    const answered = attempts.length || 1
-    const avgTimeSec = Math.round(totalMs / answered / 1000)
-    const totalWords = attempts.reduce((s, a) => {
-      const q = questions.find((x) => x.id === a.questionId)
-      return s + (q ? countWords(q.stem) : 0)
-    }, 0)
-    const minutes = totalMs / 60000
-    const avgWpm = minutes > 0 ? Math.round(totalWords / minutes) : 0
-    const timesChanged = attempts.reduce(
-      (s, a) => s + (a.answerChanges || a.responsePayload.answerChanges || 0),
-      0,
-    )
+    const score = finalPercent ?? stats.percent
+    const passMark = Number(settings?.pass_mark_percent ?? 65)
+    const modeLabel = config.questionIds?.length
+      ? 'Redo Wrongs'
+      : config.dueTodayQueue
+        ? 'Due Today'
+        : config.openEnded
+          ? 'Open Quiz'
+          : SESSION_TYPE_LABELS[config.sessionType]
 
     return (
-      <div className="flex w-full flex-col gap-4 rounded-md border border-border bg-surface p-4">
-        <h2 className="font-display text-xl font-semibold">Session Complete</h2>
-        <p className="text-sm text-muted">
-          {config.openEnded ? 'Open Quiz' : SESSION_TYPE_LABELS[config.sessionType]} ·{' '}
-          {FORMAT_LABELS[config.presentationFormat]}
-        </p>
-        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
-          <Stat label="Score" value={`${finalPercent ?? stats.percent}%`} />
-          <Stat label="Correct" value={String(stats.correct)} />
-          <Stat label="Incorrect" value={String(stats.incorrect)} />
-          <Stat label="Average WPM" value={String(avgWpm)} />
-          <Stat label="Time Per Question" value={`${avgTimeSec}s`} />
-          <Stat label="Times Changed" value={String(timesChanged)} />
-        </dl>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/study"
-            className="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
-          >
-            Practice Hub
-          </Link>
-          <Link
-            to="/tests"
-            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
-          >
-            Tests Hub
-          </Link>
-          <Link
-            to="/attempts"
-            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
-          >
-            Attempt Log
-          </Link>
-          <Link
-            to="/kpis"
-            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
-          >
-            KPIs
-          </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
-          >
-            Home
-          </Link>
-          <Link
-            to="/glossary"
-            className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium hover:bg-accent-subtle"
-          >
-            Glossary
-          </Link>
+      <div className="flex w-full flex-col gap-5 rounded-md border border-border bg-surface p-4">
+        <div>
+          <h2 className="font-display text-xl font-semibold">Session Complete</h2>
+          <p className="mt-1 text-sm text-muted">
+            {modeLabel} · {FORMAT_LABELS[config.presentationFormat]} · {score}% ·{' '}
+            {stats.correct}/{stats.correct + stats.incorrect + stats.partial} graded
+          </p>
         </div>
+        <SessionDebrief
+          attempts={attempts}
+          questions={questions}
+          topicNameById={topicNameById}
+          percent={score}
+          passMark={passMark}
+          onRedoWrongs={startRedoWrongs}
+          secondaryLinks={[
+            { to: '/study', label: 'Practice Hub' },
+            { to: '/attempts', label: 'Attempt Log' },
+            { to: '/', label: 'Home' },
+          ]}
+        />
       </div>
     )
   }
@@ -432,11 +441,3 @@ export function SessionRunner({ userId, config, onExit }: Props) {
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded border border-border px-3 py-2">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="text-lg font-semibold">{value}</dd>
-    </div>
-  )
-}

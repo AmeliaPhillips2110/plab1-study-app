@@ -6,6 +6,7 @@ import {
   UK_PRACTICE_TAG,
 } from '@/features/tags/tagsApi'
 import { supabase } from '@/lib/supabase'
+import { selectDueTodayQueue } from '@/modules/shared/quiz-engine/dueTodayQueue'
 import { shuffleInPlace } from '@/modules/shared/quiz-engine/scoring'
 import type { AttemptResult, QuestionWithOptions, WeaknessVariant } from '@/types/database'
 import type { SessionSetupConfig } from '@/types/quiz'
@@ -27,6 +28,22 @@ export async function selectQuestionsForSession(
   // Open / new-questions modes are effectively unlimited (bank-sized).
   const maxLimit = config.openEnded || config.unseenOnly ? 10_000 : 50
   const limit = Math.min(Math.max(config.questionLimit ?? 10, 1), maxLimit)
+
+  if (config.questionIds && config.questionIds.length > 0) {
+    return selectByQuestionIds(config.questionIds, limit)
+  }
+
+  if (config.dueTodayQueue) {
+    const due = await selectDueTodayQueue(config.examId, userId, limit)
+    if (due.error) return { questions: [], error: due.error }
+    if (due.questions.length === 0) {
+      return {
+        questions: [],
+        error: 'Nothing due today — no spaced reviews, flags, or weak-topic items waiting.',
+      }
+    }
+    return { questions: due.questions, error: null }
+  }
 
   if (config.dailyQueue) {
     return selectDailyQueue(config.examId, userId, limit)
@@ -126,6 +143,26 @@ export async function selectQuestionsForSession(
   }
 
   return { questions: shuffleInPlace(pool).slice(0, limit), error: null }
+}
+
+async function selectByQuestionIds(questionIds: string[], limit: number) {
+  const take = [...new Set(questionIds)].slice(0, limit)
+  if (take.length === 0) {
+    return { questions: [], error: 'No questions to redo.' }
+  }
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*, question_options(*)')
+    .in('id', take)
+    .eq('is_active', true)
+  if (error) return { questions: [], error: error.message }
+  const loaded = asQuestions(data)
+  const byId = new Map(loaded.map((q) => [q.id, q]))
+  const ordered = take.map((id) => byId.get(id)).filter(Boolean) as QuestionWithOptions[]
+  if (ordered.length === 0) {
+    return { questions: [], error: 'Those questions are no longer in the active bank.' }
+  }
+  return { questions: ordered, error: null }
 }
 
 /** Questions the user flagged in Practice or Tests (latest flag wins). */

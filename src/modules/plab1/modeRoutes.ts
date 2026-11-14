@@ -12,6 +12,9 @@ export type StudyModeDef = {
   openEnded?: boolean
   flaggedOnly?: boolean
   dailyQueue?: boolean
+  dueTodayQueue?: boolean
+  /** Hidden from hub grids; reachable via deep link (e.g. redo-wrongs). */
+  hidden?: boolean
   autostart?: boolean
   questionLimit?: number
   longStemOnly?: boolean
@@ -66,6 +69,16 @@ export const STUDY_MODES: StudyModeDef[] = [
     questionLimit: 10_000,
   },
   {
+    slug: 'due-today',
+    title: 'Due Today',
+    description: 'One queue: due daily reviews, flagged revise, and weak-topic items.',
+    sessionType: 'spaced_repetition',
+    presentationFormat: 'sba',
+    dueTodayQueue: true,
+    autostart: true,
+    questionLimit: 40,
+  },
+  {
     slug: 'daily-questions',
     title: 'Daily Questions',
     description:
@@ -83,6 +96,16 @@ export const STUDY_MODES: StudyModeDef[] = [
     sessionType: 'random',
     presentationFormat: 'sba',
     flaggedOnly: true,
+    autostart: true,
+    questionLimit: 40,
+  },
+  {
+    slug: 'redo-wrongs',
+    title: 'Redo Wrongs',
+    description: 'Follow-up session with only the incorrect items from your last attempt.',
+    sessionType: 'random',
+    presentationFormat: 'sba',
+    hidden: true,
     autostart: true,
     questionLimit: 40,
   },

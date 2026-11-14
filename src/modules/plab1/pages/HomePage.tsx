@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { sortTopicsByName } from '@/lib/topics'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
 import { formatDurationHours } from '@/modules/shared/analytics/kpiMetrics'
+import { DueTodayPanel } from '@/modules/shared/quiz-engine/DueTodayPanel'
 import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
 
 type TopicStack = {
@@ -155,6 +156,8 @@ export function HomePage() {
             </div>
           </div>
         </section>
+
+        <DueTodayPanel />
 
         <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-4">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">

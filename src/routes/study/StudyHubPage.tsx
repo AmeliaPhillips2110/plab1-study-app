@@ -1,16 +1,19 @@
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { STUDY_MODES } from '@/modules/plab1/modeRoutes'
+import { DueTodayPanel } from '@/modules/shared/quiz-engine/DueTodayPanel'
 
 export function StudyHubPage() {
+  const modes = STUDY_MODES.filter((m) => !m.hidden)
   return (
     <AppShell title="Practice">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+        <DueTodayPanel compact />
         <p className="text-center text-sm text-muted">
           Choose a practice mode. Each option opens ready to start.
         </p>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {STUDY_MODES.map((m) => (
+          {modes.map((m) => (
             <li key={m.slug} className="min-h-0">
               <Link
                 to={`/study/${m.slug}`}
