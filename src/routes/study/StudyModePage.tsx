@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
 import { studyModeBySlug } from '@/modules/plab1/modeRoutes'
 import { SessionRunner } from '@/modules/shared/quiz-engine/SessionRunner'
+import { takeRedoQuestionIds } from '@/modules/shared/quiz-engine/sessionDebrief'
 import type { SessionSetupConfig } from '@/types/quiz'
 import { TopicsPracticePage } from '@/routes/study/TopicsPracticePage'
 
@@ -24,9 +25,13 @@ function AutostartStudyMode({ modeSlug }: { modeSlug: string }) {
   const { user } = useAuth()
   const { loading, exam, error, schemaMissing } = useExam()
   const [runId, setRunId] = useState(() => crypto.randomUUID())
+  const [redoIds] = useState(() =>
+    modeSlug === 'redo-wrongs' ? takeRedoQuestionIds() : ([] as string[]),
+  )
 
   const config = useMemo<SessionSetupConfig | null>(() => {
     if (!mode || !exam || mode.hubOnly) return null
+    if (modeSlug === 'redo-wrongs' && redoIds.length === 0) return null
     return {
       examId: exam.id,
       sessionType: mode.sessionType,
@@ -36,11 +41,16 @@ function AutostartStudyMode({ modeSlug }: { modeSlug: string }) {
       openEnded: Boolean(mode.openEnded),
       flaggedOnly: Boolean(mode.flaggedOnly),
       dailyQueue: Boolean(mode.dailyQueue),
-      questionLimit: mode.questionLimit ?? (mode.openEnded ? 10_000 : 20),
+      dueTodayQueue: Boolean(mode.dueTodayQueue),
+      questionIds: modeSlug === 'redo-wrongs' ? redoIds : undefined,
+      questionLimit:
+        modeSlug === 'redo-wrongs'
+          ? redoIds.length
+          : (mode.questionLimit ?? (mode.openEnded ? 10_000 : 20)),
       longStemOnly: Boolean(mode.longStemOnly),
       topicId: null,
     }
-  }, [mode, exam])
+  }, [mode, exam, modeSlug, redoIds])
 
   useEffect(() => {
     setRunId(crypto.randomUUID())
@@ -53,6 +63,17 @@ function AutostartStudyMode({ modeSlug }: { modeSlug: string }) {
     return (
       <AppShell title={mode.title}>
         <p className="text-sm text-muted">Loading exam…</p>
+      </AppShell>
+    )
+  }
+
+  if (modeSlug === 'redo-wrongs' && redoIds.length === 0) {
+    return (
+      <AppShell title={mode.title}>
+        <p className="text-sm text-muted">
+          Nothing queued to redo. Finish a quiz or test first, then use{' '}
+          <span className="font-medium text-fg">Redo only wrongs</span> on the debrief.
+        </p>
       </AppShell>
     )
   }

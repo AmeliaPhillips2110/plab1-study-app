@@ -4,9 +4,11 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { MistakeTagPicker, loadMistakeTagsForAttempts, saveMistakeTags } from '@/features/mistakes'
 import { suggestMistakeTags, type MistakeTagCode } from '@/features/mistakes/tags'
+import { useExam } from '@/hooks/useExam'
 import { FatigueChart } from '@/modules/shared/quiz-engine/mock/FatigueChart'
 import { PaceWidget } from '@/modules/shared/quiz-engine/mock/PaceWidget'
 import { formatDuration } from '@/modules/shared/quiz-engine/pace'
+import { SessionDebrief } from '@/modules/shared/quiz-engine/SessionDebrief'
 import type { QuestionWithOptions } from '@/types/database'
 import type { MockProgressState, TimedMode } from '@/types/quiz'
 
@@ -43,6 +45,7 @@ export function MockReview({
   elapsedSec,
   attemptIdByQuestionId,
 }: Props) {
+  const { topics } = useExam()
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
   const [tagMap, setTagMap] = useState<Record<string, string[]>>({})
   const [noteMap, setNoteMap] = useState<Record<string, string>>({})
@@ -50,6 +53,30 @@ export function MockReview({
 
   const incorrect = Math.max(0, answered - correct)
   const unanswered = Math.max(0, questions.length - answered)
+
+  const topicNameById = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const t of topics) m[t.id] = t.name
+    return m
+  }, [topics])
+
+  const debriefAttempts = useMemo(() => {
+    return questions.map((q) => {
+      const selected = progress.answers[q.id] ?? null
+      const correctOpt = q.question_options.find((o) => o.is_correct)
+      const result = !selected
+        ? 'skipped'
+        : selected === correctOpt?.id
+          ? 'correct'
+          : 'incorrect'
+      const attemptId = attemptIdByQuestionId[q.id]
+      return {
+        questionId: q.id,
+        result,
+        mistakeTags: attemptId ? tagMap[attemptId] ?? [] : [],
+      }
+    })
+  }, [questions, progress.answers, attemptIdByQuestionId, tagMap])
 
   useEffect(() => {
     const ids = Object.values(attemptIdByQuestionId)
@@ -115,6 +142,21 @@ export function MockReview({
           </Badge>
           <Badge tone="accent">{percent}%</Badge>
           <Badge>Time Used {formatDuration(elapsedSec)}</Badge>
+        </div>
+
+        <div className="mt-4 border-t border-border pt-4">
+          <SessionDebrief
+            attempts={debriefAttempts}
+            questions={questions}
+            topicNameById={topicNameById}
+            percent={percent}
+            passMark={passMark}
+            secondaryLinks={[
+              { to: '/tests', label: 'Tests Hub' },
+              { to: '/attempts', label: 'Attempt Log' },
+              { to: '/', label: 'Home' },
+            ]}
+          />
         </div>
 
         <FatigueChart
