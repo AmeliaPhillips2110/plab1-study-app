@@ -38,3 +38,47 @@
     @apply outline-2 outline-offset-2 outline-accent;
   }
 }
+
+/* Subtle study-plan presence (2 intentional motions). */
+@keyframes study-plan-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes study-plan-row-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.study-plan-panel {
+  animation: study-plan-in 320ms ease-out both;
+}
+
+.study-plan-row {
+  animation: study-plan-row-in 280ms ease-out both;
+}
+
+.study-plan-row:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.study-plan-row:nth-child(3) {
+  animation-delay: 110ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-plan-panel,
+  .study-plan-row {
+    animation: none;
+  }
+}
