@@ -1,4 +1,6 @@
 import { countWords } from '@/features/glossary/glossaryApi'
+import { fetchGuidelineHotspotQuestions } from '@/features/guidelines/hotspots'
+import { selectMissFlashcardQuestions } from '@/features/mistakes/missFlashcards'
 import {
   fetchQuestionIdsForTagSlugs,
   LONG_STEM_MIN_WORDS,
@@ -30,6 +32,14 @@ export async function selectQuestionsForSession(
 
   if (config.dailyQueue) {
     return selectDailyQueue(config.examId, userId, limit)
+  }
+
+  if (config.missFlashcardsOnly) {
+    return selectMissFlashcardQuestions(config.examId, userId, limit)
+  }
+
+  if (config.guidelineHotspotsOnly) {
+    return selectGuidelineHotspots(config.examId, limit)
   }
 
   if (config.sessionType === 'spaced_repetition') {
@@ -126,6 +136,19 @@ export async function selectQuestionsForSession(
   }
 
   return { questions: shuffleInPlace(pool).slice(0, limit), error: null }
+}
+
+async function selectGuidelineHotspots(examId: string, limit: number) {
+  const { questions, error } = await fetchGuidelineHotspotQuestions(examId, 10_000)
+  if (error) return { questions: [], error }
+  if (questions.length === 0) {
+    return {
+      questions: [],
+      error:
+        'No guideline hotspots in the bank yet — mark is_uk_practice, tag uk-practice, or add NICE/BNF refs.',
+    }
+  }
+  return { questions: shuffleInPlace([...questions]).slice(0, limit), error: null }
 }
 
 /** Questions the user flagged in Practice or Tests (latest flag wins). */
