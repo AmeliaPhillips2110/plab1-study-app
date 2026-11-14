@@ -11,3 +11,7 @@ export {
   loadMistakeTagsForAttempt,
   type MistakeTagRow,
 } from '@/features/mistakes/mistakeApi'
+export {
+  fetchMistakeTagDrillStats,
+  type MistakeTagDrillStat,
+} from '@/features/mistakes/mistakeDrillApi'

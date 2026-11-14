@@ -23,6 +23,8 @@ export type SessionSetupConfig = {
   flaggedOnly?: boolean
   /** Daily Questions queue: due SR reviews + recent mistakes (missed days roll forward). */
   dailyQueue?: boolean
+  /** Explicit question set (mistake-tag drills, redo-wrongs follow-up). */
+  questionIds?: string[]
   /** Stage f filters */
   ukPracticeOnly?: boolean
   patientCentredOnly?: boolean

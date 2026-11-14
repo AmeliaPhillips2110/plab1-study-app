@@ -87,6 +87,14 @@ export const STUDY_MODES: StudyModeDef[] = [
     questionLimit: 40,
   },
   {
+    slug: 'mistake-tag-drills',
+    title: 'Mistake-Tag Drills',
+    description: 'Drill questions you previously tagged (misread stem, guideline miss, and more).',
+    sessionType: 'random',
+    presentationFormat: 'sba',
+    hubOnly: true,
+  },
+  {
     slug: 'timed-drill',
     title: 'Timed Drill',
     description: 'Rapid-fire SBAs with a short countdown per item.',

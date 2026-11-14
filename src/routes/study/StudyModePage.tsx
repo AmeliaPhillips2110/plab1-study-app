@@ -7,6 +7,7 @@ import { useExam } from '@/hooks/useExam'
 import { studyModeBySlug } from '@/modules/plab1/modeRoutes'
 import { SessionRunner } from '@/modules/shared/quiz-engine/SessionRunner'
 import type { SessionSetupConfig } from '@/types/quiz'
+import { MistakeTagDrillsPage } from '@/routes/study/MistakeTagDrillsPage'
 import { TopicsPracticePage } from '@/routes/study/TopicsPracticePage'
 
 export function StudyModePage() {
@@ -14,6 +15,10 @@ export function StudyModePage() {
 
   if (modeSlug === 'topics') {
     return <TopicsPracticePage />
+  }
+
+  if (modeSlug === 'mistake-tag-drills') {
+    return <MistakeTagDrillsPage />
   }
 
   return <AutostartStudyMode modeSlug={modeSlug} />
