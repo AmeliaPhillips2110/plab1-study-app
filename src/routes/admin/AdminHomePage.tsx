@@ -19,6 +19,14 @@ export function AdminHomePage() {
           </li>
           <li>
             <Link
+              to="/admin/import"
+              className="block rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium hover:border-accent"
+            >
+              Import Excel bank
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/admin/glossary"
               className="block rounded-md border border-border bg-surface px-4 py-3 text-sm font-medium hover:border-accent"
             >

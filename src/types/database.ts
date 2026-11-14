@@ -267,6 +267,19 @@ export type Database = {
     Functions: {
       current_role: { Args: Record<string, never>; Returns: UserRole }
       is_admin: { Args: Record<string, never>; Returns: boolean }
+      import_questions: {
+        Args: {
+          p_exam_id: string
+          p_items?: unknown
+          p_new_topics?: unknown
+        }
+        Returns: {
+          inserted: number
+          updated: number
+          options: number
+          topics_created: number
+        }
+      }
     }
     Enums: {
       user_role: UserRole
