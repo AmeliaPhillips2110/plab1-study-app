@@ -24,9 +24,14 @@ export async function selectQuestionsForSession(
   config: SessionSetupConfig,
   userId: string,
 ): Promise<{ questions: QuestionWithOptions[]; error: string | null }> {
-  // Open / new-questions modes are effectively unlimited (bank-sized).
-  const maxLimit = config.openEnded || config.unseenOnly ? 10_000 : 50
+  // Open / new-questions / explicit-ID modes are effectively unlimited (bank-sized).
+  const maxLimit =
+    config.openEnded || config.unseenOnly || (config.questionIds?.length ?? 0) > 0 ? 10_000 : 50
   const limit = Math.min(Math.max(config.questionLimit ?? 10, 1), maxLimit)
+
+  if (config.questionIds && config.questionIds.length > 0) {
+    return selectByQuestionIds(config.questionIds, limit)
+  }
 
   if (config.dailyQueue) {
     return selectDailyQueue(config.examId, userId, limit)
@@ -126,6 +131,32 @@ export async function selectQuestionsForSession(
   }
 
   return { questions: shuffleInPlace(pool).slice(0, limit), error: null }
+}
+
+/** Load an explicit question ID list (order preserved; inactive bank items skipped). */
+async function selectByQuestionIds(questionIds: string[], limit: number) {
+  const take = [...new Set(questionIds)].slice(0, limit)
+  if (take.length === 0) {
+    return { questions: [], error: 'No questions matched this mistake tag.' }
+  }
+  const loaded: QuestionWithOptions[] = []
+  const chunkSize = 200
+  for (let i = 0; i < take.length; i += chunkSize) {
+    const chunk = take.slice(i, i + chunkSize)
+    const { data, error } = await supabase
+      .from('questions')
+      .select('*, question_options(*)')
+      .in('id', chunk)
+      .eq('is_active', true)
+    if (error) return { questions: [], error: error.message }
+    loaded.push(...asQuestions(data))
+  }
+  const byId = new Map(loaded.map((q) => [q.id, q]))
+  const ordered = take.map((id) => byId.get(id)).filter(Boolean) as QuestionWithOptions[]
+  if (ordered.length === 0) {
+    return { questions: [], error: 'Those questions are no longer in the active bank.' }
+  }
+  return { questions: ordered, error: null }
 }
 
 /** Questions the user flagged in Practice or Tests (latest flag wins). */
