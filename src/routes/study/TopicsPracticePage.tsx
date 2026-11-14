@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { Button } from '@/components/ui/Button'
@@ -12,15 +12,46 @@ import type { SessionSetupConfig } from '@/types/quiz'
 export function TopicsPracticePage() {
   const { user } = useAuth()
   const { loading, exam, topics, error, schemaMissing } = useExam()
+  const [params] = useSearchParams()
   const [topicId, setTopicId] = useState('')
   const [run, setRun] = useState<{ id: string; config: SessionSetupConfig } | null>(null)
+  const autostarted = useRef(false)
 
   const topicOptions = useMemo(
     () => topics.map((t) => ({ value: t.id, label: t.name })),
     [topics],
   )
 
-  const effectiveTopic = topicId || topics[0]?.id || ''
+  const paramTopic = params.get('topicId')
+  const paramLimit = Number(params.get('limit') || 20)
+  const wantAutostart = params.get('autostart') === '1'
+
+  const effectiveTopic = topicId || paramTopic || topics[0]?.id || ''
+  const questionLimit = Math.min(50, Math.max(1, Number.isFinite(paramLimit) ? paramLimit : 20))
+
+  useEffect(() => {
+    if (paramTopic && topics.some((t) => t.id === paramTopic)) {
+      setTopicId(paramTopic)
+    }
+  }, [paramTopic, topics])
+
+  useEffect(() => {
+    if (!wantAutostart || autostarted.current || !exam || !user) return
+    const tid = paramTopic || topicId || topics[0]?.id
+    if (!tid || (paramTopic && !topics.some((t) => t.id === paramTopic))) return
+    if (topics.length === 0) return
+    autostarted.current = true
+    setRun({
+      id: crypto.randomUUID(),
+      config: {
+        examId: exam.id,
+        sessionType: 'topic',
+        presentationFormat: 'sba',
+        topicId: tid,
+        questionLimit,
+      },
+    })
+  }, [wantAutostart, exam, user, paramTopic, topicId, topics, questionLimit])
 
   if (!user) return <Navigate to="/login" replace />
 
@@ -47,7 +78,7 @@ export function TopicsPracticePage() {
         sessionType: 'topic',
         presentationFormat: 'sba',
         topicId: effectiveTopic,
-        questionLimit: 20,
+        questionLimit,
       },
     })
   }

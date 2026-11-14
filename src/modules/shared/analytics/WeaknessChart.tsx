@@ -37,7 +37,9 @@ export function WeaknessChart({ items }: Props) {
               </div>
               <p className="text-xs text-muted">{item.focusReason}</p>
             </div>
-            <Link to="/study/topics">
+            <Link
+              to={`/study/topics?topicId=${encodeURIComponent(item.topicId)}&limit=15&autostart=1`}
+            >
               <Button variant="secondary">Drill This Topic</Button>
             </Link>
           </li>

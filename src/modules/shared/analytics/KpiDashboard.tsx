@@ -40,6 +40,8 @@ import {
   type HeadlineKpis,
   type TimeSpentBreakdown,
 } from '@/modules/shared/analytics/kpiMetrics'
+import { TopicMasteryRings } from '@/modules/shared/analytics/TopicMasteryRings'
+import { computeTopicMastery } from '@/modules/shared/analytics/topicMastery'
 import { WeaknessChart } from '@/modules/shared/analytics/WeaknessChart'
 
 type Props = {
@@ -141,6 +143,7 @@ export function KpiDashboard({
         calendar: [],
         topicHeat: [],
         weaknesses: [],
+        topicMastery: [],
         coverageStatuses: EMPTY_COVERAGE,
         activityOverTime: { points: [], topicKeys: [] as string[] },
         timeOfDay: computeTimeOfDayActivity([]),
@@ -178,12 +181,18 @@ export function KpiDashboard({
       calendar: computeCalendarHeatmap(bundle.attempts),
       topicHeat: computeTopicWeekdayHeatmap(bundle.attempts),
       weaknesses: computeWeaknesses(topicAccuracy),
+      topicMastery: computeTopicMastery({
+        attempts: bundle.attempts,
+        topics: bundle.topics,
+        bankByTopic: bundle.bankByTopic,
+        passMarkPercent,
+      }),
       coverageStatuses: computeCoverageStatuses(bundle.attempts, bundle.bankActive),
       activityOverTime: computeActivityOverTime(bundle.attempts, bundle.topics),
       timeOfDay: computeTimeOfDayActivity(timeAttempts),
       dayOfWeek: computeDayOfWeekActivity(timeAttempts),
     }
-  }, [bundle, timeScope])
+  }, [bundle, timeScope, passMarkPercent])
 
   const h = derived.headlines
   const softError = error && isMissingSchemaError(error) ? null : error
@@ -277,6 +286,18 @@ export function KpiDashboard({
           <MistakeBreakdownChart data={derived.mistakes} />
         </Panel>
       </div>
+
+      <Panel
+        title="Topic Mastery"
+        subtitle={`Ready / close / weak vs ${passMarkPercent}% pass · tap a ring to practise`}
+      >
+        <TopicMasteryRings
+          items={derived.topicMastery}
+          loading={loading}
+          size="md"
+          emptyHint="Answer a few SBAs to populate mastery rings."
+        />
+      </Panel>
 
       <div className="grid items-stretch gap-6 lg:grid-cols-2">
         <Panel title="Questions Per Minute" subtitle="By Date">

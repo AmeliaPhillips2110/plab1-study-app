@@ -10,28 +10,25 @@ import { supabase } from '@/lib/supabase'
 import { sortTopicsByName } from '@/lib/topics'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
 import { formatDurationHours } from '@/modules/shared/analytics/kpiMetrics'
+import { TopicMasteryRings } from '@/modules/shared/analytics/TopicMasteryRings'
+import {
+  computeTopicMastery,
+  type TopicMastery,
+} from '@/modules/shared/analytics/topicMastery'
 import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
-
-type TopicStack = {
-  correct: number
-  incorrect: number
-  skipped: number
-  unanswered: number
-  bank: number
-  pctCorrect: number | null
-}
 
 export function HomePage() {
   const { user } = useAuth()
-  const { loading, exam, topics, error, schemaMissing } = useExam()
+  const { loading, exam, settings, topics, error, schemaMissing } = useExam()
   const [bankCount, setBankCount] = useState<number | null>(null)
-  const [topicStacks, setTopicStacks] = useState<Record<string, TopicStack>>({})
+  const [mastery, setMastery] = useState<TopicMastery[]>([])
+  const [masteryLoading, setMasteryLoading] = useState(false)
   const [timeSpentMs, setTimeSpentMs] = useState(0)
   const [studyStreak, setStudyStreak] = useState(0)
 
   const daysLeft = useMemo(() => countdownTo(nextExamDate(new Date()), new Date()).days, [])
-  /** Always show every seeded topic (including 0-question banks), A→Z. */
   const topicsAz = useMemo(() => sortTopicsByName(topics), [topics])
+  const passMark = Number(settings?.pass_mark_percent ?? 65)
 
   useEffect(() => {
     if (!exam) {
@@ -61,10 +58,11 @@ export function HomePage() {
 
   useEffect(() => {
     if (!exam) {
-      setTopicStacks({})
+      setMastery([])
       return
     }
     void (async () => {
+      setMasteryLoading(true)
       const { data: qRows } = await supabase
         .from('questions')
         .select('id, topic_id')
@@ -79,48 +77,31 @@ export function HomePage() {
         bankByTopic[tid] = (bankByTopic[tid] ?? 0) + 1
       }
 
-      const latestByQuestion = new Map<string, { topicId: string; result: string }>()
+      let attempts: Awaited<ReturnType<typeof fetchAttemptLog>>['rows'] = []
       if (user) {
-        const { rows } = await fetchAttemptLog({ userId: user.id, examId: exam.id, limit: 2000 })
-        for (const row of rows) {
-          const qid = row.question_id
-          const tid = row.questions?.topic_id
-          if (!qid || !tid || latestByQuestion.has(qid)) continue
-          latestByQuestion.set(qid, { topicId: tid, result: row.result })
-        }
+        const res = await fetchAttemptLog({ userId: user.id, examId: exam.id, limit: 2000 })
+        attempts = res.rows
       }
 
-      const stacks: Record<string, TopicStack> = {}
-      for (const t of topics) {
-        const bank = bankByTopic[t.id] ?? 0
-        let correct = 0
-        let incorrect = 0
-        let skipped = 0
-        for (const v of latestByQuestion.values()) {
-          if (v.topicId !== t.id) continue
-          if (v.result === 'correct') correct += 1
-          else if (v.result === 'incorrect' || v.result === 'partial') incorrect += 1
-          else if (v.result === 'skipped') skipped += 1
-        }
-        const answered = correct + incorrect + skipped
-        // Empty banks still render as fully unanswered (grey) — never hide the topic.
-        const unanswered = bank > 0 ? Math.max(0, bank - answered) : 1
-        const graded = correct + incorrect
-        stacks[t.id] = {
-          correct,
-          incorrect,
-          skipped,
-          unanswered,
-          bank,
-          pctCorrect: graded > 0 ? Math.round((correct / graded) * 100) : null,
-        }
-      }
-      setTopicStacks(stacks)
+      setMastery(
+        computeTopicMastery({
+          attempts,
+          topics: topicsAz,
+          bankByTopic,
+          passMarkPercent: passMark,
+        }),
+      )
+      setMasteryLoading(false)
     })()
-  }, [user, exam, topics])
+  }, [user, exam, topicsAz, passMark])
 
   const examMissing = !loading && (!exam || schemaMissing)
   const bankEmpty = Boolean(exam) && bankCount === 0
+  const statusCounts = useMemo(() => {
+    const c = { ready: 0, close: 0, weak: 0 }
+    for (const m of mastery) c[m.status] += 1
+    return c
+  }, [mastery])
 
   return (
     <AppShell title="Home">
@@ -159,29 +140,17 @@ export function HomePage() {
         <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-4">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h2 className="font-display text-lg font-semibold">Topics</h2>
+              <h2 className="font-display text-lg font-semibold">Topic mastery</h2>
               <Link to="/study/topics" className="text-sm text-accent hover:underline">
                 Practise by topic →
               </Link>
             </div>
-            <ul className="flex flex-col gap-1 text-xs text-muted sm:items-end">
-              <li className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#3d8b5a]" aria-hidden />
-                Correct
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#b54a4a]" aria-hidden />
-                Incorrect
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#eab308]" aria-hidden />
-                Skipped
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#737373]" aria-hidden />
-                Unanswered
-              </li>
-            </ul>
+            {mastery.length > 0 ? (
+              <p className="text-xs text-muted">
+                Pass {passMark}% · {statusCounts.ready} ready · {statusCounts.close} close ·{' '}
+                {statusCounts.weak} weak
+              </p>
+            ) : null}
           </div>
           {loading ? (
             <p className="text-sm text-muted">Loading topics…</p>
@@ -193,51 +162,10 @@ export function HomePage() {
           ) : (
             <>
               <p className="mb-3 text-xs text-muted">
-                {topicsAz.length} specialties · A–Z · empty topics still listed
+                {topicsAz.length} specialties · coverage + accuracy vs {passMark}% · tap a ring to
+                start
               </p>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {topicsAz.map((t) => {
-                  const s = topicStacks[t.id]
-                  const total =
-                    (s?.correct ?? 0) +
-                    (s?.incorrect ?? 0) +
-                    (s?.skipped ?? 0) +
-                    (s?.unanswered ?? 1)
-                  const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0)
-                  return (
-                    <li key={t.id} className="rounded border border-border px-3 py-2">
-                      <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
-                        <span className="font-medium">{t.name}</span>
-                        <span className="tabular-nums text-muted">
-                          {s?.pctCorrect == null ? '—' : `${s.pctCorrect}%`}
-                        </span>
-                      </div>
-                      <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-[#ece7df]">
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.correct ?? 0)}%`, backgroundColor: '#3d8b5a' }}
-                          title="Correct"
-                        />
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.incorrect ?? 0)}%`, backgroundColor: '#b54a4a' }}
-                          title="Incorrect"
-                        />
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.skipped ?? 0)}%`, backgroundColor: '#eab308' }}
-                          title="Skipped"
-                        />
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.unanswered ?? 1)}%`, backgroundColor: '#737373' }}
-                          title="Unanswered"
-                        />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
+              <TopicMasteryRings items={mastery} loading={masteryLoading} size="sm" />
             </>
           )}
         </section>

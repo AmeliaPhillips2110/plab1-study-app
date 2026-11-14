@@ -38,3 +38,14 @@
     @apply outline-2 outline-offset-2 outline-accent;
   }
 }
+
+@keyframes mastery-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
