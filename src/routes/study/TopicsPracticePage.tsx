@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { Button } from '@/components/ui/Button'
@@ -9,18 +9,49 @@ import { useExam } from '@/hooks/useExam'
 import { SessionRunner } from '@/modules/shared/quiz-engine/SessionRunner'
 import type { SessionSetupConfig } from '@/types/quiz'
 
+function parseLimit(raw: string | null): number {
+  const n = Number(raw ?? 20)
+  if (!Number.isFinite(n)) return 20
+  return Math.min(40, Math.max(5, Math.round(n)))
+}
+
 export function TopicsPracticePage() {
   const { user } = useAuth()
   const { loading, exam, topics, error, schemaMissing } = useExam()
-  const [topicId, setTopicId] = useState('')
+  const [searchParams] = useSearchParams()
+  const paramTopicId = searchParams.get('topicId') ?? ''
+  const autostart = searchParams.get('autostart') === '1'
+  const questionLimit = parseLimit(searchParams.get('limit'))
+
+  const [topicOverride, setTopicOverride] = useState<string | null>(null)
   const [run, setRun] = useState<{ id: string; config: SessionSetupConfig } | null>(null)
+  const autostarted = useRef(false)
 
   const topicOptions = useMemo(
     () => topics.map((t) => ({ value: t.id, label: t.name })),
     [topics],
   )
 
-  const effectiveTopic = topicId || topics[0]?.id || ''
+  const knownTopic =
+    (topicOverride && topics.some((t) => t.id === topicOverride) ? topicOverride : null) ||
+    (paramTopicId && topics.some((t) => t.id === paramTopicId) ? paramTopicId : null) ||
+    topics[0]?.id ||
+    ''
+
+  useEffect(() => {
+    if (!autostart || autostarted.current || !exam || !knownTopic || !user) return
+    autostarted.current = true
+    setRun({
+      id: crypto.randomUUID(),
+      config: {
+        examId: exam.id,
+        sessionType: 'topic',
+        presentationFormat: 'sba',
+        topicId: knownTopic,
+        questionLimit,
+      },
+    })
+  }, [autostart, exam, knownTopic, questionLimit, user])
 
   if (!user) return <Navigate to="/login" replace />
 
@@ -31,7 +62,10 @@ export function TopicsPracticePage() {
           key={run.id}
           userId={user.id}
           config={run.config}
-          onExit={() => setRun(null)}
+          onExit={() => {
+            autostarted.current = true
+            setRun(null)
+          }}
         />
       </AppShell>
     )
@@ -39,15 +73,15 @@ export function TopicsPracticePage() {
 
   function onStart(e: FormEvent) {
     e.preventDefault()
-    if (!exam || !effectiveTopic) return
+    if (!exam || !knownTopic) return
     setRun({
       id: crypto.randomUUID(),
       config: {
         examId: exam.id,
         sessionType: 'topic',
         presentationFormat: 'sba',
-        topicId: effectiveTopic,
-        questionLimit: 20,
+        topicId: knownTopic,
+        questionLimit,
       },
     })
   }
@@ -68,14 +102,14 @@ export function TopicsPracticePage() {
             <Select
               label="Topic"
               name="topic"
-              value={effectiveTopic}
-              onChange={(e) => setTopicId(e.target.value)}
+              value={knownTopic}
+              onChange={(e) => setTopicOverride(e.target.value)}
               options={topicOptions}
             />
           ) : (
             <p className="text-sm text-muted">No topics loaded yet.</p>
           )}
-          <Button type="submit" disabled={!effectiveTopic}>
+          <Button type="submit" disabled={!knownTopic}>
             Start
           </Button>
         </form>

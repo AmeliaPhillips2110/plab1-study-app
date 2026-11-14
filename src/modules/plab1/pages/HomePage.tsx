@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { sortTopicsByName } from '@/lib/topics'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
 import { formatDurationHours } from '@/modules/shared/analytics/kpiMetrics'
+import { StudyPlanPanel } from '@/modules/shared/analytics/StudyPlanPanel'
 import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
 
 type TopicStack = {
@@ -23,7 +24,7 @@ type TopicStack = {
 
 export function HomePage() {
   const { user } = useAuth()
-  const { loading, exam, topics, error, schemaMissing } = useExam()
+  const { loading, exam, topics, settings, error, schemaMissing } = useExam()
   const [bankCount, setBankCount] = useState<number | null>(null)
   const [topicStacks, setTopicStacks] = useState<Record<string, TopicStack>>({})
   const [timeSpentMs, setTimeSpentMs] = useState(0)
@@ -155,6 +156,16 @@ export function HomePage() {
             </div>
           </div>
         </section>
+
+        {user && exam && topics.length > 0 ? (
+          <StudyPlanPanel
+            userId={user.id}
+            examId={exam.id}
+            topics={topics}
+            variant="home"
+            passMarkPercent={settings?.pass_mark_percent ?? 65}
+          />
+        ) : null}
 
         <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-4">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
