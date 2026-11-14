@@ -23,6 +23,10 @@ export type SessionSetupConfig = {
   flaggedOnly?: boolean
   /** Daily Questions queue: due SR reviews + recent mistakes (missed days roll forward). */
   dailyQueue?: boolean
+  /** UK practice / NICE-BNF / guideline-tagged SBA drill. */
+  guidelineHotspotsOnly?: boolean
+  /** Auto flashcards from unique incorrect SBA attempts (lightweight miss deck). */
+  missFlashcardsOnly?: boolean
   /** Stage f filters */
   ukPracticeOnly?: boolean
   patientCentredOnly?: boolean

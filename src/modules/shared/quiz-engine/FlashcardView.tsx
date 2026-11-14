@@ -28,6 +28,7 @@ export function flashcardSides(question: QuestionWithOptions): { front: string; 
 export function FlashcardView({ question, disabled, onGrade }: Props) {
   const [flipped, setFlipped] = useState(false)
   const { front, back } = flashcardSides(question)
+  const isMissCard = question.payload?.miss_card === true
 
   return (
     <div className="flex flex-col gap-4">
@@ -38,7 +39,8 @@ export function FlashcardView({ question, disabled, onGrade }: Props) {
         aria-label={flipped ? 'Show front of card' : 'Reveal back of card'}
       >
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-          {flipped ? 'Back' : 'Front'} · click to flip
+          {flipped ? 'Back' : 'Front'}
+          {isMissCard ? ' · miss recall' : ''} · click to flip
         </p>
         <p className="whitespace-pre-wrap text-base">{flipped ? back : front}</p>
       </button>

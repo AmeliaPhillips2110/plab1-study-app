@@ -15,6 +15,10 @@ export type StudyModeDef = {
   autostart?: boolean
   questionLimit?: number
   longStemOnly?: boolean
+  /** UK practice / guideline-tagged SBA drill. */
+  guidelineHotspotsOnly?: boolean
+  /** Auto-generated flashcards from unique SBA misses. */
+  missFlashcardsOnly?: boolean
   /** Hub/dropdown only — uses a dedicated page rather than SessionRunner autostart. */
   hubOnly?: boolean
 }
@@ -43,6 +47,29 @@ export const STUDY_MODES: StudyModeDef[] = [
     sessionType: 'flashcard',
     presentationFormat: 'flashcard',
     autostart: true,
+  },
+  {
+    slug: 'guideline-hotspots',
+    title: 'Guideline Hotspots',
+    description:
+      'Drill UK-practice and guideline-linked items (NICE / BNF / is_uk_practice / payload refs).',
+    sessionType: 'random',
+    presentationFormat: 'sba',
+    guidelineHotspotsOnly: true,
+    openEnded: true,
+    autostart: true,
+    questionLimit: 40,
+  },
+  {
+    slug: 'active-recall',
+    title: 'Active Recall',
+    description:
+      'Flashcards auto-built from your wrong SBAs — flip and grade Again / Hard / Good / Easy.',
+    sessionType: 'flashcard',
+    presentationFormat: 'flashcard',
+    missFlashcardsOnly: true,
+    autostart: true,
+    questionLimit: 40,
   },
   {
     slug: 'open-quiz',

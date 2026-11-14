@@ -11,3 +11,10 @@ export {
   loadMistakeTagsForAttempt,
   type MistakeTagRow,
 } from '@/features/mistakes/mistakeApi'
+export {
+  asMissFlashcard,
+  clinicalCueFromStem,
+  countMissFlashcards,
+  fetchMissQuestionIds,
+  selectMissFlashcardQuestions,
+} from '@/features/mistakes/missFlashcards'

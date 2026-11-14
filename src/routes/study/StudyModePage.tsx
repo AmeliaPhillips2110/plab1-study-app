@@ -36,6 +36,8 @@ function AutostartStudyMode({ modeSlug }: { modeSlug: string }) {
       openEnded: Boolean(mode.openEnded),
       flaggedOnly: Boolean(mode.flaggedOnly),
       dailyQueue: Boolean(mode.dailyQueue),
+      guidelineHotspotsOnly: Boolean(mode.guidelineHotspotsOnly),
+      missFlashcardsOnly: Boolean(mode.missFlashcardsOnly),
       questionLimit: mode.questionLimit ?? (mode.openEnded ? 10_000 : 20),
       longStemOnly: Boolean(mode.longStemOnly),
       topicId: null,

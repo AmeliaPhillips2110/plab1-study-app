@@ -20,6 +20,8 @@ export type SessionSetupInitial = {
   questionLimit?: number
   unseenOnly?: boolean
   openEnded?: boolean
+  guidelineHotspotsOnly?: boolean
+  missFlashcardsOnly?: boolean
   autostart?: boolean
 }
 
@@ -38,9 +40,11 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
     initial?.weaknessVariant ?? 'recent_mistakes',
   )
   const [unseenOnly, setUnseenOnly] = useState(Boolean(initial?.unseenOnly))
-  const [ukPracticeOnly, setUkPracticeOnly] = useState(false)
+  const [ukPracticeOnly, setUkPracticeOnly] = useState(Boolean(initial?.guidelineHotspotsOnly))
   const [patientCentredOnly, setPatientCentredOnly] = useState(false)
   const [longStemOnly, setLongStemOnly] = useState(false)
+  const guidelineHotspotsOnly = Boolean(initial?.guidelineHotspotsOnly)
+  const missFlashcardsOnly = Boolean(initial?.missFlashcardsOnly)
   const [limit, setLimit] = useState(String(initial?.questionLimit ?? 10))
   const [rapidSeconds, setRapidSeconds] = useState('15')
   const autostarted = useMemo(() => ({ done: false }), [])
@@ -65,7 +69,9 @@ export function SessionSetup({ examId, topics, onStart, initial }: Props) {
       openEnded: Boolean(initial?.openEnded),
       questionLimit,
       rapidFireSeconds,
-      ukPracticeOnly,
+      ukPracticeOnly: ukPracticeOnly || guidelineHotspotsOnly,
+      guidelineHotspotsOnly,
+      missFlashcardsOnly,
       patientCentredOnly,
       longStemOnly,
     }
