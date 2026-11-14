@@ -45,3 +45,11 @@ Home topics + Practice should show the new bank.
 ## Bank v2 (images) — optional additive
 
 See [`IMPORT_BANK_V2_RUN_ORDER.md`](./IMPORT_BANK_V2_RUN_ORDER.md) for `PLAB_1_Question_Bank_2.xlsx` (234 SBAs + figures).
+
+## Bank v3 — optional additive
+
+See [`IMPORT_BANK_V3_RUN_ORDER.md`](./IMPORT_BANK_V3_RUN_ORDER.md) for `PLAB_1_Question_Bank_3.xlsx` (830 SBAs, no figures) when that PR is on `main`.
+
+## Bank v4 — optional additive
+
+See [`IMPORT_BANK_V4_RUN_ORDER.md`](./IMPORT_BANK_V4_RUN_ORDER.md) for `PLAB_1_Question_Bank_4.xlsx` (342 SBAs, no figures).
