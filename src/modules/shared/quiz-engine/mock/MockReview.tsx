@@ -8,7 +8,7 @@ import { FatigueChart } from '@/modules/shared/quiz-engine/mock/FatigueChart'
 import { PaceWidget } from '@/modules/shared/quiz-engine/mock/PaceWidget'
 import { formatDuration } from '@/modules/shared/quiz-engine/pace'
 import type { QuestionWithOptions } from '@/types/database'
-import type { MockProgressState, TimedMode } from '@/types/quiz'
+import { SKIPPED_YELLOW, type MockProgressState, type TimedMode } from '@/types/quiz'
 
 type Props = {
   mode: TimedMode
@@ -17,6 +17,8 @@ type Props = {
   percent: number
   correct: number
   answered: number
+  skipped: number
+  timesChanged: number
   passed: boolean
   passMark: number
   elapsedSec: number
@@ -28,8 +30,11 @@ const FILTERS = [
   { id: 'correct', label: 'Correct' },
   { id: 'incorrect', label: 'Incorrect' },
   { id: 'flagged', label: 'Flagged' },
-  { id: 'skipped', label: 'New' },
+  { id: 'skipped', label: 'Skipped' },
+  { id: 'new', label: 'New' },
 ] as const
+
+type ReviewResult = 'correct' | 'incorrect' | 'skipped' | 'new'
 
 export function MockReview({
   mode,
@@ -38,6 +43,8 @@ export function MockReview({
   percent,
   correct,
   answered,
+  skipped,
+  timesChanged,
   passed,
   passMark,
   elapsedSec,
@@ -49,7 +56,8 @@ export function MockReview({
   const [openExplain, setOpenExplain] = useState<Record<string, boolean>>({})
 
   const incorrect = Math.max(0, answered - correct)
-  const unanswered = Math.max(0, questions.length - answered)
+  const opened = useMemo(() => new Set(progress.openedIds ?? []), [progress.openedIds])
+  const neverOpened = Math.max(0, questions.length - answered - skipped)
 
   useEffect(() => {
     const ids = Object.values(attemptIdByQuestionId)
@@ -71,11 +79,14 @@ export function MockReview({
       .map((q, index) => {
         const selected = progress.answers[q.id] ?? null
         const correctOpt = q.question_options.find((o) => o.is_correct)
-        const result = !selected
-          ? 'skipped'
-          : selected === correctOpt?.id
-            ? 'correct'
-            : 'incorrect'
+        let result: ReviewResult
+        if (selected) {
+          result = selected === correctOpt?.id ? 'correct' : 'incorrect'
+        } else if (opened.has(q.id) || attemptIdByQuestionId[q.id]) {
+          result = 'skipped'
+        } else {
+          result = 'new'
+        }
         const isFlagged = progress.flagged.includes(q.id)
         const attemptId = attemptIdByQuestionId[q.id] ?? null
         return { q, index, selected, correctOpt, result, isFlagged, attemptId }
@@ -85,9 +96,10 @@ export function MockReview({
         if (filter === 'correct') return item.result === 'correct'
         if (filter === 'incorrect') return item.result === 'incorrect'
         if (filter === 'flagged') return item.isFlagged
-        return item.result === 'skipped'
+        if (filter === 'skipped') return item.result === 'skipped'
+        return item.result === 'new'
       })
-  }, [questions, progress, filter, attemptIdByQuestionId])
+  }, [questions, progress, filter, attemptIdByQuestionId, opened])
 
   const unansweredIndices = useMemo(
     () =>
@@ -101,7 +113,8 @@ export function MockReview({
   const totalForBar = Math.max(questions.length, 1)
   const correctPct = (correct / totalForBar) * 100
   const incorrectPct = (incorrect / totalForBar) * 100
-  const newPct = (unanswered / totalForBar) * 100
+  const skippedPct = (skipped / totalForBar) * 100
+  const newPct = (neverOpened / totalForBar) * 100
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -115,6 +128,7 @@ export function MockReview({
           </Badge>
           <Badge tone="accent">{percent}%</Badge>
           <Badge>Time Used {formatDuration(elapsedSec)}</Badge>
+          <Badge>Times Changed {timesChanged}</Badge>
         </div>
 
         <FatigueChart
@@ -137,9 +151,14 @@ export function MockReview({
               style={{ width: `${incorrectPct}%` }}
               title="Incorrect"
             />
-            <div className="h-full bg-neutral-300" style={{ width: `${newPct}%` }} title="New" />
+            <div
+              className="h-full"
+              style={{ width: `${skippedPct}%`, backgroundColor: SKIPPED_YELLOW }}
+              title="Skipped"
+            />
+            <div className="h-full bg-[#737373]" style={{ width: `${newPct}%` }} title="New" />
           </div>
-          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
             <div className="rounded border border-border px-3 py-2">
               <dt className="text-xs text-muted">Answered</dt>
               <dd className="text-lg font-semibold">{answered}</dd>
@@ -153,8 +172,14 @@ export function MockReview({
               <dd className="text-lg font-semibold text-incorrect">{incorrect}</dd>
             </div>
             <div className="rounded border border-border px-3 py-2">
+              <dt className="text-xs text-muted">Skipped</dt>
+              <dd className="text-lg font-semibold" style={{ color: SKIPPED_YELLOW }}>
+                {skipped}
+              </dd>
+            </div>
+            <div className="rounded border border-border px-3 py-2">
               <dt className="text-xs text-muted">New</dt>
-              <dd className="text-lg font-semibold">{unanswered}</dd>
+              <dd className="text-lg font-semibold">{neverOpened}</dd>
             </div>
           </dl>
         </div>
@@ -207,10 +232,18 @@ export function MockReview({
                           ? 'correct'
                           : result === 'incorrect'
                             ? 'incorrect'
-                            : 'neutral'
+                            : result === 'skipped'
+                              ? 'skipped'
+                              : 'neutral'
                       }
                     >
-                      {result === 'skipped' ? 'New' : result === 'correct' ? 'Correct' : 'Incorrect'}
+                      {result === 'skipped'
+                        ? 'Skipped'
+                        : result === 'new'
+                          ? 'New'
+                          : result === 'correct'
+                            ? 'Correct'
+                            : 'Incorrect'}
                     </Badge>
                     {isFlagged ? <Badge tone="incorrect">Flagged</Badge> : null}
                   </div>

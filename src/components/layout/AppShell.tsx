@@ -13,24 +13,17 @@ type Props = {
 /**
  * Top row: bold PLABoratory | centered heading | Light + account.
  * Nav sits on a slightly darker teal band (no white bottom border).
+ * Main content uses full width with edge padding (no middle-narrow max-width).
  */
 export function AppShell({ children, title }: Props) {
   return (
     <div className="min-h-screen bg-bg text-fg">
       <header className="bg-brand-banner text-white">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+        <div className="mx-auto flex w-full items-center gap-3 px-4 py-3 sm:px-6">
           <Link
             to="/"
-            className="inline-flex min-w-0 shrink items-center gap-2 font-display text-xl font-bold tracking-tight text-white hover:opacity-95 sm:gap-2.5 sm:text-2xl md:text-3xl"
+            className="inline-flex min-w-0 shrink items-center font-display text-xl font-bold tracking-tight text-white hover:opacity-95 sm:text-2xl md:text-3xl"
           >
-            <img
-              src={`${import.meta.env.BASE_URL}lab-coat.svg`}
-              alt=""
-              width={36}
-              height={36}
-              className="h-7 w-7 shrink-0 sm:h-8 sm:w-8 md:h-9 md:w-9"
-              aria-hidden
-            />
             <span>PLABoratory</span>
           </Link>
           {title ? (
@@ -46,12 +39,12 @@ export function AppShell({ children, title }: Props) {
           </div>
         </div>
         <div className="bg-brand-nav">
-          <div className="mx-auto flex w-full max-w-6xl justify-center px-4 py-2">
+          <div className="mx-auto flex w-full justify-center px-4 py-2 sm:px-6">
             <Nav onBanner />
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6">{children}</main>
+      <main className="mx-auto w-full px-4 py-6 sm:px-6">{children}</main>
     </div>
   )
 }

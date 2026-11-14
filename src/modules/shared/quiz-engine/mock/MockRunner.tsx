@@ -11,6 +11,7 @@ import { QuestionNavigator } from '@/modules/shared/quiz-engine/mock/QuestionNav
 import {
   autosaveMockProgress,
   finalizeMockSession,
+  normalizeMockProgress,
 } from '@/modules/shared/quiz-engine/mock/mockPersist'
 import { formatDuration, maybeRecordPaceSample } from '@/modules/shared/quiz-engine/pace'
 import type { GlossaryTerm, QuestionWithOptions } from '@/types/database'
@@ -37,7 +38,9 @@ export function MockRunner({
   initialProgress,
   passMarkPercent,
 }: Props) {
-  const [progress, setProgress] = useState<MockProgressState>(initialProgress)
+  const [progress, setProgress] = useState<MockProgressState>(() =>
+    normalizeMockProgress(initialProgress),
+  )
   const [phase, setPhase] = useState<Phase>('running')
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +50,8 @@ export function MockRunner({
     percent: number
     correct: number
     answered: number
+    skipped: number
+    timesChanged: number
     passed: boolean
     attemptIdByQuestionId: Record<string, string>
   } | null>(null)
@@ -68,19 +73,35 @@ export function MockRunner({
 
   const current = questions[progress.currentIndex] ?? null
   const flaggedSet = useMemo(() => new Set(progress.flagged), [progress.flagged])
+  const openedSet = useMemo(() => new Set(progress.openedIds ?? []), [progress.openedIds])
 
   const persist = useCallback(
     async (next: MockProgressState, quiet = false) => {
-      setProgress(next)
-      const { error: saveErr } = await autosaveMockProgress({ sessionId, progress: next })
+      const normalized = normalizeMockProgress(next)
+      setProgress(normalized)
+      const { error: saveErr } = await autosaveMockProgress({ sessionId, progress: normalized })
       if (saveErr) {
         setError(`Auto-save failed: ${saveErr} (kept a local backup)`)
       } else if (!quiet) {
-        setSaveHint(`Saved ${new Date(next.autosavedAt).toLocaleTimeString()}`)
+        setSaveHint(`Saved ${new Date(normalized.autosavedAt).toLocaleTimeString()}`)
       }
     },
     [sessionId],
   )
+
+  // Mark current question as opened whenever the index changes.
+  useEffect(() => {
+    if (phase !== 'running' || !current) return
+    const opened = progressRef.current.openedIds ?? []
+    if (opened.includes(current.id)) return
+    void persist(
+      {
+        ...progressRef.current,
+        openedIds: [...opened, current.id],
+      },
+      true,
+    )
+  }, [phase, current, persist])
 
   // Tick countdown + periodic pace samples / autosave
   useEffect(() => {
@@ -103,7 +124,10 @@ export function MockRunner({
     if (phase !== 'running') return
     const id = window.setInterval(() => {
       const currentProgress = progressRef.current
-      const elapsed = Math.max(0, Math.floor((Date.now() - new Date(currentProgress.startedAt).getTime()) / 1000))
+      const elapsed = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(currentProgress.startedAt).getTime()) / 1000),
+      )
       const answered = Object.keys(currentProgress.answers).length
       const withPace = {
         ...currentProgress,
@@ -163,6 +187,8 @@ export function MockRunner({
       percent: finished.percent,
       correct: finished.correct,
       answered: finished.answered,
+      skipped: finished.skipped,
+      timesChanged: finished.timesChanged,
       passed: finished.passed,
       attemptIdByQuestionId: finished.attemptIdByQuestionId,
     })
@@ -171,11 +197,20 @@ export function MockRunner({
 
   async function selectOption(optionId: string) {
     if (!current || phase !== 'running') return
+    const prev = progress.answers[current.id]
+    const answerChanges = { ...(progress.answerChanges ?? {}) }
+    if (prev && prev !== optionId) {
+      answerChanges[current.id] = (answerChanges[current.id] ?? 0) + 1
+    }
     const answers = { ...progress.answers, [current.id]: optionId }
-    // AMAYC soft cap: stop when hitting target answered count if configured as "as many"
+    const openedIds = progress.openedIds?.includes(current.id)
+      ? progress.openedIds
+      : [...(progress.openedIds ?? []), current.id]
     const next: MockProgressState = {
       ...progress,
       answers,
+      answerChanges,
+      openedIds,
       paceSamples: maybeRecordPaceSample(
         progress.paceSamples,
         elapsedSec,
@@ -196,7 +231,12 @@ export function MockRunner({
 
   async function goTo(index: number) {
     const clamped = Math.max(0, Math.min(questions.length - 1, index))
-    await persist({ ...progress, currentIndex: clamped }, true)
+    const qid = questions[clamped]?.id
+    const openedIds =
+      qid && !(progress.openedIds ?? []).includes(qid)
+        ? [...(progress.openedIds ?? []), qid]
+        : progress.openedIds
+    await persist({ ...progress, currentIndex: clamped, openedIds }, true)
   }
 
   if (phase === 'review' && resultMeta) {
@@ -208,6 +248,8 @@ export function MockRunner({
         percent={resultMeta.percent}
         correct={resultMeta.correct}
         answered={resultMeta.answered}
+        skipped={resultMeta.skipped}
+        timesChanged={resultMeta.timesChanged}
         passed={resultMeta.passed}
         passMark={passMarkPercent}
         elapsedSec={elapsedSec}
@@ -228,8 +270,7 @@ export function MockRunner({
             {mode === 'full_mock' ? 'Full Test' : 'Unlimited'}
           </p>
           <p className="text-xs text-muted">
-            Question {progress.currentIndex + 1} of {questions.length}
-            {unlimited ? ' · Finish when done' : ''}
+            {unlimited ? 'Finish when done' : 'Timed paper'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -269,35 +310,42 @@ export function MockRunner({
         />
       ) : null}
 
-      <div className="rounded-md border border-border bg-surface p-4">
-        <div className="mb-4 flex flex-col gap-3">
-          <StemWithGlossary text={current.stem} terms={glossaryTerms} />
-          {questionImageUrl(current.payload) ? (
-            <QuestionImage
-              src={questionImageUrl(current.payload)!}
-              alt="Clinical figure for this question"
-            />
-          ) : null}
-          {current.is_uk_practice ? (
-            <p className="text-xs font-medium text-accent">UK practice item</p>
-          ) : null}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1 rounded-md border border-border bg-surface p-4">
+          <div className="mb-4 flex flex-col gap-3">
+            <StemWithGlossary text={current.stem} terms={glossaryTerms} />
+            {questionImageUrl(current.payload) ? (
+              <QuestionImage
+                src={questionImageUrl(current.payload)!}
+                alt="Clinical figure for this question"
+              />
+            ) : null}
+            {current.is_uk_practice ? (
+              <p className="text-xs font-medium text-accent">UK practice item</p>
+            ) : null}
+          </div>
+          <SbaOptions
+            options={current.question_options}
+            selectedId={progress.answers[current.id] ?? null}
+            revealed={false}
+            onSelect={(id) => void selectOption(id)}
+          />
         </div>
-        <SbaOptions
-          options={current.question_options}
-          selectedId={progress.answers[current.id] ?? null}
-          revealed={false}
-          onSelect={(id) => void selectOption(id)}
+
+        <QuestionNavigator
+          total={questions.length}
+          currentIndex={progress.currentIndex}
+          answers={progress.answers}
+          flagged={flaggedSet}
+          questionIds={progress.questionIds}
+          openedIds={openedSet}
+          onJump={(i) => void goTo(i)}
+          onBack={() => void goTo(progress.currentIndex - 1)}
+          onNext={() => void goTo(progress.currentIndex + 1)}
+          canGoBack={progress.currentIndex > 0}
+          canGoNext={progress.currentIndex < questions.length - 1}
         />
       </div>
-
-      <QuestionNavigator
-        total={questions.length}
-        currentIndex={progress.currentIndex}
-        answers={progress.answers}
-        flagged={flaggedSet}
-        questionIds={progress.questionIds}
-        onJump={(i) => void goTo(i)}
-      />
 
       <div className="flex flex-wrap items-center gap-2">
         <button
@@ -318,21 +366,7 @@ export function MockRunner({
             {flaggedSet.has(current.id) ? 'Flagged' : 'Flag for Review'}
           </span>
         </button>
-        <Button
-          variant="secondary"
-          disabled={progress.currentIndex <= 0}
-          onClick={() => void goTo(progress.currentIndex - 1)}
-        >
-          Back
-        </Button>
-        <div className="ml-auto flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            disabled={progress.currentIndex >= questions.length - 1}
-            onClick={() => void goTo(progress.currentIndex + 1)}
-          >
-            Next
-          </Button>
+        <div className="ml-auto">
           <Button
             variant="danger"
             disabled={phase === 'submitting'}
@@ -340,7 +374,7 @@ export function MockRunner({
               const unanswered = questions.length - answeredCount
               const msg =
                 mode === 'full_mock'
-                  ? `Finish test now? ${unanswered} unanswered stay New (not marked missed).`
+                  ? `Finish test now? Opened unanswered become Skipped; never-opened stay New (${unanswered} unanswered).`
                   : `Finish now? You have answered ${answeredCount} of ${questions.length}.`
               if (window.confirm(msg)) void submitTest('manual')
             }}

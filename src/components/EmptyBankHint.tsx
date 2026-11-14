@@ -21,7 +21,7 @@ export function EmptyBankHint({ bankEmpty, examMissing, className }: Props) {
     <div
       className={
         className ??
-        'w-full max-w-3xl rounded-md border border-border bg-surface px-4 py-3 text-sm text-muted'
+        'w-full rounded-md border border-border bg-surface px-4 py-3 text-sm text-muted'
       }
     >
       {examMissing ? (

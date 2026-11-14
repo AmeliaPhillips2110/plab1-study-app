@@ -14,7 +14,7 @@ import type { TopicAccuracy } from '@/modules/shared/analytics/kpiMetrics'
 
 type Props = { data: TopicAccuracy[]; passMark: number }
 
-/** Distinct stack colours (bottom → top matches legend order). Skipped = yellow. */
+/** Distinct stack colours (bottom → top matches legend order). Skipped = yellow (#eab308). */
 const STACK = {
   correct: '#3d8b5a',
   incorrect: '#b54a4a',

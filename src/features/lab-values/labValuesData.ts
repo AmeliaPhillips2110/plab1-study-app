@@ -1,11 +1,6 @@
 /**
  * Embedded adult lab reference ranges for in-app study (not scraped).
- * Approximate UK adult intervals typical of teaching texts; individual
- * laboratories set their own reference ranges.
- *
- * Study references (generic textbooks / guidance — not affiliated with any
- * commercial Q-bank): Oxford Handbook of Clinical Medicine; Kumar & Clark’s
- * Clinical Medicine; standard UK foundation / MLA laboratory teaching ranges.
+ * Individual laboratories set their own reference ranges.
  */
 
 export type LabValueRow = {
@@ -20,12 +15,6 @@ export type LabValueSection = {
   title: string
   rows: LabValueRow[]
 }
-
-export const LAB_VALUES_DISCLAIMER =
-  'Adult reference ranges for study only. Values vary by laboratory, assay, age, sex, and pregnancy. Always use the reference interval printed with the result in clinical practice.'
-
-export const LAB_VALUES_CITATION =
-  'Approximate UK adult intervals drawn from common teaching references (e.g. Oxford Handbook of Clinical Medicine; Kumar & Clark). Not affiliated with, or copied from, any commercial PLAB product.'
 
 export const LAB_VALUE_SECTIONS: LabValueSection[] = [
   {

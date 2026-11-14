@@ -11,15 +11,13 @@ import {
 import { EmptyChartShell } from '@/modules/shared/analytics/charts/EmptyChartShell'
 import { CHART, tooltipStyle } from '@/modules/shared/analytics/chartTheme'
 import type { ActivitySeriesPoint } from '@/modules/shared/analytics/kpiMetrics'
+import { SKIPPED_YELLOW } from '@/types/quiz'
 
 type Props = {
   points: ActivitySeriesPoint[]
-  topicKeys: string[]
 }
 
-const TOPIC_COLORS = ['#7eb8c2', '#5fa8b4', '#a8d4db', '#2a6873', '#2f6f6a', '#337d8a', '#6fadb8', '#4a9aa6']
-
-export function ActivityOverTimeChart({ points, topicKeys }: Props) {
+export function ActivityOverTimeChart({ points }: Props) {
   if (points.length === 0) {
     return <EmptyChartShell heightClass="h-72" yDomain={[0, 10]} />
   }
@@ -49,18 +47,22 @@ export function ActivityOverTimeChart({ points, topicKeys }: Props) {
             strokeDasharray="4 3"
             dot={false}
           />
-          {topicKeys.slice(0, 5).map((key, i) => (
-            <Line
-              key={key}
-              type="monotone"
-              dataKey={key}
-              name={key.replace(/^t:/, '')}
-              stroke={TOPIC_COLORS[i % TOPIC_COLORS.length]}
-              strokeWidth={1.5}
-              strokeOpacity={0.85}
-              dot={false}
-            />
-          ))}
+          <Line
+            type="monotone"
+            dataKey="correct"
+            name="Correct"
+            stroke={CHART.correct}
+            strokeWidth={2}
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="skipped"
+            name="Skipped"
+            stroke={SKIPPED_YELLOW}
+            strokeWidth={2}
+            dot={false}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>

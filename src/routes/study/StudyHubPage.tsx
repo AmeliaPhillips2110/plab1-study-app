@@ -5,7 +5,7 @@ import { STUDY_MODES } from '@/modules/plab1/modeRoutes'
 export function StudyHubPage() {
   return (
     <AppShell title="Practice">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <p className="text-center text-sm text-muted">
           Choose a practice mode. Each option opens ready to start.
         </p>

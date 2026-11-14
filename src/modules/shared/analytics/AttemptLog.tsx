@@ -71,7 +71,8 @@ function scoreLabel(row: AttemptLogRow): string {
 function titleTone(result: string): string {
   if (result === 'correct') return 'text-correct'
   if (result === 'incorrect' || result === 'partial') return 'text-incorrect'
-  return 'text-neutral-400'
+  if (result === 'skipped') return 'text-[#854d0e]'
+  return 'text-muted'
 }
 
 function parseScope(raw: string | null): AttemptsScope {
@@ -334,7 +335,9 @@ export function AttemptLog({ userId, examId }: Props) {
                               ? 'correct'
                               : r.result === 'incorrect'
                                 ? 'incorrect'
-                                : 'neutral'
+                                : r.result === 'skipped'
+                                  ? 'skipped'
+                                  : 'neutral'
                           }
                         >
                           {r.result === 'skipped' ? 'Skipped' : r.result === 'correct' ? 'Correct' : 'Incorrect'}
@@ -395,7 +398,9 @@ export function AttemptLog({ userId, examId }: Props) {
                               ? 'correct'
                               : r.result === 'incorrect'
                                 ? 'incorrect'
-                                : 'neutral'
+                                : r.result === 'skipped'
+                                  ? 'skipped'
+                                  : 'neutral'
                           }
                         >
                           {r.result}
@@ -424,6 +429,16 @@ export function AttemptLog({ userId, examId }: Props) {
                               .join(', ')}
                       </dd>
                     </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-muted">Times Changed</dt>
+                      <dd className="font-medium">
+                        {(() => {
+                          const payload = (r.response_payload ?? {}) as { answerChanges?: unknown }
+                          const n = payload.answerChanges
+                          return typeof n === 'number' && n > 0 ? String(n) : '0'
+                        })()}
+                      </dd>
+                    </div>
                   </dl>
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 text-sm">
@@ -439,7 +454,7 @@ export function AttemptLog({ userId, examId }: Props) {
                     className="text-accent hover:underline"
                     to={`/attempts/question/${r.question_id}?highlight=${r.id}`}
                   >
-                    Position On Timeline
+                    Question Timeline
                   </Link>
                 </div>
               </li>

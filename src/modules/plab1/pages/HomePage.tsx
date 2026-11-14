@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
+import { Button } from '@/components/ui/Button'
 import { EmptyBankHint } from '@/components/EmptyBankHint'
 import { useAuth } from '@/hooks/useAuth'
 import { useExam } from '@/hooks/useExam'
@@ -11,6 +12,7 @@ import { sortTopicsByName } from '@/lib/topics'
 import { fetchAttemptLog } from '@/modules/shared/analytics/attemptQueries'
 import { formatDurationHours } from '@/modules/shared/analytics/kpiMetrics'
 import { countActiveSba } from '@/modules/shared/quiz-engine/mock/mockPersist'
+import { SKIPPED_YELLOW } from '@/types/quiz'
 
 type TopicStack = {
   correct: number
@@ -124,16 +126,16 @@ export function HomePage() {
 
   return (
     <AppShell title="Home">
-      <div className="flex flex-col items-center gap-8">
+      <div className="flex w-full flex-col gap-8">
         {!schemaMissing && error ? (
-          <p className="w-full max-w-5xl rounded-md border border-incorrect/40 bg-incorrect/10 px-3 py-2 text-center text-sm text-incorrect">
+          <p className="w-full rounded-md border border-incorrect/40 bg-incorrect/10 px-3 py-2 text-center text-sm text-incorrect">
             {error}
           </p>
         ) : null}
 
         <EmptyBankHint examMissing={examMissing} bankEmpty={bankEmpty} />
 
-        <section className="w-full max-w-5xl" aria-label="Study overview">
+        <section className="w-full" aria-label="Study overview">
           <div className="grid w-full gap-3 sm:grid-cols-3">
             <div className="rounded-md border border-accent/30 bg-accent-subtle px-4 py-5 text-center">
               <p className="font-display text-4xl font-bold text-accent sm:text-5xl">{daysLeft}</p>
@@ -156,10 +158,46 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="w-full max-w-5xl rounded-md border border-border bg-surface p-4">
+        <section
+          className="w-full rounded-md border border-accent/25 bg-accent-subtle/40 px-4 py-5"
+          aria-label="Quick practice"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
+              <h2 className="font-display text-lg font-semibold text-accent">Daily practice</h2>
+              <p className="text-sm text-muted">
+                Spaced reviews due today, mixed with recent mistakes — missed days roll forward.
+              </p>
+              <Link to="/study/daily-questions" className="mt-auto pt-2">
+                <Button className="w-full sm:w-auto">Start daily practice</Button>
+              </Link>
+            </div>
+            <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-4">
+              <h2 className="font-display text-lg font-semibold text-accent">Suggestions</h2>
+              <p className="text-sm text-muted">
+                Jump into weak topics, most-missed items, or error drills from your history.
+              </p>
+              <div className="mt-auto flex flex-wrap gap-2 pt-2">
+                <Link to="/study/most-missed">
+                  <Button>Most missed</Button>
+                </Link>
+                <Link to="/study/error-tests">
+                  <Button variant="secondary">Error tests</Button>
+                </Link>
+                <Link to="/study/spaced-review">
+                  <Button variant="secondary">Spaced review</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="w-full rounded-md border border-border bg-surface p-4">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h2 className="font-display text-lg font-semibold">Topics</h2>
+              <h2 className="font-display text-lg font-semibold">
+                Topics{topicsAz.length > 0 ? ` (${topicsAz.length})` : ''}
+              </h2>
               <Link to="/study/topics" className="text-sm text-accent hover:underline">
                 Practise by topic →
               </Link>
@@ -174,7 +212,11 @@ export function HomePage() {
                 Incorrect
               </li>
               <li className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[#eab308]" aria-hidden />
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-sm"
+                  style={{ backgroundColor: SKIPPED_YELLOW }}
+                  aria-hidden
+                />
                 Skipped
               </li>
               <li className="inline-flex items-center gap-1.5">
@@ -191,54 +233,52 @@ export function HomePage() {
               Supabase, then hard-refresh.
             </p>
           ) : (
-            <>
-              <p className="mb-3 text-xs text-muted">
-                {topicsAz.length} specialties · A–Z · empty topics still listed
-              </p>
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {topicsAz.map((t) => {
-                  const s = topicStacks[t.id]
-                  const total =
-                    (s?.correct ?? 0) +
-                    (s?.incorrect ?? 0) +
-                    (s?.skipped ?? 0) +
-                    (s?.unanswered ?? 1)
-                  const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0)
-                  return (
-                    <li key={t.id} className="rounded border border-border px-3 py-2">
-                      <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
-                        <span className="font-medium">{t.name}</span>
-                        <span className="tabular-nums text-muted">
-                          {s?.pctCorrect == null ? '—' : `${s.pctCorrect}%`}
-                        </span>
-                      </div>
-                      <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-[#ece7df]">
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.correct ?? 0)}%`, backgroundColor: '#3d8b5a' }}
-                          title="Correct"
-                        />
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.incorrect ?? 0)}%`, backgroundColor: '#b54a4a' }}
-                          title="Incorrect"
-                        />
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.skipped ?? 0)}%`, backgroundColor: '#eab308' }}
-                          title="Skipped"
-                        />
-                        <div
-                          className="h-full"
-                          style={{ width: `${pct(s?.unanswered ?? 1)}%`, backgroundColor: '#737373' }}
-                          title="Unanswered"
-                        />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {topicsAz.map((t) => {
+                const s = topicStacks[t.id]
+                const total =
+                  (s?.correct ?? 0) +
+                  (s?.incorrect ?? 0) +
+                  (s?.skipped ?? 0) +
+                  (s?.unanswered ?? 1)
+                const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0)
+                return (
+                  <li key={t.id} className="rounded border border-border px-3 py-2">
+                    <div className="mb-1.5 flex items-center justify-between gap-2 text-sm">
+                      <span className="font-medium">{t.name}</span>
+                      <span className="tabular-nums text-muted">
+                        {s?.pctCorrect == null ? '—' : `${s.pctCorrect}%`}
+                      </span>
+                    </div>
+                    <div className="flex h-2.5 overflow-hidden rounded-full border border-border/60 bg-[#ece7df]">
+                      <div
+                        className="h-full"
+                        style={{ width: `${pct(s?.correct ?? 0)}%`, backgroundColor: '#3d8b5a' }}
+                        title="Correct"
+                      />
+                      <div
+                        className="h-full"
+                        style={{ width: `${pct(s?.incorrect ?? 0)}%`, backgroundColor: '#b54a4a' }}
+                        title="Incorrect"
+                      />
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${pct(s?.skipped ?? 0)}%`,
+                          backgroundColor: SKIPPED_YELLOW,
+                        }}
+                        title="Skipped"
+                      />
+                      <div
+                        className="h-full"
+                        style={{ width: `${pct(s?.unanswered ?? 1)}%`, backgroundColor: '#737373' }}
+                        title="Unanswered"
+                      />
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
           )}
         </section>
       </div>

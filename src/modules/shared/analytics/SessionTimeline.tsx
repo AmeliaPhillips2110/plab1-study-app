@@ -19,7 +19,8 @@ type Props = {
 function titleTone(result: string): string {
   if (result === 'correct') return 'text-correct'
   if (result === 'incorrect' || result === 'partial') return 'text-incorrect'
-  return 'text-neutral-400'
+  if (result === 'skipped') return 'text-[#854d0e]'
+  return 'text-muted'
 }
 
 export function SessionTimeline({ userId, examId, sessionId }: Props) {
@@ -75,7 +76,9 @@ export function SessionTimeline({ userId, examId, sessionId }: Props) {
                   ? 'bg-correct'
                   : r.result === 'incorrect'
                     ? 'bg-incorrect'
-                    : 'bg-neutral-400',
+                    : r.result === 'skipped'
+                      ? 'bg-[#eab308]'
+                      : 'bg-neutral-400',
               )}
             />
             <div className="rounded-md border border-border bg-surface p-3">
@@ -87,7 +90,9 @@ export function SessionTimeline({ userId, examId, sessionId }: Props) {
                       ? 'correct'
                       : r.result === 'incorrect'
                         ? 'incorrect'
-                        : 'neutral'
+                        : r.result === 'skipped'
+                          ? 'skipped'
+                          : 'neutral'
                   }
                 >
                   {r.result === 'skipped'
@@ -117,7 +122,7 @@ export function SessionTimeline({ userId, examId, sessionId }: Props) {
                 className="mt-2 inline-block text-xs text-accent hover:underline"
                 to={`/attempts/question/${r.question_id}?highlight=${r.id}`}
               >
-                Position On Question Timeline
+                Question Timeline
               </Link>
             </div>
           </li>

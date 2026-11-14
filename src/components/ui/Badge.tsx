@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn'
 
 type Props = {
   children: ReactNode
-  tone?: 'neutral' | 'accent' | 'correct' | 'incorrect'
+  tone?: 'neutral' | 'accent' | 'correct' | 'incorrect' | 'skipped'
   className?: string
 }
 
@@ -16,6 +16,7 @@ export function Badge({ children, tone = 'neutral', className }: Props) {
         tone === 'accent' && 'bg-accent text-white',
         tone === 'correct' && 'bg-correct/15 text-correct',
         tone === 'incorrect' && 'bg-incorrect/15 text-incorrect',
+        tone === 'skipped' && 'bg-[#eab308]/25 text-[#854d0e]',
         className,
       )}
     >

@@ -468,50 +468,48 @@ export type ActivitySeriesPoint = {
   label: string
   total: number
   errors: number
+  correct: number
+  skipped: number
   percentCorrect: number | null
-  [topicKey: string]: string | number | null
 }
 
 export function computeActivityOverTime(
   attempts: AttemptLogRow[],
-  topics: Topic[],
+  _topics?: Topic[],
 ): { points: ActivitySeriesPoint[]; topicKeys: string[] } {
-  const topicNames = topics.map((t) => t.name).slice(0, 8)
-  const byDay = new Map<string, { total: number; errors: number; correct: number; graded: number; byTopic: Map<string, number> }>()
+  const byDay = new Map<
+    string,
+    { total: number; errors: number; correct: number; skipped: number; graded: number }
+  >()
 
   for (const a of attempts) {
     const d = dayKey(a.answered_at)
     const row =
       byDay.get(d) ??
-      ({ total: 0, errors: 0, correct: 0, graded: 0, byTopic: new Map() })
+      ({ total: 0, errors: 0, correct: 0, skipped: 0, graded: 0 })
     row.total += 1
-    if (a.result === 'incorrect') row.errors += 1
-    if (a.result === 'correct' || a.result === 'incorrect') {
+    if (a.result === 'incorrect' || a.result === 'partial') row.errors += 1
+    if (a.result === 'skipped') row.skipped += 1
+    if (a.result === 'correct' || a.result === 'incorrect' || a.result === 'partial') {
       row.graded += 1
       if (a.result === 'correct') row.correct += 1
     }
-    const topic = a.topics?.name
-    if (topic) row.byTopic.set(topic, (row.byTopic.get(topic) ?? 0) + 1)
     byDay.set(d, row)
   }
 
   const points = [...byDay.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, v]) => {
-      const point: ActivitySeriesPoint = {
-        date,
-        label: formatDdMm(date),
-        total: v.total,
-        errors: v.errors,
-        percentCorrect: v.graded ? Math.round((v.correct / v.graded) * 1000) / 10 : null,
-      }
-      for (const name of topicNames) {
-        point[`t:${name}`] = v.byTopic.get(name) ?? 0
-      }
-      return point
-    })
+    .map(([date, v]) => ({
+      date,
+      label: formatDdMm(date),
+      total: v.total,
+      errors: v.errors,
+      correct: v.correct,
+      skipped: v.skipped,
+      percentCorrect: v.graded ? Math.round((v.correct / v.graded) * 1000) / 10 : null,
+    }))
 
-  return { points, topicKeys: topicNames.map((n) => `t:${n}`) }
+  return { points, topicKeys: [] }
 }
 
 export type HourActivity = { hour: string; total: number; errors: number }
