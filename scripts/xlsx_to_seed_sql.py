@@ -47,6 +47,7 @@ TOPICS: dict[str, tuple[str, str]] = {
     "haematology": ("014", "Haematology"),
     "human-factors-quality-improvement": ("028", "Human Factors and Quality Improvement"),
     "infectious-disease": ("010", "Infectious Disease"),
+    "maxillofacial-surgery": ("037", "Maxillofacial Surgery"),
     "medicine-older-adult": ("029", "Medicine of the Older Adult"),
     "psychiatry": ("007", "Mental Health"),
     "musculoskeletal": ("011", "Musculoskeletal"),
@@ -108,6 +109,10 @@ TOPIC_ALIASES: dict[str, str] = {
     "sexual health genitourinary medicine": "sexual-health",
     "social and population health epidemiology": "social-population-health",
     "surgery": "surgery",
+    "maxillofacial surgery": "maxillofacial-surgery",
+    "oral and maxillofacial surgery": "maxillofacial-surgery",
+    "maxillofacial": "maxillofacial-surgery",
+    "omfs": "maxillofacial-surgery",
     # Extra aliases
     "acute medicine": "acute-emergency-medicine",
     "emergency medicine": "acute-emergency-medicine",

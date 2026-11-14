@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { HomePage } from '@/modules/plab1/pages/HomePage'
 import { LoginPage } from '@/routes/login'
@@ -19,6 +20,10 @@ import { AdminComparisonPage } from '@/routes/admin/AdminComparisonPage'
 import { AdminGlossaryPage } from '@/routes/admin/AdminGlossaryPage'
 import { GlossaryPage } from '@/routes/glossary/GlossaryPage'
 import { AccountPage } from '@/routes/account/AccountPage'
+
+const AdminImportPage = lazy(() =>
+  import('@/routes/admin/AdminImportPage').then((m) => ({ default: m.AdminImportPage })),
+)
 
 export function AppRoutes() {
   return (
@@ -48,6 +53,14 @@ export function AppRoutes() {
       <Route element={<RequireAdmin />}>
         <Route path="/admin" element={<AdminHomePage />} />
         <Route path="/admin/questions" element={<AdminQuestionsPage />} />
+        <Route
+          path="/admin/import"
+          element={
+            <Suspense fallback={<p className="p-6 text-sm text-muted">Loading import…</p>}>
+              <AdminImportPage />
+            </Suspense>
+          }
+        />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/comparison" element={<AdminComparisonPage />} />
