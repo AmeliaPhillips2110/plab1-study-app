@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Convert PLAB_1_Question_Bank.xlsx → paste-ready Supabase SQL.
+"""Convert PLAB_1_Question_Bank[_N].xlsx → paste-ready Supabase SQL.
 
 Usage:
   python3 scripts/xlsx_to_seed_sql.py [path/to/PLAB_1_Question_Bank.xlsx] \\
       [-o supabase/seed_question_bank.sql]
+
+Source tag from filename: Bank / Bank_2 / Bank_3 / Bank_4 / Bank_6 / Bank_7
+→ plab1-xlsx / -v2 / -v3 / -v4 / -v6 / -v7 (also PLAB1_Question_Bank_N.xlsx).
 
 Looks for the workbook in (first hit wins):
   1) CLI path
@@ -65,6 +68,7 @@ TOPICS: dict[str, tuple[str, str]] = {
     "surgery": ("030", "Surgery"),
     "urology": ("031", "Urology"),
     "vascular": ("032", "Vascular"),
+    "maxillofacial-surgery": ("037", "Maxillofacial Surgery"),
 }
 
 # Exact / near-exact specialty labels from the Excel Category column (and common aliases).
@@ -87,6 +91,7 @@ TOPIC_ALIASES: dict[str, str] = {
     "dermatology": "dermatology",
     "ear nose and throat ent": "ent",
     "endocrine diabetes and metabolic": "endocrine",
+    "endocrine diabetes metabolic": "endocrine",
     "gastrointestinal including liver": "gastroenterology",
     "general practice and primary healthcare": "general-practice-primary-healthcare",
     "genetics and genomics": "genetics-genomics",
@@ -135,7 +140,9 @@ TOPIC_ALIASES: dict[str, str] = {
     "mental health": "psychiatry",
     "psychiatry": "psychiatry",
     "musculoskeletal": "musculoskeletal",
-    "orthopaedics": "musculoskeletal",
+    # Bank 6 lists Orthopaedics and Musculoskeletal separately — keep Orthopaedics on its own topic.
+    "orthopaedics": "orthopaedics",
+    "orthopedics": "orthopaedics",
     "neurosciences": "neurology",
     "neurology": "neurology",
     "paediatrics": "paediatrics",
@@ -145,6 +152,7 @@ TOPIC_ALIASES: dict[str, str] = {
     "palliative care and end of life": "palliative-end-of-life-care",
     "anaesthesia": "perioperative-anaesthesia",
     "perioperative": "perioperative-anaesthesia",
+    "perioperative and anaesthesia": "perioperative-anaesthesia",
     "renal": "renal",
     "nephrology": "renal",
     "urology": "urology",
@@ -153,6 +161,13 @@ TOPIC_ALIASES: dict[str, str] = {
     "public health": "social-population-health",
     "epidemiology": "social-population-health",
     "vascular": "vascular",
+    "maxillofacial surgery": "maxillofacial-surgery",
+    "maxillofacial": "maxillofacial-surgery",
+    "oral and maxillofacial surgery": "maxillofacial-surgery",
+    "omfs": "maxillofacial-surgery",
+    "human factors and quality improvement": "human-factors-quality-improvement",
+    "human factors": "human-factors-quality-improvement",
+    "quality improvement": "human-factors-quality-improvement",
 }
 
 
@@ -324,7 +339,22 @@ def main() -> int:
     i_uk = pick_col(headers, "uk practice", "uk", "is uk practice", "uk_practice")
     i_guidelines = pick_col(headers, "guidelines", "guideline", "nice", "refs", "references")
     i_image = pick_col(headers, "image", "image url", "figure", "img", "picture")
-    source_tag = "plab1-xlsx-v2" if "2" in path.stem or "bank_2" in path.name.lower() else "plab1-xlsx"
+    # Detect bank version from filename (PLAB_1_Question_Bank[_N].xlsx or PLAB1_Question_Bank_N.xlsx).
+    # Check higher versions first so Bank_7 does not match a bare digit pattern for 6/4/3/2.
+    name_l = path.name.lower()
+    stem_l = path.stem.lower()
+    if re.search(r"(?:bank[_-]?)?7\b", stem_l) or "bank_7" in name_l or stem_l.endswith("_7"):
+        source_tag = "plab1-xlsx-v7"
+    elif re.search(r"(?:bank[_-]?)?6\b", stem_l) or "bank_6" in name_l or stem_l.endswith("_6"):
+        source_tag = "plab1-xlsx-v6"
+    elif re.search(r"(?:bank[_-]?)?4\b", stem_l) or "bank_4" in name_l or stem_l.endswith("_4"):
+        source_tag = "plab1-xlsx-v4"
+    elif re.search(r"(?:bank[_-]?)?3\b", stem_l) or "bank_3" in name_l or stem_l.endswith("_3"):
+        source_tag = "plab1-xlsx-v3"
+    elif re.search(r"(?:bank[_-]?)?2\b", stem_l) or "bank_2" in name_l or stem_l.endswith("_2"):
+        source_tag = "plab1-xlsx-v2"
+    else:
+        source_tag = "plab1-xlsx"
 
     if i_stem is None or i_a is None or i_b is None or i_c is None or i_d is None or i_e is None:
         print(
