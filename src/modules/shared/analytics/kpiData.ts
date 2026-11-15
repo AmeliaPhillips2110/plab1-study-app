@@ -32,7 +32,8 @@ export async function fetchKpiBundle(params: {
       .from('questions')
       .select('id', { count: 'exact', head: true })
       .eq('exam_id', params.examId)
-      .eq('is_active', true),
+      .eq('is_active', true)
+      .eq('question_type', 'sba'),
   ])
 
   if (attemptsRes.error) {

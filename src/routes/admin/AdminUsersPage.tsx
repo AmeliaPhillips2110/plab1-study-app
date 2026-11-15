@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { Badge } from '@/components/ui/Badge'
 import { emailToUsername } from '@/features/auth/username'
@@ -67,7 +68,19 @@ where display_name = 'amelia';
                   <p className="font-medium">{userLabel}</p>
                   <p className="truncate text-xs text-muted">User · {userLabel}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    to={`/admin/users/${p.id}/kpis`}
+                    className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-xs font-medium hover:border-accent"
+                  >
+                    View KPIs
+                  </Link>
+                  <Link
+                    to={`/admin/users/${p.id}/topics`}
+                    className="rounded-md border border-border bg-bg px-2.5 py-1.5 text-xs font-medium hover:border-accent"
+                  >
+                    View topics
+                  </Link>
                   <Badge tone={p.role === 'admin' ? 'accent' : 'neutral'}>{p.role}</Badge>
                   <span className="text-xs text-muted">{formatDateTime(p.created_at)}</span>
                 </div>

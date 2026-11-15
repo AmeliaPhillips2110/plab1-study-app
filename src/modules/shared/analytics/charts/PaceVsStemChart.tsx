@@ -61,8 +61,14 @@ export function PaceVsStemChart({ points, buckets }: Props) {
             <CartesianGrid stroke={CHART.grid} strokeDasharray="3 3" />
             <XAxis dataKey="bucket" tick={{ fill: CHART.muted, fontSize: 10 }} />
             <YAxis tick={{ fill: CHART.muted, fontSize: 11 }} />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="avgSeconds" name="Avg Seconds" fill={CHART.accent} radius={[4, 4, 0, 0]} />
+            <Tooltip contentStyle={tooltipStyle} cursor={false} />
+            <Bar
+              dataKey="avgSeconds"
+              name="Avg Seconds"
+              fill={CHART.accent}
+              radius={[4, 4, 0, 0]}
+              activeBar={false}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -83,7 +89,7 @@ export function PaceVsStemChart({ points, buckets }: Props) {
               name="Seconds"
               tick={{ fill: CHART.muted, fontSize: 11 }}
             />
-            <Tooltip contentStyle={tooltipStyle} cursor={{ strokeDasharray: '3 3' }} />
+            <Tooltip contentStyle={tooltipStyle} cursor={false} />
             <Scatter
               name="Attempts"
               data={points.slice(0, 200)}

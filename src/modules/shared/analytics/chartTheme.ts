@@ -6,6 +6,7 @@ export const CHART = {
   accentHover: '#2a6873',
   correct: '#2f6f6a',
   incorrect: '#b54a4a',
+  skipped: '#eab308',
   muted: '#737373',
   border: '#404040',
   grid: '#262626',

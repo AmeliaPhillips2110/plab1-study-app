@@ -299,10 +299,10 @@ export function KpiDashboard({
       </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Time Of Day Activity" subtitle="Attempts And Errors By Hour">
+        <Panel title="Time Of Day Activity" subtitle="Attempts, Mistakes, And Skipped By Hour">
           <TimeOfDayChart data={derived.timeOfDay} />
         </Panel>
-        <Panel title="Day Of Week Activity" subtitle="Attempts And Errors By Weekday">
+        <Panel title="Day Of Week Activity" subtitle="Attempts, Mistakes, And Skipped By Weekday">
           <DayOfWeekChart data={derived.dayOfWeek} />
         </Panel>
       </div>

@@ -5,6 +5,7 @@ import {
   PATIENT_CENTRED_TAG,
   UK_PRACTICE_TAG,
 } from '@/features/tags/tagsApi'
+import { fetchAllPaged, SUPABASE_PAGE_SIZE } from '@/lib/pagedQuery'
 import { supabase } from '@/lib/supabase'
 import { shuffleInPlace } from '@/modules/shared/quiz-engine/scoring'
 import type { AttemptResult, QuestionWithOptions, WeaknessVariant } from '@/types/database'
@@ -50,17 +51,8 @@ export async function selectQuestionsForSession(
     return selectFlaggedQuestions(config.examId, userId, limit)
   }
 
-  let query = supabase
-    .from('questions')
-    .select('*, question_options(*)')
-    .eq('exam_id', config.examId)
-    .eq('is_active', true)
-
-  if (config.sessionType === 'topic') {
-    if (!config.topicId) {
-      return { questions: [], error: 'Choose a topic for topic practice.' }
-    }
-    query = query.eq('topic_id', config.topicId)
+  if (config.sessionType === 'topic' && !config.topicId) {
+    return { questions: [], error: 'Choose a topic for topic practice.' }
   }
 
   if (config.sessionType === 'flashcard' || config.presentationFormat === 'flashcard') {
@@ -91,22 +83,45 @@ export async function selectQuestionsForSession(
     }
   }
 
-  if (config.sessionType === 'flashcard') {
-    query = query.in('question_type', ['sba', 'flashcard'])
-  } else if (config.presentationFormat !== 'flashcard') {
-    query = query.eq('question_type', 'sba')
-  }
-
-  if (config.ukPracticeOnly) {
-    query = query.eq('is_uk_practice', true)
+  const buildBankQuery = () => {
+    let q = supabase
+      .from('questions')
+      .select('*, question_options(*)')
+      .eq('exam_id', config.examId)
+      .eq('is_active', true)
+      .order('id', { ascending: true })
+    if (config.sessionType === 'topic' && config.topicId) {
+      q = q.eq('topic_id', config.topicId)
+    }
+    if (config.sessionType === 'flashcard') {
+      q = q.in('question_type', ['sba', 'flashcard'])
+    } else if (config.presentationFormat !== 'flashcard') {
+      q = q.eq('question_type', 'sba')
+    }
+    if (config.ukPracticeOnly) {
+      q = q.eq('is_uk_practice', true)
+    }
+    return q
   }
 
   // Unseen / open modes need the full bank so filtering “never answered” is accurate.
-  const fetchCap = config.unseenOnly || config.openEnded ? 10_000 : 300
-  const { data, error } = await query.limit(fetchCap)
-  if (error) return { questions: [], error: error.message }
-
-  let pool = asQuestions(data)
+  // PostgREST caps a single response at ~1000 rows — page when we need more.
+  const needFullBank = Boolean(config.unseenOnly || config.openEnded)
+  let pool: QuestionWithOptions[]
+  if (needFullBank) {
+    const { rows, error } = await fetchAllPaged<unknown>((from, to) =>
+      buildBankQuery().range(from, to) as PromiseLike<{
+        data: unknown[] | null
+        error: { message: string } | null
+      }>,
+    )
+    if (error) return { questions: [], error }
+    pool = asQuestions(rows)
+  } else {
+    const { data, error } = await buildBankQuery().limit(Math.min(300, SUPABASE_PAGE_SIZE))
+    if (error) return { questions: [], error: error.message }
+    pool = asQuestions(data)
+  }
 
   if (config.unseenOnly) {
     pool = await filterUnseen(pool, userId)
