@@ -17,20 +17,33 @@ export function QuestionList({ examId, topics }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<QuestionWithOptions | null | 'new'>(null)
 
+  const [totalCount, setTotalCount] = useState<number | null>(null)
+
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const { data, error: qErr } = await supabase
-      .from('questions')
-      .select('*, question_options(*), topics(*)')
-      .eq('exam_id', examId)
-      .order('created_at', { ascending: false })
+    const [{ data, error: qErr }, { count, error: cErr }] = await Promise.all([
+      supabase
+        .from('questions')
+        .select('*, question_options(*), topics(*)')
+        .eq('exam_id', examId)
+        .order('created_at', { ascending: false })
+        .limit(1000),
+      supabase
+        .from('questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('exam_id', examId)
+        .eq('is_active', true)
+        .eq('question_type', 'sba'),
+    ])
 
     if (qErr) {
       setError(qErr.message)
       setItems([])
+      setTotalCount(null)
     } else {
       setItems((data as unknown as QuestionWithOptions[]) ?? [])
+      setTotalCount(cErr ? null : (count ?? 0))
     }
     setLoading(false)
   }, [examId])
@@ -67,7 +80,13 @@ export function QuestionList({ examId, topics }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted">{items.length} question{items.length === 1 ? '' : 's'}</p>
+        <p className="text-sm text-muted">
+          {totalCount == null
+            ? `${items.length} listed`
+            : `${totalCount.toLocaleString()} active SBA${totalCount === 1 ? '' : 's'}${
+                items.length < totalCount ? ` · showing latest ${items.length}` : ''
+              }`}
+        </p>
         <Button onClick={() => setEditing('new')}>Add question</Button>
       </div>
 

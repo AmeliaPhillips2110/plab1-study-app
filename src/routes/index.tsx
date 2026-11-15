@@ -6,6 +6,8 @@ import { AdminHomePage } from '@/routes/admin/AdminHomePage'
 import { AdminQuestionsPage } from '@/routes/admin/AdminQuestionsPage'
 import { AdminSettingsPage } from '@/routes/admin/AdminSettingsPage'
 import { AdminUsersPage } from '@/routes/admin/AdminUsersPage'
+import { AdminUserKpisPage } from '@/routes/admin/AdminUserKpisPage'
+import { AdminUserTopicsPage } from '@/routes/admin/AdminUserTopicsPage'
 import { SetupHintPage } from '@/routes/SetupHintPage'
 import { StudyHubPage } from '@/routes/study/StudyHubPage'
 import { StudyModePage } from '@/routes/study/StudyModePage'
@@ -50,6 +52,8 @@ export function AppRoutes() {
         <Route path="/admin/questions" element={<AdminQuestionsPage />} />
         <Route path="/admin/settings" element={<AdminSettingsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route path="/admin/users/:userId/kpis" element={<AdminUserKpisPage />} />
+        <Route path="/admin/users/:userId/topics" element={<AdminUserTopicsPage />} />
         <Route path="/admin/comparison" element={<AdminComparisonPage />} />
         <Route path="/admin/glossary" element={<AdminGlossaryPage />} />
       </Route>

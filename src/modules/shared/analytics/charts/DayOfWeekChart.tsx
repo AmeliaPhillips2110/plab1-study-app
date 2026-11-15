@@ -47,6 +47,15 @@ export function DayOfWeekChart({ data }: Props) {
             dot={{ r: 3 }}
             isAnimationActive
           />
+          <Line
+            type="monotone"
+            dataKey="skipped"
+            name="Skipped"
+            stroke={CHART.skipped}
+            strokeWidth={2}
+            dot={{ r: 3 }}
+            isAnimationActive
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>

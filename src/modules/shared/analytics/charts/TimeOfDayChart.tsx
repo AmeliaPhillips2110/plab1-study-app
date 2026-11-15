@@ -47,6 +47,15 @@ export function TimeOfDayChart({ data }: Props) {
             dot={false}
             isAnimationActive
           />
+          <Line
+            type="monotone"
+            dataKey="skipped"
+            name="Skipped"
+            stroke={CHART.skipped}
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
